@@ -130,11 +130,25 @@ public interface FiniteMap extends MathObject {
     FiniteMap forEach(Function<MathObject, MathObject> f);
 
     static FiniteMap from(Map<MathObject,MathObject> map, int minLen){
-        //TODO detect (partial) tuples
         if(map.isEmpty()){
             return FiniteMap.EMPTY_MAP;
         }else{
-            return new FiniteMultiMap(map,minLen);
+            boolean isTuple=true;
+            for(int i = 0; i<map.size(); i++){
+                if(!map.containsKey(Real.from(i))){
+                    isTuple=false;
+                    break;
+                }
+            }
+            if(isTuple){//tuple detection
+                MathObject[] tupleData=new MathObject[map.size()];
+                for(int i = 0; i<map.size(); i++){
+                    tupleData[i]=map.get(Real.from(i));
+                }
+                return Tuple.create(tupleData);
+            }else {
+                return new FiniteMultiMap(map, minLen);
+            }
         }
     }
     static FiniteMap forEach(FiniteMap m1, FiniteMap m2, BiFunction<MathObject, MathObject, MathObject> f) {

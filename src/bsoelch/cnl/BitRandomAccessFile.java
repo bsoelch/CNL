@@ -5,6 +5,8 @@ import org.jetbrains.annotations.NotNull;
 import java.io.*;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 
 public class BitRandomAccessFile implements BitRandomAccessStream {
@@ -314,8 +316,6 @@ public class BitRandomAccessFile implements BitRandomAccessStream {
         write(bits,0,count);
     }
 
-    //TODO? copy(long[]/byte[] source,off,len,byte[]/long[] target,off,len)
-
     @Override
     public void writeBigInt(BigInteger value, int headerLength, int blockLength, int bigBlockLength) throws IOException {
         if(value.signum()<0)
@@ -455,12 +455,12 @@ public class BitRandomAccessFile implements BitRandomAccessStream {
         synchronized (readerCache) {
             Reader cached = readerCache.get(charset);
             if (cached == null) {
-                cached = new InputStreamReader(new InputStream() {
+                cached = new InputStreamReader(new InputStream() {//TODO replace with Implementation without caching
                     @Override
                     public int read() throws IOException {
                         return readByte();
                     }
-                    //TODO read multiple
+
                     @Override
                     public void close() throws IOException {
                         super.close();
@@ -476,12 +476,21 @@ public class BitRandomAccessFile implements BitRandomAccessStream {
         synchronized (writerCache){
             Writer cached = writerCache.get(charset);
             if (cached == null) {
-                cached =new OutputStreamWriter(new OutputStream() {
+                cached =new OutputStreamWriter(new OutputStream() {//TODO replace with Implementation without caching
                     @Override
                     public void write(int aByte) throws IOException {
                         writeByte(aByte);
                     }
-                    //TODO write multiple
+
+                    @Override
+                    public void write(byte[] b, int off, int len) throws IOException {
+                        long[] longBuffer=new long[len/8+1];
+                        for(int i=0;i<len;i++){
+                            longBuffer[i/8]|=(b[i+off]&0xffL)<<(8*(i%8));
+                        }
+                        BitRandomAccessFile.this.write(longBuffer,0,len*8L);
+                    }
+
                     @Override
                     public void close() throws IOException {
                         super.close();

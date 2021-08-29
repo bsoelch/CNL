@@ -35,6 +35,6 @@ public class Input implements Action {
     }
 
     public ValuePointer read() {
-        return Translator.ZERO;//TODO handle import
+        return Translator.ZERO;//TODO handle input
     }
 }

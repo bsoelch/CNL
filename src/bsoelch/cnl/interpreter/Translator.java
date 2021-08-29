@@ -6,6 +6,7 @@ import bsoelch.cnl.Constants;
 import bsoelch.cnl.Main;
 import bsoelch.cnl.math.*;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static bsoelch.cnl.Constants.*;
 
@@ -348,9 +349,9 @@ public class Translator {
         }
     }
 
-    //TODO? pass RA-file as arg if available and saves positions
-    static Action nextAction(Reader code,ProgramEnvironment env, ExecutionEnvironment exEnv, boolean isTopLayer) throws IOException {
+    static Action nextAction(Reader code, @Nullable BitRandomAccessStream bitCode, ProgramEnvironment env, ExecutionEnvironment exEnv, boolean isTopLayer) throws IOException {
         String str;
+        Interpreter.CodePosition prevPos=bitCode==null?NO_POS:new Interpreter.CodePosition(bitCode,bitCode.bitPos(),true);
         do {
             str=nextElement(code);
             if (str == null)
@@ -438,7 +439,7 @@ public class Translator {
             BigInteger id=new BigInteger(params.substring(params.indexOf(',')+1));
             if(args.signum()==-1)
                 throw new IllegalArgumentException("Negative Id");
-            return new FunctionDeclaration(id,new Function(env,NO_POS,args.intValueExact()));
+            return new FunctionDeclaration(id,new Function(env,bitCode==null?NO_POS:new Interpreter.CodePosition(bitCode,bitCode.bitPos(),true),args.intValueExact()));
         }else if(str.toUpperCase(Locale.ROOT).startsWith("RUN_IN:")){//Environment
             BigInteger id=new BigInteger(str.substring(7));
             if(id.signum()==-1)
@@ -495,37 +496,37 @@ public class Translator {
             switch (str.toUpperCase(Locale.ROOT)){
                 //Brackets
                 case "[?": {
-                    return new BracketDeclaration(env,BRACKET_FLAG_IF_NE,NO_POS);
-                }
-                case "[.?":{
-                    return new BracketDeclaration(env,BRACKET_FLAG_WHILE_NE,NO_POS);
-                }
-                case "[":{
-                    return new BracketDeclaration(env,BRACKET_FLAG_DO,NO_POS);
-                }
-                case "]":{
-                    return new BracketDeclaration(env,BRACKET_FLAG_END,NO_POS);
+                    return new BracketDeclaration(env,BRACKET_FLAG_IF_NE,prevPos);
                 }
                 case "[!":{
-                    return new BracketDeclaration(env,BRACKET_FLAG_IF_EQ,NO_POS);
+                    return new BracketDeclaration(env,BRACKET_FLAG_IF_EQ,prevPos);
+                }
+                case "[.?":{
+                    return new BracketDeclaration(env,BRACKET_FLAG_WHILE_NE,prevPos);
                 }
                 case "[.!":{
-                    return new BracketDeclaration(env,BRACKET_FLAG_WHILE_EQ,NO_POS);
+                    return new BracketDeclaration(env,BRACKET_FLAG_WHILE_EQ,prevPos);
+                }
+                case "[":{
+                    return new BracketDeclaration(env,BRACKET_FLAG_DO,bitCode==null?NO_POS:new Interpreter.CodePosition(bitCode,bitCode.bitPos(),true));
                 }
                 case "|":{
-                    return new BracketDeclaration(env,BRACKET_FLAG_ELSE,NO_POS);
+                    return new BracketDeclaration(env,BRACKET_FLAG_ELSE,prevPos);
                 }
                 case "|!":{
-                    return new BracketDeclaration(env,BRACKET_FLAG_ELIF_EQ,NO_POS);
+                    return new BracketDeclaration(env,BRACKET_FLAG_ELIF_EQ,prevPos);
                 }
                 case "|?":{
-                    return new BracketDeclaration(env,BRACKET_FLAG_ELIF_NE,NO_POS);
+                    return new BracketDeclaration(env,BRACKET_FLAG_ELIF_NE,prevPos);
+                }
+                case "]":{
+                    return new BracketDeclaration(env,BRACKET_FLAG_END,prevPos);
                 }
                 case "]!":{
-                    return new BracketDeclaration(env,BRACKET_FLAG_END_WHILE_EQ,NO_POS);
+                    return new BracketDeclaration(env,BRACKET_FLAG_END_WHILE_EQ,prevPos);
                 }
                 case "]?":{
-                    return new BracketDeclaration(env,BRACKET_FLAG_END_WHILE_NE,NO_POS);
+                    return new BracketDeclaration(env,BRACKET_FLAG_END_WHILE_NE,prevPos);
                 }
                 //IO
                 case "IN_INT":
@@ -704,23 +705,24 @@ public class Translator {
             } else {
                 throw new IOException("Invalid source-file, all cnl-scripts have to start with CNLS<whitespace> or CNLS:<argCount>");
             }
-            Interpreter test = new Interpreter(args, false, targetFile, false);//TODO close Test on exception
-            Action a;
-            long actions = 0;
-            do {
-                while (test.isImporting())
-                    test.flatStep();//flatRun Imports
-                a = nextAction(source, test.programEnvironment(), test.executionEnvironment(), test.isTopLayer());
-                if (a == EOF) {
-                    Main.compileFinished(actions, target.bitPos());
-                    target.truncateToSize(true);
-                    return;
-                } else {
-                    test.stepInternal(a, false);//flat run code to detect syntax errors
-                    a.writeTo(target);
-                    actions++;
-                }
-            } while (true);
+            try(Interpreter test = new Interpreter(args, false, targetFile, false)) {
+                Action a;
+                long actions = 0;
+                do {
+                    while (test.isImporting())
+                        test.flatStep();//flatRun Imports
+                    a = nextAction(source, null, test.programEnvironment(), test.executionEnvironment(), test.isTopLayer());
+                    if (a == EOF) {
+                        Main.compileFinished(actions, target.bitPos());
+                        target.truncateToSize(true);
+                        return;
+                    } else {
+                        test.stepInternal(a, false);//flat run code to detect syntax errors
+                        a.writeTo(target);
+                        actions++;
+                    }
+                } while (true);
+            }
         }
     }
 
@@ -740,29 +742,30 @@ public class Translator {
             } else {
                 throw new IOException("Invalid code-file, cnl code-files have to start with CNLL or CNLX");
             }
-            Interpreter test = new Interpreter(sourceFile, args, false);//TODO close test on exception
-            Action a;
-            long actions = 0, lines = 0;
-            do {
-                while (test.isImporting())
-                    test.flatStep();//flatRun Imports
-                a = nextAction(source, test.programEnvironment(), test.executionEnvironment(), test.isTopLayer());
-                if (a == EOF) {
-                    Main.decompileFinished(lines,actions);
-                    target.close();
-                    return;
-                } else {
-                    test.stepInternal(a, false);//flat run code to detect syntax errors
-                    target.write(a.stringRepresentation());
-                    if (test.lineStart()) {
-                        target.write("\n");
-                        lines++;
+            try(Interpreter test = new Interpreter(sourceFile, args, false)) {
+                Action a;
+                long actions = 0, lines = 0;
+                do {
+                    while (test.isImporting())
+                        test.flatStep();//flatRun Imports
+                    a = nextAction(source, test.programEnvironment(), test.executionEnvironment(), test.isTopLayer());
+                    if (a == EOF) {
+                        Main.decompileFinished(lines, actions);
+                        target.close();
+                        return;
                     } else {
-                        target.write(" ");
+                        test.stepInternal(a, false);//flat run code to detect syntax errors
+                        target.write(a.stringRepresentation());
+                        if (test.lineStart()) {
+                            target.write("\n");
+                            lines++;
+                        } else {
+                            target.write(" ");
+                        }
+                        actions++;
                     }
-                    actions++;
-                }
-            } while (true);
+                } while (true);
+            }
         }
     }
 
@@ -787,7 +790,7 @@ public class Translator {
             bits[0]='C'|'N'<<8|'L'<<16|(header.type==FILE_TYPE_EXECUTABLE?'X':'L')<<24;
             target.write(bits,0,32);
             if(header.type==FILE_TYPE_EXECUTABLE){
-                target.writeBigInt(header.argCount,8,8,16);//TODO constants
+                target.writeBigInt(header.argCount,FILE_ARG_COUNT_INT_HEADER,FILE_ARG_COUNT_INT_BLOCK,FILE_ARG_COUNT_INT_BIG_BLOCK);
             }
         }else{
             throw new IllegalArgumentException("Illegal type for codeFile header only FILE_TYPE_CODE and FILE_TYPE_EXECUTABLE are allowed");
@@ -823,11 +826,10 @@ public class Translator {
         if((h&0xff)=='L')
             return FILE_HEADER_LIBRARY;
         if((h&0xff)=='X')
-            return new FileHeader(FILE_TYPE_EXECUTABLE,file.readBigInt(8,8,16));//TODO constants
+            return new FileHeader(FILE_TYPE_EXECUTABLE,file.readBigInt(FILE_ARG_COUNT_INT_HEADER,FILE_ARG_COUNT_INT_BLOCK,FILE_ARG_COUNT_INT_BIG_BLOCK));
         if((h&0xff)=='S'){//scripts
             return finishScriptHeader(file.reader());
         }
-        //TODO? Handle scripts
         return FILE_HEADER_INVALID;
     }
     public static FileHeader readScriptFileHeader(Reader reader) throws IOException {
@@ -856,7 +858,7 @@ public class Translator {
                 }
             }while (true);
             try{
-                return new FileHeader(FILE_TYPE_EXECUTABLE_SCRIPT,new BigInteger(arg.toString(),16));//TODO? BASE64
+                return new FileHeader(FILE_TYPE_EXECUTABLE_SCRIPT,new BigInteger(arg.toString(),16));
             }catch (IllegalArgumentException iae){
                 return FILE_HEADER_INVALID;
             }

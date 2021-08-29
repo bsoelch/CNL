@@ -19,6 +19,14 @@ public class Constants {
     public static final BigInteger MAX_INT = BigInteger.valueOf(Integer.MAX_VALUE);
     public static final BigInteger DEFAULT_BASE = BigInteger.TEN;
 
+
+    /**length of BigInt header for argCount in file-header*/
+    public final static int FILE_ARG_COUNT_INT_HEADER=8;
+    /**length of BigInt header for argCount in file-header*/
+    public final static int FILE_ARG_COUNT_INT_BLOCK=8;
+    /**length of BigInt header for argCount in file-header*/
+    public final static int FILE_ARG_COUNT_INT_BIG_BLOCK=8;
+
     private Constants(){}
 
     //0.[BigInt] -> Operator (2,4,4)

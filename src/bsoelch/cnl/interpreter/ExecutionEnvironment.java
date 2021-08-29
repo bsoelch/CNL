@@ -10,10 +10,19 @@ import java.util.HashMap;
 public class ExecutionEnvironment {
     final File rootDir;
 
-    final HashMap<String, BitRandomAccessStream> openFiles=new HashMap<>();
+    final HashMap<String, BitRandomAccessStream> openFiles;
 
-    public ExecutionEnvironment(File codeFile) {
-        this.rootDir=codeFile;
+    /**Creates a new Execution Environment with the given root-Directory*/
+    public ExecutionEnvironment(File rootDir) {
+        this.rootDir=rootDir;
+        openFiles=new HashMap<>();
+    }
+
+    /**Creates a new Execution Environment with the given root-Directory,
+     *  that inherits its open Files from exEnv*/
+    public ExecutionEnvironment(File codeDir, ExecutionEnvironment exEnv) {
+        this.rootDir=codeDir;
+        openFiles= exEnv.openFiles;
     }
 
     public BitRandomAccessStream fileAt(String path) throws IOException{

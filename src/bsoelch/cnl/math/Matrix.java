@@ -9,7 +9,7 @@ import java.util.function.Function;
 
 import static bsoelch.cnl.math.Real.Int;
 
-public final class Matrix{
+public final class Matrix{//TODO implement MathObject
     static final char MATRIX_START = '{';
     static final String ROW_SEPARATOR = ",";
     static final String ROW_START = "{";

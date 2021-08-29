@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayDeque;
@@ -18,7 +19,7 @@ import java.util.HashSet;
 
 import static bsoelch.cnl.Constants.*;
 
-public class Interpreter {
+public class Interpreter implements Closeable {
     /**All Actions in Stack are Operators*/
     final static int FLAG_OPERATOR_CHAIN =1;
     /**All Actions in Stack only need one Argument*/
@@ -156,23 +157,21 @@ public class Interpreter {
         }
         Action a;
         if(isScript){
-            if(doBranching)
-                throw new IllegalArgumentException("Cannot run scripts");
-            a= Translator.nextAction(code.reader(), programEnvironment(), executionEnvironment(), isTopLayer());
+            a= Translator.nextAction(code.reader(),code, programEnvironment(), executionEnvironment(), isTopLayer());
         }else{
             a= Translator.nextAction(code, programEnvironment(), executionEnvironment(), isTopLayer());
         }
         currentLine.append(a.stringRepresentation()).append(' ');
         try {
-            return stepInternal(a, true);
+            return stepInternal(a, doBranching);
         }catch (IllegalArgumentException|IllegalStateException e){
-            throw new IllegalStateException("Error while execution line "+lineCounter+": "+currentLine,e);
+            //TODO better handling of error messages
+            throw new IllegalStateException("Error while execution line "+lineCounter+": "+currentLine+" \n"+e.toString(),e);
         }
     }
 
 
     boolean stepInternal(Action a,boolean doBranching) throws IOException {
-        //TODO better error messages
         if(a == Translator.EOF|| a == Translator.EXIT){
             return exit(doBranching);
         }else if(a instanceof RunIn){//Unwrap RunIn
@@ -246,12 +245,14 @@ public class Interpreter {
 
     /**Skips to the next element in the structure given by {@code type}*/
     private void skipTo(int stepType) throws IOException {
-        if(isScript)
-            throw new IllegalStateException("cannot run Scripts");
         int bracketCount=1;
         Action a;
         while (bracketCount>0){
-            a= Translator.nextAction(code,envStack.getLast(), exEnv,brackets.isEmpty());
+            if(isScript){
+                a= Translator.nextAction(code.reader(),code,envStack.getLast(), exEnv,brackets.isEmpty());
+            }else{
+                a= Translator.nextAction(code,envStack.getLast(), exEnv,brackets.isEmpty());
+            }
             if(a== Translator.EOF){//ignore EXIT statements
                 throw new IllegalStateException("Unfinished Loop");
             }else if(a instanceof FunctionDeclaration){
@@ -343,13 +344,18 @@ public class Interpreter {
             return true;
         }else{
             try{
-                code.close();
+                close();
             }catch (IOException io){
                 System.err.println("\nException while closing codeFile:");
                 io.printStackTrace();
             }
             return false;
         }
+    }
+
+    @Override
+    public void close() throws IOException {
+        code.close();
     }
 
     /**go To the given CodePosition*/
@@ -502,7 +508,7 @@ public class Interpreter {
                 envStack.addLast(((Import) last).getTarget());
                 File target=new File(codeDir.getAbsolutePath()+File.separator+((Import) last).getSource());
                 codeDir =target.getParentFile();
-                exEnv=new ExecutionEnvironment(codeDir);//change execution environment
+                exEnv=new ExecutionEnvironment(codeDir,exEnv);//change root-directory of ExecutionEnvironment
                 code =new BitRandomAccessFile(target,"r");
                 Translator.FileHeader header=Translator.readCodeFileHeader(code);
                 if(header.type==Translator.FILE_TYPE_INVALID){
