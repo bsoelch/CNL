@@ -189,6 +189,7 @@ public class Main {
                     test(fileFromPath(main));
                 }catch (IllegalArgumentException|IllegalStateException|IOException e){
                     System.out.println(e.getMessage());
+                    return;//end program on error in test
                 }
             }//no else
             if((actions&ACTION_COMPILE)!=0){
@@ -210,6 +211,7 @@ public class Main {
                     compile(read, fileFromPath(main));
                 }catch (IllegalArgumentException|IllegalStateException|IOException e){
                     System.out.println(e.getMessage());
+                    return;//end program on compile error
                 }
             }//no else
             if((actions&ACTION_DECOMPILE)!=0){
@@ -229,6 +231,7 @@ public class Main {
                     decompile(fileFromPath(main),write);
                 }catch (IllegalArgumentException|IllegalStateException|IOException e){
                     System.out.println(e.getMessage());
+                    return;//end program on decompile error
                 }
             }//no else
             if((actions&ACTION_EXECUTE)!=0){
@@ -244,7 +247,6 @@ public class Main {
                     System.out.println(e.getMessage());
                 }
             }//no else
-
         }
     }
 

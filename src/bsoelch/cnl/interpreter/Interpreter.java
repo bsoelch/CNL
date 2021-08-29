@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Objects;
 
 import static bsoelch.cnl.Constants.*;
 
@@ -35,10 +36,23 @@ public class Interpreter implements Closeable {
         final boolean isScript;
         final long position;
 
-        CodePosition(BitRandomAccessStream file, long position, boolean isScript) {
+        CodePosition(BitRandomAccessStream file, boolean isScript) {
             this.file = file;
-            this.position = position;
+            this.position = file==null?-1:file.bitPos();
             this.isScript = isScript;
+        }
+
+        /**checks if this CodePosition points to the same position as other<br>
+         * !!! this method return false if one of the COdePositions is invalid,
+         * even if they point to the same object!!!
+         * @return true iff this and other point to the same <b>valid</b> CodePosition*/
+        public boolean isEqual(CodePosition other) {
+            if(file==null||position==-1||other.position==-1||other.file==null)
+                return false;//NOP!=NOP
+            else {
+                return position == other.position &&
+                        Objects.equals(file.getSourceId(), other.file.getSourceId());
+            }
         }
     }
     static class ImportReturnPosition{
@@ -183,54 +197,75 @@ public class Interpreter implements Closeable {
                 case BRACKET_FLAG_ELIF_EQ:
                 case BRACKET_FLAG_ELIF_NE:
                 case BRACKET_FLAG_ELSE: {//else reached in step -> end of if-branch
-                    BracketEnvironment top = brackets.peekLast();
-                    if (top instanceof LoopEnvironment) {
-                        switch (((LoopEnvironment) top).state) {
-                            case BRACKET_FLAG_IF_EQ:
-                            case BRACKET_FLAG_IF_NE:
-                            case BRACKET_FLAG_ELIF_EQ:
-                            case BRACKET_FLAG_ELIF_NE: {
-                                ((LoopEnvironment) top).state = BRACKET_FLAG_ELSE;
-                                if(doBranching) {
-                                    skipTo(SKIP_END_IF);
-                                    removeBracket();
-                                    return true;
-                                }else if(((BracketDeclaration) a).type==BRACKET_FLAG_ELSE){
-                                    ((LoopEnvironment) top).state=BRACKET_FLAG_ELSE;
-                                    return true;
-                                }else{
-                                    break;//elif will be added to stack
-                                }
-                            }
-                            default:
-                                throw new IllegalStateException("Unexpected ELSE statement");
-                        }
-                    } else {
-                        throw new IllegalStateException("Unexpected ELSE statement");
-                    }
-                }
-                case BRACKET_FLAG_END: {
-                    BracketEnvironment top = brackets.peekLast();
-                    if (top instanceof LoopEnvironment) {
-                        if(doBranching) {
+                        BracketEnvironment top = brackets.peekLast();
+                        if (top instanceof LoopEnvironment) {
                             switch (((LoopEnvironment) top).state) {
-                                case BRACKET_FLAG_WHILE_EQ:
-                                case BRACKET_FLAG_WHILE_NE: //jump to start of loop
-                                    goTo(((LoopEnvironment) top).loopStart);
-                                    break;
+                                case BRACKET_FLAG_IF_EQ:
+                                case BRACKET_FLAG_IF_NE:
+                                case BRACKET_FLAG_ELIF_EQ:
+                                case BRACKET_FLAG_ELIF_NE: {
+                                    ((LoopEnvironment) top).state = BRACKET_FLAG_ELSE;
+                                    if(doBranching) {
+                                        skipTo(SKIP_END_IF, 1);
+                                        removeBracket();
+                                        return true;
+                                    }else if(((BracketDeclaration) a).type==BRACKET_FLAG_ELSE){
+                                        ((LoopEnvironment) top).state=BRACKET_FLAG_ELSE;
+                                        return true;
+                                    }else{
+                                        break;//elif will be added to stack
+                                    }
+                                }
                                 default:
-                                    removeBracket();
+                                    throw new IllegalStateException("Unexpected ELSE statement");
                             }
-                        }else{
-                            removeBracket();
+                        } else {
+                            throw new IllegalStateException("Unexpected ELSE statement");
                         }
-                    } else if (top instanceof FunctionEnvironment) {//exit Function
-                        exitFunction(callStack.removeLast(),doBranching);
-                    } else {
-                        throw new IllegalStateException(top == null ? "Unexpected End of loop" : "Unexpected BracketEnvironment");
                     }
-                }
-                return true;
+                    break;
+                case BRACKET_FLAG_END: {
+                        BracketEnvironment top = brackets.peekLast();
+                        if (top instanceof LoopEnvironment) {
+                            if(doBranching) {
+                                switch (((LoopEnvironment) top).state) {
+                                    case BRACKET_FLAG_WHILE_EQ:
+                                    case BRACKET_FLAG_WHILE_NE: //jump to start of loop
+                                        goTo(top.bracketStart);
+                                        break;
+                                    default:
+                                        removeBracket();
+                                }
+                            }else{
+                                removeBracket();
+                            }
+                        } else if (top instanceof FunctionEnvironment) {//exit Function
+                            exitFunction(callStack.removeLast(),doBranching);
+                        } else {
+                            throw new IllegalStateException(top == null ? "Unexpected End of loop" : "Unexpected BracketEnvironment");
+                        }
+                    }
+                    return true;
+                case BRACKET_FLAG_BREAK: {
+                        BracketEnvironment top;
+                        ArrayDeque<BracketEnvironment> reconstruct=new ArrayDeque<>(brackets.size());
+                        int count=0;
+                        do {//calculate number of open non breakable brackets
+                            if(brackets.isEmpty())
+                                throw new IllegalStateException("BREAK statement outside of loop");
+                            top = brackets.removeLast();//get next bracket
+                            reconstruct.addFirst(top);//addFirst to keep order of brackets
+                            count++;
+                        }while (!(top instanceof LoopEnvironment&&((((LoopEnvironment) top).state==BRACKET_FLAG_WHILE_EQ)
+                                ||(((LoopEnvironment) top).state==BRACKET_FLAG_WHILE_NE)||(((LoopEnvironment) top).state==BRACKET_FLAG_DO))));
+                        if(doBranching){
+                            brackets.add(top);//re-add loop-environment that is ended by break
+                            skipTo(SKIP_LOOP,count);
+                        }else{//don't break in flat mode
+                            brackets.addAll(reconstruct);//reset state of brackets
+                        }
+                    }
+                    return true;
                 case BRACKET_FLAG_DO:
                     addBracket(new LoopEnvironment(((BracketDeclaration) a).declarationEnvironment
                             ,((BracketDeclaration) a).declarationStart, BRACKET_FLAG_DO));
@@ -244,8 +279,8 @@ public class Interpreter implements Closeable {
     private final static int SKIP_LOOP=1,SKIP_IF=2,SKIP_END_IF=3,SKIP_FUNCTION=5;
 
     /**Skips to the next element in the structure given by {@code type}*/
-    private void skipTo(int stepType) throws IOException {
-        int bracketCount=1;
+    private void skipTo(int stepType, int openBrackets) throws IOException {
+        int bracketCount=openBrackets;
         Action a;
         while (bracketCount>0){
             if(isScript){
@@ -291,7 +326,9 @@ public class Interpreter implements Closeable {
                     case BRACKET_FLAG_END_WHILE_EQ:
                     case BRACKET_FLAG_END_WHILE_NE:{
                         bracketCount--;
-                        if(bracketCount<=0)//do while should not be end of a skip statement
+                        if(bracketCount==0&&stepType==SKIP_LOOP){
+                            removeBracket();
+                        }else if(bracketCount<=0)//do while should not be end of a skip statement
                             throw new IllegalStateException("Unexpected end of DO-WHILE");
                     }break;
                     case BRACKET_FLAG_END:{
@@ -300,11 +337,11 @@ public class Interpreter implements Closeable {
                             throw new IllegalStateException("SyntaxError: Unexpected end of bracket");
                         if(bracketCount==0) {
                             switch (stepType){
+                                case SKIP_LOOP:
                                 case SKIP_IF:{//unexpected end of if
                                     removeBracket();
                                 }//fallthrough
                                 case SKIP_END_IF:
-                                case SKIP_LOOP:
                                 case SKIP_FUNCTION:
                                     break;
                             }
@@ -322,7 +359,7 @@ public class Interpreter implements Closeable {
         }
         actionStack= function.prevStack;//exit function
         if(doBranching) {
-            goTo(function.prev);
+            goTo(function.bracketStart);
         }
         addToStack(Translator.wrap(function.getRes()), doBranching);
     }
@@ -355,7 +392,9 @@ public class Interpreter implements Closeable {
 
     @Override
     public void close() throws IOException {
-        code.close();
+        if(code!=null) {
+            code.close();
+        }
     }
 
     /**go To the given CodePosition*/
@@ -409,7 +448,7 @@ public class Interpreter implements Closeable {
                 if(forceEvaluate)
                     throw new IllegalStateException("Waiting for Function call");
                 FunctionEnvironment call = new FunctionEnvironment(((CallFunction) last).getDeclarationEnvironment(),
-                        new CodePosition(code, code.bitPos(), isScript), actionStack,new ProgramEnvironment.ArgumentData(((CallFunction) last).getArgs()));
+                        new CodePosition(code, isScript), actionStack,new ProgramEnvironment.ArgumentData(((CallFunction) last).getArgs()));
                 if(doBranching) {
                     addBracket(call);//add function call to brackets to allow easy management of open structures
                     callStack.addLast(call);
@@ -425,62 +464,74 @@ public class Interpreter implements Closeable {
                     case BRACKET_FLAG_ELIF_EQ:
                         if(((BracketDeclaration) last).type ==BRACKET_FLAG_IF_EQ) {
                             addBracket(new LoopEnvironment(((BracketDeclaration) last).declarationEnvironment,
-                                    new CodePosition(code, code.bitPos(), isScript),BRACKET_FLAG_IF_EQ));
+                                    new CodePosition(code, isScript),BRACKET_FLAG_IF_EQ));
                         }else{//update state
                             updateIfState(BRACKET_FLAG_ELIF_EQ);
                         }
                         if(doBranching&&(!((BracketDeclaration) last).param.equals(Real.Int.ZERO))){
                             ensureRoot();
-                            skipTo(SKIP_IF);
+                            skipTo(SKIP_IF, 1);
                             return;
                         }break;
                     case BRACKET_FLAG_IF_NE:
                     case BRACKET_FLAG_ELIF_NE:
                         if(((BracketDeclaration) last).type ==BRACKET_FLAG_IF_NE) {
                             addBracket(new LoopEnvironment(((BracketDeclaration) last).declarationEnvironment,
-                                    new CodePosition(code, code.bitPos(), isScript),BRACKET_FLAG_IF_NE));
+                                    new CodePosition(code, isScript),BRACKET_FLAG_IF_NE));
                         }else{//update state
                             updateIfState(BRACKET_FLAG_ELIF_NE);
                         }
                         if(doBranching&&((BracketDeclaration) last).param.equals(Real.Int.ZERO)){
                             ensureRoot();
-                            skipTo(SKIP_IF);
+                            skipTo(SKIP_IF, 1);
                             return;
                         }break;
-                    case BRACKET_FLAG_WHILE_EQ:if((!doBranching)||((BracketDeclaration) last).param.equals(Real.Int.ZERO)){
-                        addBracket(new LoopEnvironment(((BracketDeclaration) last).declarationEnvironment,
-                                ((BracketDeclaration) last).declarationStart, BRACKET_FLAG_WHILE_EQ));
-                    }else{
-                        skipTo(SKIP_LOOP);
-                        return;
-                    }break;
-                    case BRACKET_FLAG_WHILE_NE:if((!doBranching)||!((BracketDeclaration) last).param.equals(Real.Int.ZERO)){
-                        addBracket(new LoopEnvironment(((BracketDeclaration) last).declarationEnvironment,
-                                ((BracketDeclaration) last).declarationStart, BRACKET_FLAG_WHILE_NE));
-                    }else{
-                        skipTo(SKIP_LOOP);
-                        return;
-                    }break;
-                    case BRACKET_FLAG_END_WHILE_EQ: if(doBranching&&((BracketDeclaration) last).param.equals(Real.Int.ZERO)){
-                        BracketEnvironment loop=brackets.peekLast();
-                        if(!(loop instanceof LoopEnvironment)||((LoopEnvironment)loop).state!= BRACKET_FLAG_DO)
-                            throw new IllegalStateException("Unexpected end of DO-WHILE loop");
-                        goTo(((LoopEnvironment) loop).loopStart);
-                    }else{
-                        BracketEnvironment closed= removeBracket();
-                        if(!(closed instanceof LoopEnvironment)||((LoopEnvironment)closed).state!= BRACKET_FLAG_DO)
-                            throw new IllegalStateException("Unexpected end of DO-WHILE loop");
-                    }break;
-                    case BRACKET_FLAG_END_WHILE_NE: if(doBranching&&!((BracketDeclaration) last).param.equals(Real.Int.ZERO)){
-                        BracketEnvironment loop=brackets.peekLast();
-                        if(!(loop instanceof LoopEnvironment)||((LoopEnvironment)loop).state!= BRACKET_FLAG_DO)
-                            throw new IllegalStateException("Unexpected end of DO-WHILE loop");
-                        goTo(((LoopEnvironment) loop).loopStart);
-                    }else{
-                        BracketEnvironment closed= Interpreter.this.removeBracket();
-                        if(!(closed instanceof LoopEnvironment)||((LoopEnvironment)closed).state!= BRACKET_FLAG_DO)
-                            throw new IllegalStateException("Unexpected end of DO-WHILE loop");
-                    }break;
+                    case BRACKET_FLAG_WHILE_EQ:
+                        //ensure there is exactly one while-loop bracket
+                        if(brackets.size()==0||!(brackets.peekLast().bracketStart
+                                .isEqual(((BracketDeclaration) last).declarationStart))){
+                            addBracket(new LoopEnvironment(((BracketDeclaration) last).declarationEnvironment,
+                                    ((BracketDeclaration) last).declarationStart, BRACKET_FLAG_WHILE_EQ));
+                        }
+                        if ((doBranching) && !((BracketDeclaration) last).param.equals(Real.Int.ZERO)) {
+                            skipTo(SKIP_LOOP, 1);
+                            return;
+                        }
+                        break;
+                    case BRACKET_FLAG_WHILE_NE:
+                        //ensure there is exactly one while-loop bracket
+                        if(brackets.size()==0||!(brackets.peekLast().bracketStart
+                                .isEqual(((BracketDeclaration) last).declarationStart))){
+                            addBracket(new LoopEnvironment(((BracketDeclaration) last).declarationEnvironment,
+                                    ((BracketDeclaration) last).declarationStart, BRACKET_FLAG_WHILE_NE));
+                        }
+                        if ((doBranching) && ((BracketDeclaration) last).param.equals(Real.Int.ZERO)) {
+                            skipTo(SKIP_LOOP, 1);
+                            return;
+                        }
+                        break;
+                    case BRACKET_FLAG_END_WHILE_EQ:
+                        if(doBranching&&((BracketDeclaration) last).param.equals(Real.Int.ZERO)){
+                            BracketEnvironment loop=brackets.peekLast();
+                            if(!(loop instanceof LoopEnvironment)||((LoopEnvironment)loop).state!= BRACKET_FLAG_DO)
+                                throw new IllegalStateException("Unexpected end of DO-WHILE loop");
+                            goTo(loop.bracketStart);
+                        }else{
+                            BracketEnvironment closed= removeBracket();
+                            if(!(closed instanceof LoopEnvironment)||((LoopEnvironment)closed).state!= BRACKET_FLAG_DO)
+                                throw new IllegalStateException("Unexpected end of DO-WHILE loop");
+                        }break;
+                    case BRACKET_FLAG_END_WHILE_NE:
+                        if(doBranching&&!((BracketDeclaration) last).param.equals(Real.Int.ZERO)){
+                            BracketEnvironment loop=brackets.peekLast();
+                            if(!(loop instanceof LoopEnvironment)||((LoopEnvironment)loop).state!= BRACKET_FLAG_DO)
+                                throw new IllegalStateException("Unexpected end of DO-WHILE loop");
+                            goTo(loop.bracketStart);
+                        }else{
+                            BracketEnvironment closed= Interpreter.this.removeBracket();
+                            if(!(closed instanceof LoopEnvironment)||((LoopEnvironment)closed).state!= BRACKET_FLAG_DO)
+                                throw new IllegalStateException("Unexpected end of DO-WHILE loop");
+                        }break;
                     default:throw new IllegalStateException("Unexpected state of Bracket");
                 }
                 ensureRoot();
@@ -490,19 +541,19 @@ public class Interpreter implements Closeable {
                         ,((FunctionDeclaration) last).function);
                 ensureRoot();
                 if(doBranching) {
-                    skipTo(SKIP_FUNCTION);
+                    skipTo(SKIP_FUNCTION, 1);
                 }else{
                     ValuePointer[] args=new ValuePointer[((FunctionDeclaration) last).function.argCount];
                     Arrays.fill(args,Translator.ZERO);//Default Value
                     FunctionEnvironment call = new FunctionEnvironment(((FunctionDeclaration) last).function.declarationEnvironment,
-                            new CodePosition(code, code.bitPos(), isScript), actionStack,new ProgramEnvironment.ArgumentData(args));
+                            new CodePosition(code, isScript), actionStack,new ProgramEnvironment.ArgumentData(args));
                     addBracket(call);//add function call to brackets to allow easy management of open structures
                     callStack.addLast(call);
                     actionStack = new ArrayDeque<>();
                 }
                 return;
             }else if(last instanceof Import){
-                importReturnStack.addLast(new ImportReturnPosition(codeDir, new CodePosition(code, code.bitPos(), isScript),((Import) last).getTarget(),exEnv));
+                importReturnStack.addLast(new ImportReturnPosition(codeDir, new CodePosition(code, isScript),((Import) last).getTarget(),exEnv));
                 if(!importEnvironments.add(((Import) last).getTarget()))
                     throw new IllegalStateException("Multiple Imports in the same Environment");
                 envStack.addLast(((Import) last).getTarget());

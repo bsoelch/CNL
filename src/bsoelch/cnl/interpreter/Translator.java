@@ -59,7 +59,7 @@ public class Translator {
         }
     };
 
-    static private final Interpreter.CodePosition NO_POS=new Interpreter.CodePosition(null,-1, false);
+    static private final Interpreter.CodePosition NO_POS=new Interpreter.CodePosition(null, false);
 
     static final ValuePointer ZERO=new ValuePointerImpl(Real.Int.ZERO);
     static final ValuePointer ONE=new ValuePointerImpl(Real.Int.ONE);
@@ -114,7 +114,7 @@ public class Translator {
 
     public static Action nextAction(BitRandomAccessStream code, ProgramEnvironment progEnv,
                                     ExecutionEnvironment exEnv, boolean isTopLayer) throws IOException {
-        Interpreter.CodePosition prevPos=new Interpreter.CodePosition(code, code.bitPos(), false);
+        Interpreter.CodePosition prevPos=new Interpreter.CodePosition(code, false);
         int header= readHeader(code);
         if(header==-1){//End of file
             return EOF;
@@ -162,9 +162,10 @@ public class Translator {
                     case BRACKET_FLAG_ELIF_EQ:
                     case BRACKET_FLAG_ELIF_NE:
                     case BRACKET_FLAG_END:
+                    case BRACKET_FLAG_BREAK:
                         return new BracketDeclaration(progEnv, id, prevPos);
                     case BRACKET_FLAG_DO:
-                        return new BracketDeclaration(progEnv, id, new Interpreter.CodePosition(code,code.bitPos(), false));
+                        return new BracketDeclaration(progEnv, id, new Interpreter.CodePosition(code, false));
 
                 }
             }
@@ -188,7 +189,7 @@ public class Translator {
                     throw new IllegalStateException("Function Declarations in Brackets are not allowed");
                 BigInteger argCount = code.readBigInt(FUNCTION_ARG_INT_HEADER, FUNCTION_ARG_INT_BLOCK, FUNCTION_ARG_INT_BIG_BLOCK);
                 BigInteger id = code.readBigInt(FUNCTION_ID_INT_HEADER, FUNCTION_ID_INT_BLOCK, FUNCTION_ID_INT_BIG_BLOCK);
-                return new FunctionDeclaration(id,new Function(progEnv,new Interpreter.CodePosition(code, code.bitPos(), false)
+                return new FunctionDeclaration(id,new Function(progEnv,new Interpreter.CodePosition(code, false)
                         ,argCount.intValueExact()));
             }
             case HEADER_ENVIRONMENT:{
@@ -351,7 +352,7 @@ public class Translator {
 
     static Action nextAction(Reader code, @Nullable BitRandomAccessStream bitCode, ProgramEnvironment env, ExecutionEnvironment exEnv, boolean isTopLayer) throws IOException {
         String str;
-        Interpreter.CodePosition prevPos=bitCode==null?NO_POS:new Interpreter.CodePosition(bitCode,bitCode.bitPos(),true);
+        Interpreter.CodePosition prevPos=bitCode==null?NO_POS:new Interpreter.CodePosition(bitCode, true);
         do {
             str=nextElement(code);
             if (str == null)
@@ -439,7 +440,7 @@ public class Translator {
             BigInteger id=new BigInteger(params.substring(params.indexOf(',')+1));
             if(args.signum()==-1)
                 throw new IllegalArgumentException("Negative Id");
-            return new FunctionDeclaration(id,new Function(env,bitCode==null?NO_POS:new Interpreter.CodePosition(bitCode,bitCode.bitPos(),true),args.intValueExact()));
+            return new FunctionDeclaration(id,new Function(env,bitCode==null?NO_POS:new Interpreter.CodePosition(bitCode, true),args.intValueExact()));
         }else if(str.toUpperCase(Locale.ROOT).startsWith("RUN_IN:")){//Environment
             BigInteger id=new BigInteger(str.substring(7));
             if(id.signum()==-1)
@@ -508,7 +509,7 @@ public class Translator {
                     return new BracketDeclaration(env,BRACKET_FLAG_WHILE_EQ,prevPos);
                 }
                 case "[":{
-                    return new BracketDeclaration(env,BRACKET_FLAG_DO,bitCode==null?NO_POS:new Interpreter.CodePosition(bitCode,bitCode.bitPos(),true));
+                    return new BracketDeclaration(env,BRACKET_FLAG_DO,bitCode==null?NO_POS:new Interpreter.CodePosition(bitCode, true));
                 }
                 case "|":{
                     return new BracketDeclaration(env,BRACKET_FLAG_ELSE,prevPos);
@@ -527,6 +528,9 @@ public class Translator {
                 }
                 case "]?":{
                     return new BracketDeclaration(env,BRACKET_FLAG_END_WHILE_NE,prevPos);
+                }
+                case "BREAK":{
+                    return new BracketDeclaration(env,BRACKET_FLAG_BREAK,prevPos);
                 }
                 //IO
                 case "IN_INT":

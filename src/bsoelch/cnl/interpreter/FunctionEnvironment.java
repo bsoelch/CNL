@@ -11,7 +11,6 @@ import java.util.ArrayDeque;
 import java.util.HashMap;
 
 class FunctionEnvironment extends BracketEnvironment implements ProgramEnvironment {
-    Interpreter.CodePosition prev;
     ArrayDeque<Action> prevStack;
 
 
@@ -21,9 +20,8 @@ class FunctionEnvironment extends BracketEnvironment implements ProgramEnvironme
 
 
     FunctionEnvironment(ProgramEnvironment localRoot, Interpreter.CodePosition prevPos, ArrayDeque<Action> prevStack,ProgramEnvironment.ArgumentData args) {
-        super(localRoot);
+        super(localRoot,prevPos);
         this.fData=args;
-        this.prev = prevPos;
         this.prevStack = prevStack;
     }
 
@@ -32,7 +30,7 @@ class FunctionEnvironment extends BracketEnvironment implements ProgramEnvironme
     public @NotNull ProgramEnvironment getChild(BigInteger id) {
         FunctionEnvironment child = children.get(id);
         if (child == null) {
-            children.put(id, child = new FunctionEnvironment(localRoot.getChild(id),prev,prevStack,fData));
+            children.put(id, child = new FunctionEnvironment(localRoot.getChild(id), bracketStart,prevStack,fData));
         }
         return child;
     }

@@ -65,6 +65,7 @@ class BracketDeclaration implements Action {
             case Constants.BRACKET_FLAG_END_WHILE_EQ:return "]!";
             case Constants.BRACKET_FLAG_END_WHILE_NE:return "]?";
             case Constants.BRACKET_FLAG_END:return "]";
+            case Constants.BRACKET_FLAG_BREAK:return "BREAK";
             default:throw new IllegalArgumentException("Unknown Bracket Type:"+type);
         }
     }
