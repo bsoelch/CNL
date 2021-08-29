@@ -4,10 +4,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.math.BigInteger;
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
+
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 
 public class BitRandomAccessFile implements BitRandomAccessStream {
     final Object ioLock=new Object();
@@ -22,8 +20,8 @@ public class BitRandomAccessFile implements BitRandomAccessStream {
 
     final private String path;
 
-    private final HashMap<Charset,Reader> readerCache=new HashMap<>();
-    private final HashMap<Charset,Writer> writerCache=new HashMap<>();
+    private Reader readerCache=null;
+    private Writer writerCache=null;
 
     public BitRandomAccessFile(@NotNull File file,String mode) throws IOException {
         this.byteFile = new RandomAccessFile(file,mode);
@@ -188,7 +186,7 @@ public class BitRandomAccessFile implements BitRandomAccessStream {
         synchronized (ioLock){
             bytes=new byte[Math.toIntExact((len+7)/8+(bitIndex==0?0:1))];
             int i0=0;
-            if(cachedBits!=0){
+            if(cachedBits!=0){//TODO? write cache before read
                 ensureCached(0xff<<bitIndex);
                 bytes[i0++]=(byte)currentByte;
                 byteFile.seek(bytePos+1);
@@ -451,56 +449,92 @@ public class BitRandomAccessFile implements BitRandomAccessStream {
 
 
 
-    public Reader reader(Charset charset){
-        synchronized (readerCache) {
-            Reader cached = readerCache.get(charset);
-            if (cached == null) {
-                cached = new InputStreamReader(new InputStream() {//TODO replace with Implementation without caching
-                    @Override
-                    public int read() throws IOException {
-                        return readByte();
-                    }
-
-                    @Override
-                    public void close() throws IOException {
-                        super.close();
-                        BitRandomAccessFile.this.close();
-                    }
-                }, charset);
-                readerCache.put(charset, cached);
-            }
-            return cached;
-        }
-    }
-    public Writer writer(Charset charset){
-        synchronized (writerCache){
-            Writer cached = writerCache.get(charset);
-            if (cached == null) {
-                cached =new OutputStreamWriter(new OutputStream() {//TODO replace with Implementation without caching
-                    @Override
-                    public void write(int aByte) throws IOException {
-                        writeByte(aByte);
-                    }
-
-                    @Override
-                    public void write(byte[] b, int off, int len) throws IOException {
-                        long[] longBuffer=new long[len/8+1];
-                        for(int i=0;i<len;i++){
-                            longBuffer[i/8]|=(b[i+off]&0xffL)<<(8*(i%8));
+    public Reader reader(){
+        if (readerCache == null) {
+            readerCache = new Reader() {
+                int surrogateCache=-1;
+                @Override
+                public int read() throws IOException {
+                    if(surrogateCache==-1){
+                        int cp=readUTF8();
+                        if(cp==-1){
+                            return -1;
+                        }else{
+                            char[] chars=Character.toChars(cp);
+                            if(chars.length>1)//cannot be greater than 2
+                                surrogateCache=chars[1];
+                            return chars[0];
                         }
-                        BitRandomAccessFile.this.write(longBuffer,0,len*8L);
+                    }else{
+                        char tmp= (char) surrogateCache;
+                        surrogateCache=-1;
+                        return tmp;
                     }
+                }
 
-                    @Override
-                    public void close() throws IOException {
-                        super.close();
-                        BitRandomAccessFile.this.close();
+                @Override
+                public int read(char[] cbuf, int off, int len) throws IOException {
+                    //TODO readMultipleChars support
+                    int r;
+                    for(int i=0;i<len;i++){
+                        r=read();
+                        if(r==-1){
+                            return i==0?-1:i;
+                        }
+                        cbuf[i+off]=(char)r;
                     }
-                }, charset);
-                writerCache.put(charset, cached);
-            }
-            return cached;
+                    return len;
+                }
+
+                @Override
+                public void close() throws IOException {
+                    BitRandomAccessFile.this.close();
+                }
+            };
         }
+        return readerCache;
+    }
+    public Writer writer(){
+        if (writerCache == null) {
+            writerCache =new Writer(){
+                int surrogateCache=-1;
+                @Override
+                public void write(int c) throws IOException {
+                    if(surrogateCache==-1){
+                        if(Character.isHighSurrogate((char)c)){
+                            surrogateCache=c&0xffff;
+                        }else{
+                            writeUTF8(c&0xffff);
+                        }
+                    }else{
+                        if(Character.isLowSurrogate((char) c)){
+                            int cp=Character.toCodePoint((char)surrogateCache,(char)c);
+                            writeUTF8(cp);
+                            surrogateCache=-1;
+                        }
+                    }
+                }
+
+                @Override
+                public void write(char[] cbuf, int off, int len) throws IOException {
+                    byte[] bytes=new String(cbuf,off,len).getBytes(StandardCharsets.UTF_8);
+                    //TODO writeMultipleBytes
+                    for(byte b:bytes)
+                        writeByte(b&0xff);
+                }
+
+                @Override
+                public void flush() throws IOException {
+                    writeChanges();
+                }
+
+                @Override
+                public void close() throws IOException {
+                    BitRandomAccessFile.this.close();
+                }
+            };
+        }
+        return writerCache;
     }
 
 

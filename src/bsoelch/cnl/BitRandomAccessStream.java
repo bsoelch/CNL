@@ -1,13 +1,11 @@
 package bsoelch.cnl;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.io.*;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
-//TODO separate interfaces for reader and writer?
+//TODO separate interfaces for read and write?
 public interface BitRandomAccessStream extends Closeable {
     /**goes to the given bit-position*/
     void seek(long newBitPos) throws IOException;
@@ -46,7 +44,36 @@ public interface BitRandomAccessStream extends Closeable {
         write(cache,0,8);
     }
 
-    //TODO? read/write Char methods
+    /**reads one UTF-8 CodePoint*/
+    default int readUTF8() throws IOException {
+        int cp=readByte();
+        if(cp==-1)
+            return -1;
+        if((cp&0x80)==0){
+            return cp;
+        }else {
+            int count=0,mask=0x40;
+            while((cp&mask)!=0){
+                count++;
+                mask>>>=1;
+            }
+            byte[] bytes=new byte[count+1];
+            bytes[0]= (byte) cp;
+            for(int i=1;i<bytes.length;i++){//TODO readBytes Methode
+                cp=readByte();
+                if(cp==-1)
+                    return -1;
+                bytes[i]=(byte)cp;
+            }
+            return new String(bytes).codePointAt(0);
+        }
+    }
+    default void writeUTF8(int cp) throws IOException {
+        byte[] bytes=String.valueOf(Character.toChars(cp)).getBytes(StandardCharsets.UTF_8);
+        for (byte aByte : bytes) {//TODO writeBytes Methode
+            writeByte(aByte);
+        }
+    }
 
     /**writes all cached changes*/
     void writeChanges() throws IOException;
@@ -145,21 +172,9 @@ public interface BitRandomAccessStream extends Closeable {
     String getSourceId();
 
 
-    /**returns a Reader with the specific charset that is backed up by this stream
-     * @param charset Charset used by the Reader*/
-    Reader reader(Charset charset);
-    /**@return reader(StandardCharsets.UTF_8)
-     * @see #reader(Charset) */
-    default Reader reader() {
-        return reader(StandardCharsets.UTF_8);
-    }
-    /**returns a Writer with the specific charset that is backed up by this stream
-     * @param charset Charset used by the Writer*/
-    Writer writer(Charset charset);
-    /**@return writer(StandardCharsets.UTF_8)
-     * @see #writer(Charset) */
-    default Writer writer() {
-        return writer(StandardCharsets.UTF_8);
-    }
+    /**returns a UTF-8 Reader that is backed up by this stream*/
+    Reader reader();
+    /**returns a UTF-8 Writer that is backed up by this stream*/
+    Writer writer();
 
 }
