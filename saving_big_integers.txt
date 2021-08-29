@@ -1,2 +1,68 @@
-This file contains a description of the format used by this program to save integers of arbitrary size:
+This file contains a description of the format used by this program to save unsigned integers of arbitrary size:
+
+each number starts with a header block of a given size (header_length)
+
+"small numbers":
+    numbers smaller than 2^(header_length-1) are directly saved in the lower header_length-1 bits of the header with the highest bit being a zero
+"large numbers":
+    for numbers greater or equal 2^(header_length-1) the highest bit of the header is one,
+    the lower header_length-1 bits represent a number (len) between 1 and 2^(header_length-1)-1.
+    the binary data of the number is stored in len blocks of size (block_length)
+    to remove redundancy the binary data is not directly used,
+     but offset in a way that the smallest number with n blocks is exactly the next number after the largest number with n-1 blocks
+"very large numbers":
+    for very large numbers the header is exactly 2^(header_length-1),
+    followed by the length encoded as big integer in the same format
+    after the length-data the binary data of the number is stored in blocks of size (big_block_length)
+    for length zero the number of blocks is the smallest number the results in at least as many bytes as 2^(header_length-1)-1 small blocks
+    analogous to the encoding of "large numbers" the binary data is not directly used,
+     but offset in a way that the smallest number with n blocks is exactly the next number after the largest number with n-1 blocks
+
+Examples:
+the binary encodings of the first numbers with header_length=2,block_length=3,big_block_length=3 are (lowest bit on the left):
+0 <-> 00
+1 <-> 10
+2 <-> 11 000
+3 <-> 11 100
+4 <-> 11 010
+5 <-> 11 110
+6 <-> 11 001
+7 <-> 11 101
+8 <-> 11 011
+9 <-> 11 111
+10 <-> 01 00 000
+11 <-> 01 00 100
+12 <-> 01 00 010
+13 <-> 01 00 110
+14 <-> 01 00 001
+15 <-> 01 00 101
+16 <-> 01 00 011
+17 <-> 01 00 111
+18 <-> 01 01 000 000
+19 <-> 01 01 100 000
+20 <-> 01 01 010 000
+21 <-> 01 01 110 000
+
+for header_length=4,block_length=8,big_block_length=16 encodings are:
+
+...
+7 <-> 1110
+8 <-> 1001 00000000
+9 <-> 1001 10000000
+...
+263 <-> 1001 11111111
+264 <-> 0101 00000000 00000000
+...
+?   <-> 1111 11111111 11111111 11111111 11111111 11111111 11111111 11111111
+?+1 <-> 0001 0000000000000000 0000000000000000 0000000000000000 0000000000000000
+
+
+
+
+
+
+
+
+
+
 
