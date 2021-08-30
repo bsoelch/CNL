@@ -455,12 +455,12 @@ public class Constants {
                         new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, MathObject::fAdd));
                 declareOperator(APPROXIMATE,
                         new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
-                                (a,b)-> MathObject.approximate(a,b.numericValue().realPart())));
-                declareOperator(BIT_LENGTH,
+                                (a,b)-> MathObject.approximate(a,b.scalarValue().realPart())));
+                declareOperator(BIT_LENGTH,//TODO better implementation of bitLength (? elementwise floor(log2))
                         new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
-                                (a)-> Real.from(a.numericValue().realPart()
+                                (a)-> Real.from(a.scalarValue().realPart()
                                         .num().abs().bitLength()
-                                        - a.numericValue().realPart().den().bitLength())));
+                                        - a.scalarValue().realPart().den().bitLength())));
                 declareOperator(STRING_LENGTH,
                         new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
                                 (a)-> Real.Int.from(a.asString().length())));
@@ -468,12 +468,12 @@ public class Constants {
                         new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
                                 (a,b)-> Real.from(Real.stringAsBigInt(
                                 a.toString(MathObject.round(b, MathObject.FLOOR)
-                                        .numericValue().realPart().num(), true)))));
+                                        .scalarValue().realPart().num(), true)))));
                 declareOperator(STRING_TO_INT,
                         new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
                                 (a,b)-> MathObject.FromString.safeFromString(
                                 a.asString(), MathObject.round(b, MathObject.FLOOR)
-                                        .numericValue().realPart().num())));
+                                        .scalarValue().realPart().num())));
 
                 //STRING_STARTS_WITH <str> <start>
                 //STRING_ENDS_WITH <str> <end>
@@ -509,9 +509,6 @@ public class Constants {
                                 Pair::new));
                 //CONCAT_BINARY
 
-                declareOperator("NUMERIC_VALUE",
-                        new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
-                                MathObject::numericValue));
                 declareOperator("SCALAR_VALUE",
                         new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
                                 MathObject::scalarValue));
@@ -580,7 +577,7 @@ public class Constants {
                         new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env->(file, pos)-> {
                             try {
                                 String path = file.asString();
-                                env.fileAt(path).seek(pos.numericValue()
+                                env.fileAt(path).seek(pos.scalarValue()
                                         .round(MathObject.FLOOR).realPart().num().longValueExact());
                                 return Real.Int.ZERO;
                             }catch (IOException io){
@@ -593,7 +590,7 @@ public class Constants {
                         new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env->(file, pos)-> {
                             try {
                                 String path = file.asString();
-                                env.fileAt(path).seek(8*pos.numericValue()
+                                env.fileAt(path).seek(8*pos.scalarValue()
                                         .round(MathObject.FLOOR).realPart().num().longValueExact());
                                 return Real.Int.ZERO;
                             }catch (IOException io){
@@ -665,7 +662,7 @@ public class Constants {
                             try {
                                 String path = file.asString();
                                 BitRandomAccessStream file1 = env.fileAt(path);
-                                file1.seek(file1.bitPos()+pos.numericValue()
+                                file1.seek(file1.bitPos()+pos.scalarValue()
                                         .round(MathObject.FLOOR).realPart().num().longValueExact());
                                 return Real.Int.ZERO;
                             }catch (IOException io){
@@ -679,7 +676,7 @@ public class Constants {
                             try {
                                 String path = file.asString();
                                 BitRandomAccessStream file1 = env.fileAt(path);
-                                file1.seek(file1.bitPos()+8*pos.numericValue()
+                                file1.seek(file1.bitPos()+8*pos.scalarValue()
                                         .round(MathObject.FLOOR).realPart().num().longValueExact());
                                 return Real.Int.ZERO;
                             }catch (IOException io){
@@ -714,7 +711,7 @@ public class Constants {
                         new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env->(file, count)-> {
                             try {
                                 String path = file.asString();
-                                return Real.Int.from(env.fileAt(path).readBits(count.numericValue()
+                                return Real.Int.from(env.fileAt(path).readBits(count.scalarValue()
                                         .round(MathObject.FLOOR).realPart().num().intValueExact()));
                             }catch (IOException io){
                                 System.err.println('\n'+io.toString());
@@ -726,7 +723,7 @@ public class Constants {
                         new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env->(file, count)-> {
                             try {
                                 String path = file.asString();
-                                return Real.Int.from(env.fileAt(path).readBits(8*count.numericValue()
+                                return Real.Int.from(env.fileAt(path).readBits(8*count.scalarValue()
                                         .round(MathObject.FLOOR).realPart().num().intValueExact()));
                             }catch (IOException io){
                                 System.err.println('\n'+io.toString());
@@ -751,7 +748,7 @@ public class Constants {
                         new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env->(file, value)-> {
                             try {
                                 String path = file.asString();
-                                env.fileAt(path).writeByte(value.numericValue().round(MathObject.FLOOR).
+                                env.fileAt(path).writeByte(value.scalarValue().round(MathObject.FLOOR).
                                         realPart().num().intValue()&0xff);
                                 return Real.Int.ZERO;
                             }catch (IOException io){
@@ -768,7 +765,7 @@ public class Constants {
                         new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env->(file, value)-> {
                             try {
                                 String path = file.asString();
-                                BigInteger bigInt = value.numericValue().round(MathObject.FLOOR).realPart().num();
+                                BigInteger bigInt = value.scalarValue().round(MathObject.FLOOR).realPart().num();
                                 env.fileAt(path).writeBits(bigInt,bigInt.bitLength());
                                 return Real.Int.ZERO;
                             }catch (IOException io){

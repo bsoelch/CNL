@@ -41,7 +41,7 @@ class Output implements Action {
         if (value == null) {
             this.value = arg;
         } else if (isNumber&& precision == null) {
-            precision = arg.getValue().numericValue().realPart();
+            precision = arg.getValue().scalarValue().realPart();
         } else {
             throw new IllegalStateException("No Argument required");
         }

@@ -121,13 +121,13 @@ final class NTuple implements Tuple{
         return toString(o->o.toStringFloat(base,precision,useSmallBase));
     }
     private String toString(Function<MathObject,String> objectToString){
-        StringBuilder sb=new StringBuilder("(");
+        StringBuilder sb=new StringBuilder("[");
         for(MathObject o:objects){
             if(sb.length()>1)
                 sb.append(", ");
             sb.append(objectToString.apply(o));
         }
-        return sb.append(')').toString();
+        return sb.append(']').toString();
     }
 
 }

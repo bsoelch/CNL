@@ -87,17 +87,17 @@ public final class Pair implements Tuple{
 
     @Override
     public String toString(BigInteger base, boolean useSmallBase) {
-        return "("+a.toString(base, useSmallBase)+", "+b.toString(base, useSmallBase)+")";
+        return "["+a.toString(base, useSmallBase)+", "+b.toString(base, useSmallBase)+"]";
     }
     @Override
     public String toStringFixedPoint(BigInteger base, Real precision, boolean useSmallBase) {
-        return "("+a.toStringFixedPoint(base,precision, useSmallBase)+", "+
-                b.toStringFixedPoint(base,precision, useSmallBase)+")";
+        return "["+a.toStringFixedPoint(base,precision, useSmallBase)+", "+
+                b.toStringFixedPoint(base,precision, useSmallBase)+"]";
     }
     @Override
     public String toStringFloat(BigInteger base, Real precision, boolean useSmallBase) {
-        return "("+a.toStringFloat(base,precision, useSmallBase)+", "+
-                b.toStringFloat(base,precision, useSmallBase)+")";
+        return "["+a.toStringFloat(base,precision, useSmallBase)+", "+
+                b.toStringFloat(base,precision, useSmallBase)+"]";
     }
 
     @Override

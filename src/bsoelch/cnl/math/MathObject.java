@@ -14,9 +14,6 @@ public interface MathObject {
     int ROUND = 0;
     int CIEL = 1;
 
-    default Scalar.NumericScalar numericValue() {
-        return scalarValue().numericValue();
-    }
     Scalar scalarValue();
 
     String toString(BigInteger base, boolean useSmallBase);
@@ -25,7 +22,7 @@ public interface MathObject {
 
     /**String representing this Object*/
     default String asString(){//TODO? better implementation (concat partial strings)
-        return numericValue().asString();
+        return scalarValue().asString();
     }
     String intsAsString();
 
@@ -605,8 +602,8 @@ public interface MathObject {
 
 
     class FromString{
-        static private final int STATE_NUMBER=0,STATE_VARIABLE=1,STATE_STRING=2,STATE_VALUE=3,STATE_SET=4;
-        static private final int MODE_SET=1,MODE_ROOT=0,MODE_TUPLE=-1;
+        static private final int STATE_NUMBER=0,STATE_TUPLE=1,STATE_STRING=2,STATE_VALUE=3,STATE_SET=4;
+        static private final int MODE_SET=1, MODE_VALUE =0,MODE_TUPLE=-1;
 
         private interface Node{}
         private static class OperatorNode implements Node{
@@ -621,24 +618,12 @@ public interface MathObject {
                 this.value = value;
             }
         }
-        private static class VariableNode implements Node{
-            BigInteger power=BigInteger.ONE;
-            final BigInteger varId;
-            private VariableNode(BigInteger base,String str,boolean safeMode) {
-                try {
-                    this.varId = numberFromString(base, str, safeMode)
-                            .round(FLOOR).realPart().num();
-                }catch (IllegalArgumentException iae){
-                    throw new IllegalArgumentException("invalid VariableId: "+str,iae);
-                }
-            }
-        }
 
         static public MathObject fromString(String input, BigInteger base){
-            return fromString(input, base,MODE_ROOT, false);
+            return fromString(input, base, MODE_VALUE, false);
         }
         static public MathObject safeFromString(String input, BigInteger base){
-            return fromString(input, base,MODE_ROOT, true);
+            return fromString(input, base, MODE_VALUE, true);
         }
 
         /**Initiates a MathObject from the given string value
@@ -651,7 +636,7 @@ public interface MathObject {
             if(input.isEmpty())
                 switch (mode){
                     case MODE_TUPLE:
-                    case MODE_ROOT:return Real.Int.ZERO;
+                    case MODE_VALUE:return Real.Int.ZERO;
                     case MODE_SET:return FiniteSet.EMPTY_SET;
                     default:throw new IllegalArgumentException("Unknown mode:"+mode);
                 }
@@ -702,14 +687,14 @@ public interface MathObject {
                                     }
                                     p0 = p + 1;
                                 }break;
-                                case '[': {//Variable
+                                case '[': {//Tuple
                                     //end section
                                     String tmp = input.substring(p0, p).trim();
                                     if (tmp.length() > 0) {
                                         parts.add(new ValueNode(numberFromString(base, tmp, safeMode)));
                                     }
                                     p0 = p + 1;
-                                    state = STATE_VARIABLE;
+                                    state = STATE_TUPLE;
                                     break;
                                 }
                                 case '\''://string
@@ -751,9 +736,9 @@ public interface MathObject {
                             }
                         }
                     }break;
-                    case STATE_VARIABLE: {
+                    case STATE_TUPLE: {
                         if (input.charAt(p) == ']') {//end matrix
-                            parts.add(new VariableNode(base,input.substring(p0,p).trim(),safeMode));
+                            parts.add(new ValueNode(fromString(input.substring(p0,p).trim(),base,MODE_TUPLE,safeMode)));
                             p0 = p + 1;
                             state = STATE_NUMBER;
                         }
@@ -873,7 +858,7 @@ public interface MathObject {
                             if(layer==0) {
                                 String tmp = input.substring(p0, p);
                                 parts.add(new ValueNode(
-                                        fromString(tmp, base, MODE_TUPLE, safeMode)));
+                                        fromString(tmp, base, MODE_VALUE, safeMode)));
                                 p0 = p + 1;
                                 state = STATE_NUMBER;
                             }
@@ -899,17 +884,11 @@ public interface MathObject {
             }
             switch (state){
                 case STATE_VALUE:
+                case STATE_TUPLE:
                 case STATE_SET:
                     if(safeMode) {
                         parts.add(new ValueNode(fromString(input.substring(p0).trim()
-                                , base, state == STATE_SET ? MODE_SET : MODE_TUPLE, true)));
-                    }else{
-                        throw new IllegalArgumentException("Input String contains unfinished Bracket: "+input);
-                    }
-                    break;
-                case STATE_VARIABLE:
-                    if(safeMode) {
-                        parts.add(new VariableNode(base,input.substring(p0).trim(),true));
+                                , base, state == STATE_SET ? MODE_SET : state == STATE_TUPLE ? MODE_TUPLE:MODE_VALUE, true)));
                     }else{
                         throw new IllegalArgumentException("Input String contains unfinished Bracket: "+input);
                     }
@@ -924,8 +903,7 @@ public interface MathObject {
                     break;
                 case STATE_NUMBER:
                     if(p0< input.length())
-                        parts.add(new ValueNode(
-                                numberFromString(base, input.substring(p0), safeMode)));break;
+                        parts.add(new ValueNode(numberFromString(base, input.substring(p0), safeMode)));break;
                 default: throw new RuntimeException("Unexpected State:"+state);
             }
 
@@ -935,9 +913,7 @@ public interface MathObject {
                     MathObject l,r;
                     r = nextValue(parts, i+1,'^',Real.Int.ZERO, safeMode);
                     parts.remove(i);
-                    if(parts.get(i-1) instanceof VariableNode){
-                        ((VariableNode) parts.get(i-1)).power=r.numericValue().round(MathObject.FLOOR).realPart().num();
-                    }else if(parts.get(i-1) instanceof ValueNode){
+                    if(parts.get(i-1) instanceof ValueNode){
                         l=((ValueNode) parts.get(i-1)).value;
                         parts.set(i-1,new ValueNode(pow(l,r)));
                     }else{
@@ -988,15 +964,6 @@ public interface MathObject {
 
                             break;
                         }
-                    }
-                }else if(parts.get(i) instanceof VariableNode){
-                    if(i>0&&parts.get(i-1) instanceof ValueNode){
-                        parts.set(i-1,new ValueNode(multiply(((ValueNode) parts.get(i-1)).value
-                                ,Polynomial.from(((VariableNode) parts.get(i)).varId,((VariableNode) parts.get(i)).power))));
-                        parts.remove(i--);
-                    }else{
-                        parts.set(i,new ValueNode(Polynomial.from(((VariableNode) parts.get(i)).varId
-                                ,((VariableNode) parts.get(i)).power)));
                     }
                 }else if(parts.get(i) instanceof ValueNode){//implicit multiplication i.e. a(b)
                     if(i>0&&parts.get(i-1) instanceof ValueNode){
@@ -1151,7 +1118,7 @@ public interface MathObject {
         }
 
 
-        private static Scalar.NumericScalar numberFromString(BigInteger base, String str, boolean safeMode) {
+        private static Scalar numberFromString(BigInteger base, String str, boolean safeMode) {
             //dynamic base: $-> bin #->hex §->dec @base: ->BaseN
             //TODO? doz
             if(str.startsWith("$")){//bin

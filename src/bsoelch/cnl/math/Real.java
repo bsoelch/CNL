@@ -13,7 +13,7 @@ import java.util.Objects;
 import static bsoelch.cnl.Constants.*;
 
 /**Real number, ist {@link Int} oder {@link Fraction}*/
-public abstract class Real extends Scalar.NumericScalar {
+public abstract class Real extends Scalar {
 
     Real() {
     }//package private Constructor
@@ -332,7 +332,7 @@ public abstract class Real extends Scalar.NumericScalar {
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof NumericScalar)) return false;
+            if (!(o instanceof Scalar)) return false;
             if (o instanceof Int) {
                 Int anInt = (Int) o;
                 return value.equals(anInt.value);
@@ -492,7 +492,7 @@ public abstract class Real extends Scalar.NumericScalar {
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof NumericScalar)) return false;
+            if (!(o instanceof Scalar)) return false;
             if (o instanceof Int) {
                 return Objects.equals(a, ((Int) o).num()) && Objects.equals(b, BigInteger.ONE);
             } else if (o instanceof Fraction) {

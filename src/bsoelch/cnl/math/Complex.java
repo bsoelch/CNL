@@ -7,13 +7,13 @@ import java.util.Objects;
 import java.util.function.Function;
 
 /**Zahl in Q[i]*/
-public final class Complex extends Scalar.NumericScalar {
+public final class Complex extends Scalar {
     public static final Complex I = new Complex(Real.Int.ZERO, Real.Int.ONE);
 
     /** a/b + * c/d */
     private final Real re,im;
 
-    public static NumericScalar from(Real re,Real im){
+    public static Scalar from(Real re,Real im){
         if(im.equals(Real.Int.ZERO))
             return re;
         if(re.equals(Real.Int.ZERO)&&im.equals(Real.Int.ONE))
@@ -26,18 +26,18 @@ public final class Complex extends Scalar.NumericScalar {
         this.im=im;
     }
 
-    public NumericScalar negate() {
+    public Scalar negate() {
         return from(re.negate(),im.negate());
     }
-    public NumericScalar conjugate() {
+    public Scalar conjugate() {
         return from(re,im.negate());
     }
 
-    public NumericScalar invert() {
-        return (NumericScalar)Scalar.multiply(conjugate(),sqAbs().invert());
+    public Scalar invert() {
+        return Scalar.multiply(conjugate(),sqAbs().invert());
     }
 
-    public NumericScalar round(int mode) {
+    public Scalar round(int mode) {
         return from(re.round(mode),im.round(mode));
     }
 
@@ -56,7 +56,7 @@ public final class Complex extends Scalar.NumericScalar {
         return im;
     }
 
-    public NumericScalar approx(Real precision) {
+    public Scalar approx(Real precision) {
         return from(re.approx(precision),im.approx(precision));
     }
 
@@ -85,7 +85,7 @@ public final class Complex extends Scalar.NumericScalar {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof NumericScalar)) return false;
+        if (!(o instanceof Scalar)) return false;
         if(o instanceof Real){
             return im.equals(Real.Int.ZERO)&&re.equals(o);
         }else if(o instanceof Complex){

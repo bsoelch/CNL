@@ -571,7 +571,7 @@ public class Translator {
 
     public static void writeValue(BitRandomAccessStream target, MathObject value) throws IOException {
         if(value instanceof Scalar){
-            writeScalar(target, (Scalar) value);
+            writeNumeric(target, (Scalar) value);
         }else if(value instanceof FiniteSet){
             int size=((FiniteSet) value).size();
             if(size==0){
@@ -632,17 +632,8 @@ public class Translator {
         }
     }
 
-    private static void writeScalar(BitRandomAccessStream target, Scalar value) throws IOException {
-        if(value instanceof Scalar.NumericScalar){
-            writeNumeric(target, (Scalar.NumericScalar) value);
-        }else if(value instanceof Polynomial){
-            //TODO writePolynomial
-        }else{
-            throw new IllegalArgumentException("Unknown valueType:"+value.getClass());
-        }
-    }
 
-    private static void writeNumeric(BitRandomAccessStream target, Scalar.NumericScalar value) throws IOException {
+    private static void writeNumeric(BitRandomAccessStream target, Scalar value) throws IOException {
         if(value.isReal()){
             writeReal(target,value.realPart());
         }else if(value instanceof Complex){

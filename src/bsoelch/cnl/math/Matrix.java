@@ -69,10 +69,9 @@ public final class Matrix{//TODO implement MathObject
         return applyToAll(Scalar::conjugate);
     }
 
-    public Scalar.NumericScalar numericValue() {
-        return entryAt(0).numericValue();//TODO? better Implementation
+    public Scalar scalarValue() {
+        return entryAt(0);//TODO? better Implementation
     }
-
 
     public Matrix negate() {
         return applyToAll(Scalar::negate);
