@@ -45,9 +45,9 @@ class BracketDeclaration implements Action {
     public void writeTo(BitRandomAccessStream target) throws IOException {
         target.write(new long[]{Constants.HEADER_BRACKET},0,Constants.HEADER_BRACKET_LENGTH);
         if((type&1)==0){
-            target.write(new long[]{type},0,3);//TODO? Length Constants
+            target.write(new long[]{type},0,Constants.BRACKET_FLAG_LENGTH_EVEN);
         }else{
-            target.write(new long[]{type},0,4);
+            target.write(new long[]{type},0,Constants.BRACKET_FLAG_LENGTH_ODD);
         }
     }
 

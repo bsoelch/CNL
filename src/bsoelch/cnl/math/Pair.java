@@ -15,8 +15,8 @@ public final class Pair implements Tuple{
     }
 
     @Override
-    public Scalar scalarValue() {
-        return a.scalarValue();
+    public NumbericValue numericValue() {
+        return a.numericValue();
     }
 
     @Override

@@ -13,7 +13,7 @@ import java.util.Objects;
 import static bsoelch.cnl.Constants.*;
 
 /**Real number, ist {@link Int} oder {@link Fraction}*/
-public abstract class Real extends Scalar {
+public abstract class Real extends NumbericValue {
 
     Real() {
     }//package private Constructor
@@ -320,7 +320,7 @@ public abstract class Real extends Scalar {
         }
 
         @Override
-        public int compareTo(@NotNull Scalar o) {
+        public int compareTo(@NotNull NumbericValue o) {
             if (o instanceof Int) {
                 Int anInt = (Int) o;
                 return value.compareTo(anInt.value);
@@ -332,7 +332,7 @@ public abstract class Real extends Scalar {
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof Scalar)) return false;
+            if (!(o instanceof NumbericValue)) return false;
             if (o instanceof Int) {
                 Int anInt = (Int) o;
                 return value.equals(anInt.value);
@@ -478,7 +478,7 @@ public abstract class Real extends Scalar {
         }
 
         @Override
-        public int compareTo(@NotNull Scalar o) {
+        public int compareTo(@NotNull NumbericValue o) {
             if (o instanceof Int) {
                 return a.compareTo(b.multiply(((Int) o).value));
             } else if (o instanceof Fraction) {
@@ -492,7 +492,7 @@ public abstract class Real extends Scalar {
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof Scalar)) return false;
+            if (!(o instanceof NumbericValue)) return false;
             if (o instanceof Int) {
                 return Objects.equals(a, ((Int) o).num()) && Objects.equals(b, BigInteger.ONE);
             } else if (o instanceof Fraction) {

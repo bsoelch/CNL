@@ -15,8 +15,8 @@ final class NTuple implements Tuple{
     }
 
     @Override
-    public Scalar scalarValue() {
-        return objects.length>0?objects[0].scalarValue():Real.Int.ZERO;
+    public NumbericValue numericValue() {
+        return objects.length>0?objects[0].numericValue():Real.Int.ZERO;
     }
 
     public int size(){

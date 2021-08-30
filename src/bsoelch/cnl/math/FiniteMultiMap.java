@@ -168,10 +168,10 @@ public class FiniteMultiMap implements FiniteMap,FiniteMap.MultiMap {
     }
 
     @Override
-    public Scalar scalarValue() {
+    public NumbericValue numericValue() {
         if(map.isEmpty())
             return Real.Int.ZERO;
-        return map.firstEntry().getValue().scalarValue();
+        return map.firstEntry().getValue().numericValue();
     }
 
 

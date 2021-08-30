@@ -146,8 +146,8 @@ public final class FiniteSet implements MathObject,Iterable<MathObject>{
     }
 
     @Override
-    public Scalar scalarValue() {
-        return contents.isEmpty()?Real.Int.ZERO: contents.last().scalarValue();
+    public NumbericValue numericValue() {
+        return contents.isEmpty()?Real.Int.ZERO: contents.last().numericValue();
     }
     public MathObject asMapIfPossible(){
         TreeMap<MathObject,MathObject> objects=new TreeMap<>(MathObject::compare);

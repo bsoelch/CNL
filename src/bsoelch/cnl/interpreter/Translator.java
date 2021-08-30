@@ -13,6 +13,7 @@ import static bsoelch.cnl.Constants.*;
 import java.io.*;
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.Locale;
 
 public class Translator {
@@ -365,7 +366,7 @@ public class Translator {
         }while(str.isEmpty());
         if(Character.isDigit(str.charAt(0))||str.charAt(0)=='\''||str.charAt(0)=='"'||str.charAt(0)=='('
                 ||str.charAt(0)=='{'||str.charAt(0)=='§'||str.charAt(0)=='#'
-                ||str.charAt(0)=='$'||str.charAt(0)=='@'||str.charAt(0)=='-'){//Number
+                ||str.charAt(0)=='$'||str.charAt(0)=='@'||str.charAt(0)=='-'||(str.charAt(0)=='['&&str.endsWith("]"))){//Number
             return wrap(MathObject.FromString.fromString(str, DEFAULT_BASE));
         }else if(str.toUpperCase(Locale.ROOT).startsWith("OUT_")){//Output
             str=str.substring(4);//remove Out from String
@@ -482,16 +483,19 @@ public class Translator {
                             throw new IllegalArgumentException("N-ary arguments for non N-ary operator");
                         }else {
                             int count = new BigInteger(counts[0]).intValueExact();
-                            //TODO? replacement-constant for argCount==0
-                            int minArgs = Operators.argCountById((int) id);
-                            long replace=Operators.nAryReplacementId((int)id,count);
-                            if(replace!=-1){
-                                return new Operator((int)replace,exEnv);
-                            }else if (count< minArgs) {
-                                throw new IllegalArgumentException("Number of Arguments for NAry operator "+name+" is less than " +
-                                        "the minimum allowed value "+minArgs);
-                            }else{
-                                return new Operator((int)id, count-minArgs,exEnv);
+                            if(count==0){
+                                return wrap(Operators.nilaryReplacement((int)id));
+                            }else {
+                                int minArgs = Operators.argCountById((int) id);
+                                long replace = Operators.nAryReplacementId((int) id, count);
+                                if (replace != -1) {
+                                    return new Operator((int) replace, exEnv);
+                                } else if (count < minArgs) {
+                                    throw new IllegalArgumentException("Number of Arguments for NAry operator " + name + " is less than " +
+                                            "the minimum allowed value " + minArgs);
+                                } else {
+                                    return new Operator((int) id, count - minArgs, exEnv);
+                                }
                             }
                         }
                     }
@@ -570,8 +574,8 @@ public class Translator {
 
 
     public static void writeValue(BitRandomAccessStream target, MathObject value) throws IOException {
-        if(value instanceof Scalar){
-            writeNumeric(target, (Scalar) value);
+        if(value instanceof NumbericValue){
+            writeNumeric(target, (NumbericValue) value);
         }else if(value instanceof FiniteSet){
             int size=((FiniteSet) value).size();
             if(size==0){
@@ -580,8 +584,8 @@ public class Translator {
                         ,Constants.CONSTANTS_INT_BLOCK,Constants.CONSTANTS_INT_BIG_BLOCK);
             }else{
                 long replace=Operators.nAryReplacementId(Operators.NEW_SET,size);
+                target.write(new long[]{HEADER_OPERATOR}, 0, HEADER_OPERATOR_LENGTH);
                 if(replace==-1) {
-                    target.write(new long[]{HEADER_OPERATOR}, 0, HEADER_OPERATOR_LENGTH);
                     long id = Operators.idByName(Operators.NEW_SET);
                     target.writeBigInt(BigInteger.valueOf(id), OPERATOR_INT_HEADER
                             , OPERATOR_INT_BLOCK, OPERATOR_INT_BIG_BLOCK);
@@ -603,8 +607,8 @@ public class Translator {
                         ,Constants.CONSTANTS_INT_BLOCK,Constants.CONSTANTS_INT_BIG_BLOCK);
             }else{
                 long replace=Operators.nAryReplacementId(Operators.NEW_TUPLE,size);
+                target.write(new long[]{HEADER_OPERATOR}, 0, HEADER_OPERATOR_LENGTH);
                 if(replace==-1) {
-                    target.write(new long[]{HEADER_OPERATOR}, 0, HEADER_OPERATOR_LENGTH);
                     long id = Operators.idByName(Operators.NEW_TUPLE);
                     target.writeBigInt(BigInteger.valueOf(id), OPERATOR_INT_HEADER
                             , OPERATOR_INT_BLOCK, OPERATOR_INT_BIG_BLOCK);
@@ -625,7 +629,23 @@ public class Translator {
                 target.writeBigInt(BigInteger.valueOf(CONSTANT_EMPTY_MAP),Constants.CONSTANTS_INT_HEADER
                         ,Constants.CONSTANTS_INT_BLOCK,Constants.CONSTANTS_INT_BIG_BLOCK);
             }else{
-                //TODO writeMap
+                long replace=Operators.nAryReplacementId(Operators.NEW_MAP,2*size);
+                target.write(new long[]{HEADER_OPERATOR}, 0, HEADER_OPERATOR_LENGTH);
+                if(replace==-1) {
+                    long id = Operators.idByName(Operators.NEW_MAP);
+                    target.writeBigInt(BigInteger.valueOf(id), OPERATOR_INT_HEADER
+                            , OPERATOR_INT_BLOCK, OPERATOR_INT_BIG_BLOCK);
+                    target.writeBigInt(BigInteger.valueOf(2L*size - Operators.argCountById((int)id)), NARY_INT_HEADER
+                            , NARY_INT_BLOCK, NARY_INT_BIG_BLOCK);
+                }else{
+                    target.writeBigInt(BigInteger.valueOf(replace), OPERATOR_INT_HEADER
+                            , OPERATOR_INT_BLOCK, OPERATOR_INT_BIG_BLOCK);
+                }
+                for (Iterator<Pair> it = ((FiniteMap) value).mapIterator(); it.hasNext(); ) {
+                    Pair e = it.next();
+                    writeValue(target,e.a);
+                    writeValue(target,e.b);
+                }
             }
         }else{
             throw new IllegalArgumentException("Unknown valueType:"+value.getClass());
@@ -633,7 +653,7 @@ public class Translator {
     }
 
 
-    private static void writeNumeric(BitRandomAccessStream target, Scalar value) throws IOException {
+    private static void writeNumeric(BitRandomAccessStream target, NumbericValue value) throws IOException {
         if(value.isReal()){
             writeReal(target,value.realPart());
         }else if(value instanceof Complex){

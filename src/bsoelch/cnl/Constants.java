@@ -13,27 +13,27 @@ import java.util.function.Function;
 import java.util.function.IntFunction;
 
 public class Constants {
-    static final public BigInteger BIG_INT_NEG_ONE = BigInteger.valueOf(-1);
-    static final public BigInteger BIG_INT_TWO=BigInteger.valueOf(2);
-    static final public BigInteger BIG_INT_THREE=BigInteger.valueOf(3);
-    static final public BigInteger BIG_INT_TWELVE=BigInteger.valueOf(12);
-    static final public BigInteger BIG_INT_SIXTEEN=BigInteger.valueOf(16);
+    public static final BigInteger BIG_INT_NEG_ONE = BigInteger.valueOf(-1);
+    public static final BigInteger BIG_INT_TWO=BigInteger.valueOf(2);
+    public static final BigInteger BIG_INT_THREE=BigInteger.valueOf(3);
+    public static final BigInteger BIG_INT_TWELVE=BigInteger.valueOf(12);
+    public static final BigInteger BIG_INT_SIXTEEN=BigInteger.valueOf(16);
     public static final BigInteger MAX_INT = BigInteger.valueOf(Integer.MAX_VALUE);
     public static final BigInteger DEFAULT_BASE = BigInteger.TEN;
 
 
     /**length of BigInt header for argCount in file-header*/
-    public final static int FILE_ARG_COUNT_INT_HEADER=8;
+    public static final int FILE_ARG_COUNT_INT_HEADER=8;
     /**length of BigInt header for argCount in file-header*/
-    public final static int FILE_ARG_COUNT_INT_BLOCK=8;
+    public static final int FILE_ARG_COUNT_INT_BLOCK=8;
     /**length of BigInt header for argCount in file-header*/
-    public final static int FILE_ARG_COUNT_INT_BIG_BLOCK=8;
+    public static final int FILE_ARG_COUNT_INT_BIG_BLOCK=8;
 
     private Constants(){}
 
     //0.[BigInt] -> Operator (2,4,4)
-    public final static int HEADER_OPERATOR =0b0;
-    public final static int HEADER_OPERATOR_LENGTH =1;
+    public static final int HEADER_OPERATOR =0b0;
+    public static final int HEADER_OPERATOR_LENGTH =1;
     /**length of BigInt header for Operators*/
     public static final int OPERATOR_INT_HEADER=2;
     /**length of BigInt block for Operators*/
@@ -48,8 +48,8 @@ public class Constants {
     public static final int NARY_INT_BIG_BLOCK=16;
 
     //10.[BigInt] -> Var (4,8,16)
-    public final static int HEADER_VAR =0b01;
-    public final static int HEADER_VAR_LENGTH =2;
+    public static final int HEADER_VAR =0b01;
+    public static final int HEADER_VAR_LENGTH =2;
     /**length of BigInt header for Variables*/
     public static final int VAR_INT_HEADER=4;
     /**length of BigInt block for Variables*/
@@ -58,8 +58,8 @@ public class Constants {
     public static final int VAR_INT_BIG_BLOCK=16;
 
     //1100.[BigInt] -> Int (4,8,16)
-    public final static int HEADER_INT =0b0011;
-    public final static int HEADER_INT_LENGTH =4;
+    public static final int HEADER_INT =0b0011;
+    public static final int HEADER_INT_LENGTH =4;
     /**length of BigInt header for Ints*/
     public static final int INT_HEADER=4;
     /**length of BigInt block for Ints*/
@@ -67,27 +67,29 @@ public class Constants {
     /**length of BigInt bigBlock for Ints*/
     public static final int INT_BIG_BLOCK=16;
     //1101.++++ -> Bracket (0++/1+++)
-    public final static int HEADER_BRACKET =0b1011;
-    public final static int HEADER_BRACKET_LENGTH =4;
+    public static final int HEADER_BRACKET =0b1011;
+    public static final int HEADER_BRACKET_LENGTH =4;
 
     //Low Bit 0
-    public final static int BRACKET_FLAG_IF_NE =0b000;
-    public final static int BRACKET_FLAG_WHILE_NE =0b010;
-    public final static int BRACKET_FLAG_DO =0b100;
-    public final static int BRACKET_FLAG_END =0b110;
+    public static final int BRACKET_FLAG_LENGTH_EVEN =3;
+    public static final int BRACKET_FLAG_IF_NE =0b000;
+    public static final int BRACKET_FLAG_WHILE_NE =0b010;
+    public static final int BRACKET_FLAG_DO =0b100;
+    public static final int BRACKET_FLAG_END =0b110;
     //Low Bit 1
-    public final static int BRACKET_FLAG_IF_EQ =0b0001;
-    public final static int BRACKET_FLAG_WHILE_EQ =0b0011;
-    public final static int BRACKET_FLAG_ELIF_EQ =0b0101;
-    public final static int BRACKET_FLAG_ELIF_NE =0b0111;
-    public final static int BRACKET_FLAG_ELSE =0b1001;
-    public final static int BRACKET_FLAG_END_WHILE_EQ =0b1011;
-    public final static int BRACKET_FLAG_END_WHILE_NE =0b1101;
-    public final static int BRACKET_FLAG_BREAK =0b1111;
+    public static final int BRACKET_FLAG_LENGTH_ODD =4;
+    public static final int BRACKET_FLAG_IF_EQ =0b0001;
+    public static final int BRACKET_FLAG_WHILE_EQ =0b0011;
+    public static final int BRACKET_FLAG_ELIF_EQ =0b0101;
+    public static final int BRACKET_FLAG_ELIF_NE =0b0111;
+    public static final int BRACKET_FLAG_ELSE =0b1001;
+    public static final int BRACKET_FLAG_END_WHILE_EQ =0b1011;
+    public static final int BRACKET_FLAG_END_WHILE_NE =0b1101;
+    public static final int BRACKET_FLAG_BREAK =0b1111;
 
     //111000.[BigInt] -> Constants
     public static final int HEADER_CONSTANTS = 0b000111;
-    public final static int HEADER_CONSTANTS_LENGTH =6;
+    public static final int HEADER_CONSTANTS_LENGTH =6;
 
     /**length of BigInt header for Constants*/
     public static final int CONSTANTS_INT_HEADER=3;
@@ -104,8 +106,8 @@ public class Constants {
     public static final int CONSTANT_EMPTY_MAP = 5;
 
     //111001.[BigInt][BigInt] -> Fraction (4,8,16)
-    public final static int HEADER_FRACTION =0b100111;
-    public final static int HEADER_FRACTION_LENGTH =4;
+    public static final int HEADER_FRACTION =0b100111;
+    public static final int HEADER_FRACTION_LENGTH =4;
 
     //111010.[BigInt] -> Function(Arg) (4,8,16)
     public static final int HEADER_FUNCTION_ARG = 0b010111;
@@ -235,16 +237,15 @@ public class Constants {
     public static final int IO_FLAG_FLOAT = 2;
     public static final int IO_FLAG_STRING = 3;
 
-    //TODO Polynomials (Variables)
     //TODO Matrices
 
     public static class Operators {
-        static final public int FLAG_DYNAMIC=1;
-        static final public int FLAG_NARY=2;
-        static private final HashMap<Integer, OperatorInfo> operators=new HashMap<>();
-        static private final HashMap<String, OperatorInfo> operatorNames=new HashMap<>();
+        public static final int FLAG_DYNAMIC=1;
+        public static final int FLAG_NARY=2;
+        private static final HashMap<Integer, OperatorInfo> operators=new HashMap<>();
+        private static final HashMap<String, OperatorInfo> operatorNames=new HashMap<>();
 
-        static final public int MODIFY_ARG0_ALWAYS=1, MODIFY_ARG0_ROOT=0,MODIFY_ARG0_NEVER=-1;
+        public static final int MODIFY_ARG0_ALWAYS=1, MODIFY_ARG0_ROOT=0,MODIFY_ARG0_NEVER=-1;
 
         /** -A */
         public static final String NEGATE = "NEG";
@@ -340,12 +341,22 @@ public class Constants {
         private static final String SYM_DIFF = "SYM_DIFF";
         /**difference of A and B as sets*/
         private static final String DIFF = "DIFF";
-        /**creates a new set for the following elements (nary, minArgs: 1)*/
+        /**wraps the following value in a Set*/
+        private static final String WRAP_IN_SET = "WRAP_IN_SET";
+        /**wraps the following two values in a Set*/
+        private static final String WRAP2_IN_SET = "WRAP2_IN_SET";
+        /**creates a new set for the following elements (nary, minArgs: 3)*/
         public static final String NEW_SET = "NEW_SET";
-        /**creates a new Tuple for the following elements (nary, minArgs: 3)*/
-        public static final String NEW_TUPLE = "NEW_TUPLE";
+        /**wraps the following value in a Tuple*/
+        private static final String WRAP_IN_TUPLE = "WRAP_IN_TUPLE";
         /**creates a new Pair */
         public static final String NEW_PAIR = "NEW_PAIR" ;
+        /**creates a new Tuple for the following elements (nary, minArgs: 3)*/
+        public static final String NEW_TUPLE = "NEW_TUPLE";
+        /**creates a new Map with one Entry {A->B} */
+        public static final String SINGLETON_MAP = "SINGLETON_MAP" ;
+        /**creates a new map for the following elements, with each pair of two consecutive Elements being a key-value pair (nary, minArgs: 4)*/
+        public static final String NEW_MAP = "NEW_MAP";
 
         private static boolean operatorsInitialized=false;
 
@@ -449,360 +460,390 @@ public class Constants {
                                 return MathObject.isTrue(args[0])?args[2]:args[1];
                             }
                         });
-                declareOperator(STRING_CONCAT,
-                        new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, MathObject::strConcat));
+                //CONCAT_BINARY
                 declareOperator(F_ADD,
                         new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, MathObject::fAdd));
+                //F2X_MULT
+
                 declareOperator(APPROXIMATE,
                         new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
-                                (a,b)-> MathObject.approximate(a,b.scalarValue().realPart())));
+                                (a,b)-> MathObject.approximate(a,b.numericValue().realPart())));
                 declareOperator(BIT_LENGTH,//TODO better implementation of bitLength (? elementwise floor(log2))
                         new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
-                                (a)-> Real.from(a.scalarValue().realPart()
+                                (a)-> Real.from(a.numericValue().realPart()
                                         .num().abs().bitLength()
-                                        - a.scalarValue().realPart().den().bitLength())));
-                declareOperator(STRING_LENGTH,
-                        new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
-                                (a)-> Real.Int.from(a.asString().length())));
-                declareOperator(INT_TO_STRING,
-                        new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
-                                (a,b)-> Real.from(Real.stringAsBigInt(
-                                a.toString(MathObject.round(b, MathObject.FLOOR)
-                                        .scalarValue().realPart().num(), true)))));
-                declareOperator(STRING_TO_INT,
-                        new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
-                                (a,b)-> MathObject.FromString.safeFromString(
-                                a.asString(), MathObject.round(b, MathObject.FLOOR)
-                                        .scalarValue().realPart().num())));
+                                        - a.numericValue().realPart().den().bitLength())));
 
-                //STRING_STARTS_WITH <str> <start>
-                //STRING_ENDS_WITH <str> <end>
-                //STRING_CONTAINS <str> <subStr>
-                //STRING_INDEX_OF <str> <subStr>
-                //STRING_SUBSTRING_FROM <str> <off_index>
-                //STRING_SUBSTRING_TO <str> <to_index>
-                //STRING_SUBSTRING <str> <off_index> <to_index>
-                declareOperator(CUT,
-                        new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, MathObject::intersect));
-                declareOperator(UNITE,
-                        new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, MathObject::unite));
-                declareOperator(SYM_DIFF,
-                        new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, MathObject::symmetricDifference));
-                declareOperator(DIFF,
-                        new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, MathObject::difference));
+                //Strings
+                {
+                    declareOperator(STRING_LENGTH,
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    (a) -> Real.Int.from(a.asString().length())));
+                    declareOperator(STRING_CONCAT,
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, MathObject::strConcat));
+                    declareOperator(INT_TO_STRING,
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    (a, b) -> Real.from(Real.stringAsBigInt(
+                                            a.toString(MathObject.round(b, MathObject.FLOOR)
+                                                    .numericValue().realPart().num(), true)))));
+                    declareOperator(STRING_TO_INT,
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    (a, b) -> MathObject.FromString.safeFromString(
+                                            a.asString(), MathObject.round(b, MathObject.FLOOR)
+                                                    .numericValue().realPart().num())));
 
-                declareOperator(TUPLE_CONCAT,
-                        new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
-                                MathObject::tupleConcat));
-                //TUPLE_GET_FIRST
-                //TUPLE_GET_LAST
-                //TUPLE_GET <index>
-                //TUPLE_SET <index>
-                //TUPLE_INSERT <index>
-                //TUPLE_REMOVE_LAST
-                //TUPLE_REMOVE_FIRST
-                //TUPLE_REMOVE <index>
+                    //STRING_STARTS_WITH <str> <start>
+                    //STRING_ENDS_WITH <str> <end>
+                    //STRING_CONTAINS <str> <subStr>
+                    //STRING_INDEX_OF <str> <subStr>
+                    //STRING_SUBSTRING_FROM <str> <off_index>
+                    //STRING_SUBSTRING_TO <str> <to_index>
+                    //STRING_SUBSTRING <str> <off_index> <to_index>
+                }
+                //sets/tuples/maps
+                {
+                    //Type Conversion
+                    declareOperator("SCALAR_VALUE",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    MathObject::numericValue));
+                    declareOperator("AS_SET",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    MathObject::asSet));
+                    declareOperator("AS_MAP",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    MathObject::asMap));
+                    declareOperator(CUT,
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, MathObject::intersect));
+                    declareOperator(UNITE,
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, MathObject::unite));
+                    declareOperator(SYM_DIFF,
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, MathObject::symmetricDifference));
+                    declareOperator(DIFF,
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, MathObject::difference));
 
-                //NEW_PAIR
-                declareOperator(NEW_PAIR,
-                        new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
-                                Pair::new));
-                //CONCAT_BINARY
+                    declareOperator(TUPLE_CONCAT,
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    MathObject::tupleConcat));
+                    //TUPLE_GET_FIRST
+                    //TUPLE_GET_LAST
+                    //TUPLE_GET <index>
+                    //TUPLE_SET <index>
+                    //TUPLE_INSERT <index>
+                    //TUPLE_REMOVE_LAST
+                    //TUPLE_REMOVE_FIRST
+                    //TUPLE_REMOVE <index>
 
-                declareOperator("SCALAR_VALUE",
-                        new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
-                                MathObject::scalarValue));
-                declareOperator("AS_SET",
-                        new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
-                                MathObject::asSet));
-                declareOperator("AS_MAP",
-                        new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
-                                MathObject::asMap));
+                    //WrapIn
+                    declareOperator(WRAP_IN_TUPLE,
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    o -> Tuple.create(new MathObject[]{o})));
+                    declareOperator(WRAP_IN_SET,
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT, (Function<MathObject, MathObject>) FiniteSet::from));
+                    declareOperator(NEW_PAIR,
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    Pair::new));
+                    declareOperator(WRAP2_IN_SET,
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, (BiFunction<MathObject, MathObject, MathObject>) FiniteSet::from));
 
-                //CONTAINS
-                //CONTAINS_KEY
-
+                    //CONTAINS
+                    //CONTAINS_KEY
+                }
                 //Nary Operations
-                declareOperator("SUM",
-                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3, MathObject::sum, c-> c==2?ADD:null));
-                declareOperator("PROD",
-                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3, MathObject::product, c-> c==2?MULTIPLY:null));
-                declareOperator("NARY_AND",
-                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3,(args)->{//TODO? move evaluation to MathObject
-                            MathObject res=args[0];
-                            for(int i=1;i<args.length;i++) {
-                                res = MathObject.floorAnd(res, args[i]);
-                            }
-                            return res;
-                        }, c-> c==2?AND:null));
-                declareOperator("NARY_OR",
-                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3,(args)->{
-                            MathObject res=args[0];
-                            for(int i=1;i<args.length;i++) {
-                                res = MathObject.floorOr(res, args[i]);
-                            }
-                            return res;
-                        }, c-> c==2?OR:null));
-                declareOperator("NARY_STR_CONCAT",
-                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3,(args)->{
-                            MathObject res=args[0];
-                            for(int i=1;i<args.length;i++) {
-                                res = MathObject.strConcat(res, args[i]);
-                            }
-                            return res;
-                        }, c-> c==2?STRING_CONCAT:null));
-                declareOperator("NARY_TIMES",
-                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3, MathObject::nAryTimes, c-> c==2?TIMES:null));
+                {
+                    declareOperator("SUM",
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3, MathObject::sum, c -> c == 2 ? ADD : null, Real.Int.ZERO));
+                    declareOperator("PROD",
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3, MathObject::product, c -> c == 2 ? MULTIPLY : null, Real.Int.ONE));
+                    declareOperator("NARY_AND",
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3, (args) -> {//TODO? move evaluation to MathObject
+                                MathObject res = args[0];
+                                for (int i = 1; i < args.length; i++) {
+                                    res = MathObject.floorAnd(res, args[i]);
+                                }
+                                return res;
+                            }, c -> c == 2 ? AND : null, Real.Int.ONE));
+                    declareOperator("NARY_OR",
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3, (args) -> {
+                                MathObject res = args[0];
+                                for (int i = 1; i < args.length; i++) {
+                                    res = MathObject.floorOr(res, args[i]);
+                                }
+                                return res;
+                            }, c -> c == 2 ? OR : null, Real.Int.ZERO));
+                    declareOperator("NARY_STR_CONCAT",
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3, (args) -> {
+                                MathObject res = args[0];
+                                for (int i = 1; i < args.length; i++) {
+                                    res = MathObject.strConcat(res, args[i]);
+                                }
+                                return res;
+                            }, c -> c == 2 ? STRING_CONCAT : null, Real.Int.ZERO));
+                    declareOperator("NARY_TIMES",
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3, MathObject::nAryTimes, c -> c == 2 ? TIMES : null, FiniteSet.EMPTY_SET));
 
-                declareOperator(NEW_SET,
-                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,1,//TODO shortcut for 1 and 2 element sets
-                                (Function<MathObject[], MathObject>) FiniteSet::from, c->null));
-                declareOperator(NEW_TUPLE,
-                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3,
-                                Tuple::create, c->c==2?NEW_PAIR:null));//TODO single argument tuple
+                    declareOperator(NEW_SET,
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
+                                    FiniteSet::from, c -> c==1?WRAP_IN_SET:c==2?WRAP2_IN_SET:null, FiniteSet.EMPTY_SET));
+                    declareOperator(NEW_TUPLE,
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
+                                    Tuple::create, c -> c==1?WRAP_IN_TUPLE:c == 2 ? NEW_PAIR : null, FiniteMap.EMPTY_MAP));
+                    declareOperator(NEW_MAP,
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 4,
+                                    (args)->{
+                                        if(args.length%2==1)
+                                            throw new IllegalArgumentException("NEW_MAP needs an even Number of Arguments");
+                                        HashMap<MathObject, MathObject> map=new HashMap<>(args.length/2);
+                                        for(int i=0;i<args.length;i+=2){
+                                            if(map.put(args[i],args[i+1])!=null){
+                                                throw new IllegalArgumentException("duplicate key in NEW_MAP: "+args[i]);
+                                            }
+                                        }
+                                        return FiniteMap.from(map,1);
+                                    }, c -> c==2?SINGLETON_MAP:null, FiniteMap.EMPTY_MAP));
 
-                //NARY_SUM_U (unwrap)
-                //NARY_PROD_U
-                //NARY_AND_U
-                //NARY_OR_U
-                //NEW_MAP
-                //?NARY_CONCAT_U
-                //NARY_BIN_CONCAT
-                //NARY_TUPLE_CONCAT
+                    //NARY_SUM_U (unwrap)
+                    //NARY_PROD_U
+                    //NARY_AND_U
+                    //NARY_OR_U
+                    //NEW_MAP
+                    //?NARY_CONCAT_U
+                    //NARY_BIN_CONCAT
+                    //NARY_TUPLE_CONCAT
 
-                //NEW_MATRIX (Bi-Nary)
-
-                //FILE_GOTO_BIT <path> <count>
-                declareOperator("FILE_GOTO_BIT",
-                        new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env->(file, pos)-> {
-                            try {
+                    //NEW_MATRIX (Bi-Nary)
+                }
+                //FileIO
+                {
+                    //FILE_GOTO_BIT <path> <count>
+                    declareOperator("FILE_GOTO_BIT",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env -> (file, pos) -> {
+                                try {
+                                    String path = file.asString();
+                                    env.fileAt(path).seek(pos.numericValue()
+                                            .round(MathObject.FLOOR).realPart().num().longValueExact());
+                                    return Real.Int.ZERO;
+                                } catch (IOException io) {
+                                    System.err.println('\n' + io.toString());
+                                    return Real.Int.NEGATIVE_ONE;
+                                }
+                            }));
+                    //FILE_GOTO_BYTE <path> <count>
+                    declareOperator("FILE_GOTO_BYTE",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env -> (file, pos) -> {
+                                try {
+                                    String path = file.asString();
+                                    env.fileAt(path).seek(8 * pos.numericValue()
+                                            .round(MathObject.FLOOR).realPart().num().longValueExact());
+                                    return Real.Int.ZERO;
+                                } catch (IOException io) {
+                                    System.err.println('\n' + io.toString());
+                                    return Real.Int.NEGATIVE_ONE;
+                                }
+                            }));
+                    //FILE_GOTO_BYTE_START <path>
+                    declareOperator("FILE_GOTO_BYTE_START",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_NEVER, (env, file) -> {
+                                try {
+                                    String path = file.asString();
+                                    BitRandomAccessStream file1 = env.fileAt(path);
+                                    file1.seek(8 * ((file1.bitPos() / 8)));
+                                    return Real.Int.ZERO;
+                                } catch (IOException io) {
+                                    System.err.println('\n' + io.toString());
+                                    return Real.Int.NEGATIVE_ONE;
+                                }
+                            }));
+                    //FILE_BIT_POSITION <path>
+                    declareOperator("FILE_BIT_POS",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_NEVER, (env, file) -> {
                                 String path = file.asString();
-                                env.fileAt(path).seek(pos.scalarValue()
-                                        .round(MathObject.FLOOR).realPart().num().longValueExact());
-                                return Real.Int.ZERO;
-                            }catch (IOException io){
-                                System.err.println('\n'+io.toString());
-                                return Real.Int.NEGATIVE_ONE;
-                            }
-                        }));
-                //FILE_GOTO_BYTE <path> <count>
-                declareOperator("FILE_GOTO_BYTE",
-                        new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env->(file, pos)-> {
-                            try {
+                                try {
+                                    return Real.Int.from(env.fileAt(path).bitPos());
+                                } catch (IOException io) {
+                                    System.err.println('\n' + io.toString());
+                                    return Real.Int.NEGATIVE_ONE;
+                                }
+                            }));
+                    //FILE_BYTE_POSITION <path>
+                    declareOperator("FILE_BYTE_POS",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_NEVER, (env, file) -> {
                                 String path = file.asString();
-                                env.fileAt(path).seek(8*pos.scalarValue()
-                                        .round(MathObject.FLOOR).realPart().num().longValueExact());
-                                return Real.Int.ZERO;
-                            }catch (IOException io){
-                                System.err.println('\n'+io.toString());
-                                return Real.Int.NEGATIVE_ONE;
-                            }
-                        }));
-                //FILE_GOTO_BYTE_START <path>
-                declareOperator("FILE_GOTO_BYTE_START",
-                        new ExecutionInfo.Unary(MODIFY_ARG0_NEVER,(env, file)-> {
-                            try {
+                                try {
+                                    return Real.divide(Real.Int.from(env.fileAt(path).bitPos()),
+                                            Real.from(BigInteger.valueOf(8)));
+                                } catch (IOException io) {
+                                    System.err.println('\n' + io.toString());
+                                    return Real.Int.NEGATIVE_ONE;
+                                }
+                            }));
+                    //FILE_SIZE <path>
+                    declareOperator("FILE_SIZE",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_NEVER, (env, file) -> {
                                 String path = file.asString();
-                                BitRandomAccessStream file1 = env.fileAt(path);
-                                file1.seek(8*((file1.bitPos()/8)));
-                                return Real.Int.ZERO;
-                            }catch (IOException io){
-                                System.err.println('\n'+io.toString());
-                                return Real.Int.NEGATIVE_ONE;
-                            }
-                        }));
-                //FILE_BIT_POSITION <path>
-                declareOperator("FILE_BIT_POS",
-                        new ExecutionInfo.Unary(MODIFY_ARG0_NEVER,(env, file)-> {
-                            String path = file.asString();
-                            try {
-                                return Real.Int.from(env.fileAt(path).bitPos());
-                            } catch (IOException io) {
-                                System.err.println('\n'+io.toString());
-                                return Real.Int.NEGATIVE_ONE;
-                            }
-                        }));
-                //FILE_BYTE_POSITION <path>
-                declareOperator("FILE_BYTE_POS",
-                        new ExecutionInfo.Unary(MODIFY_ARG0_NEVER,(env, file)-> {
-                            String path = file.asString();
-                            try {
-                                return Real.divide(Real.Int.from(env.fileAt(path).bitPos()),
-                                        Real.from(BigInteger.valueOf(8)));
-                            } catch (IOException io) {
-                                System.err.println('\n'+io.toString());
-                                return Real.Int.NEGATIVE_ONE;
-                            }
-                        }));
-                //FILE_SIZE <path>
-                declareOperator("FILE_SIZE",
-                        new ExecutionInfo.Unary(MODIFY_ARG0_NEVER,(env, file)-> {
-                            String path = file.asString();
-                            try {
-                                return Real.Int.from(env.fileAt(path).byteLength());
-                            } catch (IOException io) {
-                                System.err.println('\n'+io.toString());
-                                return Real.Int.NEGATIVE_ONE;
-                            }
-                        }));
-                //FILE_BIT_SIZE <path>
-                declareOperator("FILE_BIT_SIZE",
-                        new ExecutionInfo.Unary(MODIFY_ARG0_NEVER,(env, file)-> {
-                            String path = file.asString();
-                            try {
-                                return Real.Int.from(8L*env.fileAt(path).byteLength());
-                            } catch (IOException io) {
-                                System.err.println('\n'+io.toString());
-                                return Real.Int.NEGATIVE_ONE;
-                            }
-                        }));
-                //FILE_MOVE_BITS <path> <count>
-                declareOperator("FILE_MOVE_BITS",
-                        new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env->(file, pos)-> {
-                            try {
+                                try {
+                                    return Real.Int.from(env.fileAt(path).byteLength());
+                                } catch (IOException io) {
+                                    System.err.println('\n' + io.toString());
+                                    return Real.Int.NEGATIVE_ONE;
+                                }
+                            }));
+                    //FILE_BIT_SIZE <path>
+                    declareOperator("FILE_BIT_SIZE",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_NEVER, (env, file) -> {
                                 String path = file.asString();
-                                BitRandomAccessStream file1 = env.fileAt(path);
-                                file1.seek(file1.bitPos()+pos.scalarValue()
-                                        .round(MathObject.FLOOR).realPart().num().longValueExact());
-                                return Real.Int.ZERO;
-                            }catch (IOException io){
-                                System.err.println('\n'+io.toString());
-                                return Real.Int.NEGATIVE_ONE;
-                            }
-                        }));
-                //FILE_MOVE_BYTES <path> <count>
-                declareOperator("FILE_MOVE_BYTES",
-                        new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env->(file, pos)-> {
-                            try {
-                                String path = file.asString();
-                                BitRandomAccessStream file1 = env.fileAt(path);
-                                file1.seek(file1.bitPos()+8*pos.scalarValue()
-                                        .round(MathObject.FLOOR).realPart().num().longValueExact());
-                                return Real.Int.ZERO;
-                            }catch (IOException io){
-                                System.err.println('\n'+io.toString());
-                                return Real.Int.NEGATIVE_ONE;
-                            }
-                        }));
-                //FILE_READ_BIT <path>
-                declareOperator("FILE_READ_BIT",
-                        new ExecutionInfo.Unary(MODIFY_ARG0_NEVER,(env, file)-> {
-                            try {
-                                String path = file.asString();
-                                return Real.Int.from(env.fileAt(path).readBit());
-                            }catch (IOException io){
-                                System.err.println('\n'+io.toString());
-                                return Real.Int.NEGATIVE_ONE;
-                            }
-                        }));
-                //FILE_READ_BYTE <path>
-                declareOperator("FILE_READ_BYTE",
-                        new ExecutionInfo.Unary(MODIFY_ARG0_NEVER,(env, file)-> {
-                            try {
-                                String path = file.asString();
-                                return Real.Int.from(env.fileAt(path).readBits(8));
-                            }catch (IOException io){
-                                System.err.println('\n'+io.toString());
-                                return Real.Int.NEGATIVE_ONE;
-                            }
-                        }));
-                //FILE_READ_BITS <path> <count>
-                declareOperator("FILE_READ_BITS",
-                        new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env->(file, count)-> {
-                            try {
-                                String path = file.asString();
-                                return Real.Int.from(env.fileAt(path).readBits(count.scalarValue()
-                                        .round(MathObject.FLOOR).realPart().num().intValueExact()));
-                            }catch (IOException io){
-                                System.err.println('\n'+io.toString());
-                                return Real.Int.NEGATIVE_ONE;
-                            }
-                        }));
-                //FILE_READ_BYTES <path> <count>
-                declareOperator("FILE_READ_BYTES",
-                        new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env->(file, count)-> {
-                            try {
-                                String path = file.asString();
-                                return Real.Int.from(env.fileAt(path).readBits(8*count.scalarValue()
-                                        .round(MathObject.FLOOR).realPart().num().intValueExact()));
-                            }catch (IOException io){
-                                System.err.println('\n'+io.toString());
-                                return Real.Int.NEGATIVE_ONE;
-                            }
-                        }));
-                //FILE_READ_BIG_INT <path> <header> <block> <bigBlock> //TODO BigInt IO
-                //FILE_WRITE_BIT <path> <value>
-                declareOperator("FILE_WRITE_BIT",
-                        new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env->(file, value)-> {
-                            try {
-                                String path = file.asString();
-                                env.fileAt(path).writeBit(!value.equals(Real.Int.ZERO));
-                                return Real.Int.ZERO;
-                            }catch (IOException io){
-                                System.err.println('\n'+io.toString());
-                                return Real.Int.NEGATIVE_ONE;
-                            }
-                        }));
-                //FILE_WRITE_BYTE <path> <value>
-                declareOperator("FILE_WRITE_BYTE",
-                        new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env->(file, value)-> {
-                            try {
-                                String path = file.asString();
-                                env.fileAt(path).writeByte(value.scalarValue().round(MathObject.FLOOR).
-                                        realPart().num().intValue()&0xff);
-                                return Real.Int.ZERO;
-                            }catch (IOException io){
-                                System.err.println('\n'+io.toString());
-                                return Real.Int.NEGATIVE_ONE;
-                            }
-                        }));
-                //FILE_WRITE_CHAR <path> <value>
-                //FILE_WRITE_BITS <path> <value> <count>
-                //FILE_WRITE_BYTES <path> <value> <count>
-                //FILE_WRITE_STRING <path> <value> <len>
-                //FILE_WRITE_ALL_BITS <path> <value>
-                declareOperator("FILE_WRITE_ALL_BITS",
-                        new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env->(file, value)-> {
-                            try {
-                                String path = file.asString();
-                                BigInteger bigInt = value.scalarValue().round(MathObject.FLOOR).realPart().num();
-                                env.fileAt(path).writeBits(bigInt,bigInt.bitLength());
-                                return Real.Int.ZERO;
-                            }catch (IOException io){
-                                System.err.println('\n'+io.toString());
-                                return Real.Int.NEGATIVE_ONE;
-                            }
-                        }));
-                //FILE_WRITE_BIG_INT <path> <value> <header> <block> <bigBlock>
-                //FILE_TRUNCATE <path>
-                declareOperator("FILE_TRUNCATE",
-                        new ExecutionInfo.Unary(MODIFY_ARG0_NEVER,(env, file)-> {
-                            try {
-                                String path = file.asString();
-                                BitRandomAccessStream file1 = env.fileAt(path);
-                                file1.truncateToSize(true);//TODO fillMode
-                                return Real.from(file1.byteLength());
-                            }catch (IOException io){
-                                System.err.println('\n'+io.toString());
-                                return Real.Int.NEGATIVE_ONE;
-                            }
-                        }));
-                //FILE_CLOSE <path>
-                declareOperator("FILE_CLOSE",
-                        new ExecutionInfo.Unary(MODIFY_ARG0_NEVER,(env, file)-> {
-                            try {
-                                String path = file.asString();
-                                env.closeFileAt(path);
-                                return Real.Int.ZERO;
-                            }catch (IOException io){
-                                System.err.println('\n'+io.toString());
-                                return Real.Int.NEGATIVE_ONE;
-                            }
-                        }));
-
-
-
+                                try {
+                                    return Real.Int.from(8L * env.fileAt(path).byteLength());
+                                } catch (IOException io) {
+                                    System.err.println('\n' + io.toString());
+                                    return Real.Int.NEGATIVE_ONE;
+                                }
+                            }));
+                    //FILE_MOVE_BITS <path> <count>
+                    declareOperator("FILE_MOVE_BITS",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env -> (file, pos) -> {
+                                try {
+                                    String path = file.asString();
+                                    BitRandomAccessStream file1 = env.fileAt(path);
+                                    file1.seek(file1.bitPos() + pos.numericValue()
+                                            .round(MathObject.FLOOR).realPart().num().longValueExact());
+                                    return Real.Int.ZERO;
+                                } catch (IOException io) {
+                                    System.err.println('\n' + io.toString());
+                                    return Real.Int.NEGATIVE_ONE;
+                                }
+                            }));
+                    //FILE_MOVE_BYTES <path> <count>
+                    declareOperator("FILE_MOVE_BYTES",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env -> (file, pos) -> {
+                                try {
+                                    String path = file.asString();
+                                    BitRandomAccessStream file1 = env.fileAt(path);
+                                    file1.seek(file1.bitPos() + 8 * pos.numericValue()
+                                            .round(MathObject.FLOOR).realPart().num().longValueExact());
+                                    return Real.Int.ZERO;
+                                } catch (IOException io) {
+                                    System.err.println('\n' + io.toString());
+                                    return Real.Int.NEGATIVE_ONE;
+                                }
+                            }));
+                    //FILE_READ_BIT <path>
+                    declareOperator("FILE_READ_BIT",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_NEVER, (env, file) -> {
+                                try {
+                                    String path = file.asString();
+                                    return Real.Int.from(env.fileAt(path).readBit());
+                                } catch (IOException io) {
+                                    System.err.println('\n' + io.toString());
+                                    return Real.Int.NEGATIVE_ONE;
+                                }
+                            }));
+                    //FILE_READ_BYTE <path>
+                    declareOperator("FILE_READ_BYTE",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_NEVER, (env, file) -> {
+                                try {
+                                    String path = file.asString();
+                                    return Real.Int.from(env.fileAt(path).readBits(8));
+                                } catch (IOException io) {
+                                    System.err.println('\n' + io.toString());
+                                    return Real.Int.NEGATIVE_ONE;
+                                }
+                            }));
+                    //FILE_READ_BITS <path> <count>
+                    declareOperator("FILE_READ_BITS",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env -> (file, count) -> {
+                                try {
+                                    String path = file.asString();
+                                    return Real.Int.from(env.fileAt(path).readBits(count.numericValue()
+                                            .round(MathObject.FLOOR).realPart().num().intValueExact()));
+                                } catch (IOException io) {
+                                    System.err.println('\n' + io.toString());
+                                    return Real.Int.NEGATIVE_ONE;
+                                }
+                            }));
+                    //FILE_READ_BYTES <path> <count>
+                    declareOperator("FILE_READ_BYTES",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env -> (file, count) -> {
+                                try {
+                                    String path = file.asString();
+                                    return Real.Int.from(env.fileAt(path).readBits(8 * count.numericValue()
+                                            .round(MathObject.FLOOR).realPart().num().intValueExact()));
+                                } catch (IOException io) {
+                                    System.err.println('\n' + io.toString());
+                                    return Real.Int.NEGATIVE_ONE;
+                                }
+                            }));
+                    //FILE_READ_BIG_INT <path> <header> <block> <bigBlock> //TODO BigInt IO
+                    //FILE_WRITE_BIT <path> <value>
+                    declareOperator("FILE_WRITE_BIT",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env -> (file, value) -> {
+                                try {
+                                    String path = file.asString();
+                                    env.fileAt(path).writeBit(!value.equals(Real.Int.ZERO));
+                                    return Real.Int.ZERO;
+                                } catch (IOException io) {
+                                    System.err.println('\n' + io.toString());
+                                    return Real.Int.NEGATIVE_ONE;
+                                }
+                            }));
+                    //FILE_WRITE_BYTE <path> <value>
+                    declareOperator("FILE_WRITE_BYTE",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env -> (file, value) -> {
+                                try {
+                                    String path = file.asString();
+                                    env.fileAt(path).writeByte(value.numericValue().round(MathObject.FLOOR).
+                                            realPart().num().intValue() & 0xff);
+                                    return Real.Int.ZERO;
+                                } catch (IOException io) {
+                                    System.err.println('\n' + io.toString());
+                                    return Real.Int.NEGATIVE_ONE;
+                                }
+                            }));
+                    //FILE_WRITE_CHAR <path> <value>
+                    //FILE_WRITE_BITS <path> <value> <count>
+                    //FILE_WRITE_BYTES <path> <value> <count>
+                    //FILE_WRITE_STRING <path> <value> <len>
+                    //FILE_WRITE_ALL_BITS <path> <value>
+                    declareOperator("FILE_WRITE_ALL_BITS",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env -> (file, value) -> {
+                                try {
+                                    String path = file.asString();
+                                    BigInteger bigInt = value.numericValue().round(MathObject.FLOOR).realPart().num();
+                                    env.fileAt(path).writeBits(bigInt, bigInt.bitLength());
+                                    return Real.Int.ZERO;
+                                } catch (IOException io) {
+                                    System.err.println('\n' + io.toString());
+                                    return Real.Int.NEGATIVE_ONE;
+                                }
+                            }));
+                    //FILE_WRITE_BIG_INT <path> <value> <header> <block> <bigBlock>
+                    //FILE_TRUNCATE <path>
+                    declareOperator("FILE_TRUNCATE",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_NEVER, (env, file) -> {
+                                try {
+                                    String path = file.asString();
+                                    BitRandomAccessStream file1 = env.fileAt(path);
+                                    file1.truncateToSize(true);//TODO fillMode
+                                    return Real.from(file1.byteLength());
+                                } catch (IOException io) {
+                                    System.err.println('\n' + io.toString());
+                                    return Real.Int.NEGATIVE_ONE;
+                                }
+                            }));
+                    //FILE_CLOSE <path>
+                    declareOperator("FILE_CLOSE",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_NEVER, (env, file) -> {
+                                try {
+                                    String path = file.asString();
+                                    env.closeFileAt(path);
+                                    return Real.Int.ZERO;
+                                } catch (IOException io) {
+                                    System.err.println('\n' + io.toString());
+                                    return Real.Int.NEGATIVE_ONE;
+                                }
+                            }));
+                }
                 //? GUI
+
                 operatorsInitialized=true;
             }
         }
@@ -813,6 +854,9 @@ public class Constants {
             protected ExecutionInfo(int storeMode,int flags) {
                 this.storeMode = storeMode;
                 this.flags=flags;
+                if(((flags & FLAG_NARY) == 0) == (this instanceof Nary)){
+                    throw new RuntimeException("FLAG_NARY should be exactly if this class is Nary");
+                }
             }
 
             public abstract int argCount();
@@ -904,22 +948,18 @@ public class Constants {
                 final int minArgs;
 
                 final Function<MathObject[], MathObject> f;
-                final BiFunction<ExecutionEnvironment, MathObject[], MathObject> fEnv;
-                final IntFunction<String> shortCuts;
 
-                Nary(int storeMode, int minArgs, Function<MathObject[], MathObject> f,@NotNull IntFunction<String> shortCuts){
+                final IntFunction<String> shortCuts;
+                final MathObject nilaryValue;
+
+                Nary(int storeMode, int minArgs, Function<MathObject[], MathObject> f, @NotNull IntFunction<String> shortCuts, MathObject nilaryValue){
                     super(storeMode,FLAG_NARY);
                     this.minArgs=minArgs;
+                    if(minArgs<=0)
+                        throw new RuntimeException("minArgs has to be at least 1");
                     this.f=f;
                     this.shortCuts = shortCuts;
-                    this.fEnv=null;
-                }
-                Nary(int storeMode, int minArgs, BiFunction<ExecutionEnvironment, MathObject[], MathObject> fEnv,@NotNull  IntFunction<String> shortCuts){
-                    super(storeMode,FLAG_NARY);
-                    this.minArgs=minArgs;
-                    this.shortCuts = shortCuts;
-                    this.f=null;
-                    this.fEnv=fEnv;
+                    this.nilaryValue = nilaryValue;
                 }
 
                 @Override
@@ -929,16 +969,11 @@ public class Constants {
 
                 @Override
                 public MathObject execute(ExecutionEnvironment env, MathObject[] objects) {
-                    if(fEnv!=null){
-                        return fEnv.apply(env,objects);
-                    }else {
-                        assert f!=null;
-                        return f.apply(objects);
-                    }
+                    return f.apply(objects);
                 }
             }
         }
-        static private class OperatorInfo{
+        private static class OperatorInfo{
             final int id;
             final String name;
             final ExecutionInfo executionInfo;
@@ -968,6 +1003,17 @@ public class Constants {
             return operatorInfo.name;
         }
 
+        /**@return the value of the n-ary operator with the given id evaluated with zero arguments*/
+        public static MathObject nilaryReplacement(int id){
+            ensureOperatorsInitialized();
+            OperatorInfo operatorInfo = operators.get(id);
+            if ((operatorInfo.executionInfo.flags & FLAG_NARY) != 0) {
+                return ((ExecutionInfo.Nary) operatorInfo.executionInfo).nilaryValue;
+            } else {
+                throw new IllegalArgumentException(operatorInfo.name + " is no N-ary operator");
+            }
+        }
+
         /**@return id for a simple replacement-operator to n-ary operator with the given id,
          *  when supplied with the given argCount or -1 if no such operator exists*/
         public static long nAryReplacementId(int id,int argCount){
@@ -982,8 +1028,9 @@ public class Constants {
             OperatorInfo operatorInfo = operatorNames.get(name);
             return getNAryReplacement(argCount, operatorInfo);
         }
+
         private static long getNAryReplacement(int argCount, OperatorInfo operatorInfo) {
-            if ((operatorInfo.executionInfo.flags & FLAG_NARY) != 0) {//TODO ensure that FLAG n-ary only used with class nary
+            if ((operatorInfo.executionInfo.flags & FLAG_NARY) != 0) {
                 String name = ((ExecutionInfo.Nary) operatorInfo.executionInfo).shortCuts.apply(argCount);
                 String oldName=operatorInfo.name;
                 operatorInfo =operatorNames.get(name);
@@ -1040,7 +1087,7 @@ public class Constants {
         /**Declares a new operator with the given name and number of Arguments,
          * @param name name of the Operator, should be in uppercase and must not contain any whitespace characters nor @:,
          * @throws IllegalArgumentException If there is already an Operator with the given name*/
-        static private void declareOperator(String name,ExecutionInfo executionInfo){
+        private static void declareOperator(String name,ExecutionInfo executionInfo){
             if(!name.toUpperCase(Locale.ROOT).equals(name))
                 throw new IllegalArgumentException("name has to be Uppercase:"+name+"!="+name.toUpperCase(Locale.ROOT));
             if(!name.matches("[A-Z]([0-9A-Z_]*[A-Z0-9])?"))

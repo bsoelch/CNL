@@ -14,7 +14,7 @@ public interface MathObject {
     int ROUND = 0;
     int CIEL = 1;
 
-    Scalar scalarValue();
+    NumbericValue numericValue();
 
     String toString(BigInteger base, boolean useSmallBase);
     String toStringFixedPoint(BigInteger base, Real precision, boolean useSmallBase);
@@ -22,7 +22,7 @@ public interface MathObject {
 
     /**String representing this Object*/
     default String asString(){//TODO? better implementation (concat partial strings)
-        return scalarValue().asString();
+        return numericValue().asString();
     }
     String intsAsString();
 
@@ -39,7 +39,7 @@ public interface MathObject {
     }
 
     static FiniteSet asSet(MathObject o){
-        if(o instanceof Scalar){
+        if(o instanceof NumbericValue){
             return FiniteSet.from(o);
         }else if(o instanceof FiniteSet){
             return (FiniteSet)o;
@@ -50,7 +50,7 @@ public interface MathObject {
         }
     }
     static FiniteMap asMap(MathObject o){
-        if(o instanceof Scalar){
+        if(o instanceof NumbericValue){
             return Tuple.create(new MathObject[]{o});
         }else if(o instanceof FiniteSet){
             return ((FiniteSet)o).asMap();
@@ -62,10 +62,10 @@ public interface MathObject {
     }
 
     static MathObject elementWise(MathObject l, MathObject r,
-                                  BiFunction<Scalar,Scalar,Scalar> scalarOperation){
-        if(l instanceof Scalar){
-            if(r instanceof Scalar){
-                return scalarOperation.apply((Scalar) l,((Scalar)r));
+                                  BiFunction<NumbericValue, NumbericValue, NumbericValue> scalarOperation){
+        if(l instanceof NumbericValue){
+            if(r instanceof NumbericValue){
+                return scalarOperation.apply((NumbericValue) l,((NumbericValue)r));
             }else if(r instanceof FiniteSet){
                 return FiniteSet.forEach((FiniteSet) r, o->elementWise(l,o,scalarOperation));
             }else if(r instanceof FiniteMap){
@@ -74,7 +74,7 @@ public interface MathObject {
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
         }else if(l instanceof FiniteSet){
-            if(r instanceof Scalar){
+            if(r instanceof NumbericValue){
                 return FiniteSet.forEach((FiniteSet) l, o->elementWise(o,r,scalarOperation));
             }else if(r instanceof FiniteSet){
                 return FiniteSet.forEachPair((FiniteSet) l,(FiniteSet) r, (a,b)->elementWise(a,b,scalarOperation));
@@ -84,7 +84,7 @@ public interface MathObject {
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
         }else if(l instanceof FiniteMap){
-            if(r instanceof Scalar){
+            if(r instanceof NumbericValue){
                 return ((FiniteMap) l).forEach(o->elementWise(o,r,scalarOperation));
             }else if(r instanceof FiniteSet){
                 return FiniteMap.forEach((FiniteMap) l, FiniteMap.indicatorMap((FiniteSet) r), (a,b)->elementWise(a,b,scalarOperation));
@@ -97,9 +97,9 @@ public interface MathObject {
             throw new IllegalArgumentException("Unexpected MathObject:"+l.getClass());
         }
     }
-    static MathObject elementWise(MathObject o, Function<Scalar,Scalar> scalarFunction){
-        if(o instanceof Scalar){
-            return scalarFunction.apply((Scalar) o);
+    static MathObject elementWise(MathObject o, Function<NumbericValue, NumbericValue> scalarFunction){
+        if(o instanceof NumbericValue){
+            return scalarFunction.apply((NumbericValue) o);
         }else if(o instanceof FiniteSet){
             return FiniteSet.forEach((FiniteSet) o, e->elementWise(e,scalarFunction));
         }else if(o instanceof FiniteMap){
@@ -110,7 +110,7 @@ public interface MathObject {
     }
 
     static MathObject add(MathObject l, MathObject r) {
-        return elementWise(l,r,Scalar::add);
+        return elementWise(l,r, NumbericValue::add);
     }
     static MathObject sum(MathObject[] objects){
         MathObject sum=Real.Int.ZERO;
@@ -121,22 +121,22 @@ public interface MathObject {
     }
 
     static MathObject negate(MathObject o) {
-        return elementWise(o,Scalar::negate);
+        return elementWise(o, NumbericValue::negate);
     }
     static MathObject realPart(MathObject o) {
-        return elementWise(o,Scalar::realPart);
+        return elementWise(o, NumbericValue::realPart);
     }
     static MathObject imaginaryPart(MathObject o) {
-        return elementWise(o,Scalar::imaginaryPart);
+        return elementWise(o, NumbericValue::imaginaryPart);
     }
     static MathObject conjugate(MathObject o) {
-        return elementWise(o,Scalar::conjugate);
+        return elementWise(o, NumbericValue::conjugate);
     }
     static MathObject subtract(MathObject l, MathObject r) {
-        return elementWise(l,r,Scalar::subtract);
+        return elementWise(l,r, NumbericValue::subtract);
     }
     static MathObject multiply(MathObject l, MathObject r) {
-        return elementWise(l,r,Scalar::multiply);
+        return elementWise(l,r, NumbericValue::multiply);
     }
     static MathObject product(MathObject[] objects){
         MathObject prod=Real.Int.ONE;
@@ -147,8 +147,8 @@ public interface MathObject {
     }
 
     static Real sqAbs(MathObject o) {
-        if(o instanceof Scalar){
-            return ((Scalar) o).sqAbs();
+        if(o instanceof NumbericValue){
+            return ((NumbericValue) o).sqAbs();
         }else if(o instanceof FiniteSet){
             Real sqAbs=Real.Int.ZERO;
             for(MathObject e:(FiniteSet)o){
@@ -168,18 +168,18 @@ public interface MathObject {
     }
 
     static MathObject invert(MathObject o) {
-        return elementWise(o,Scalar::invert);
+        return elementWise(o, NumbericValue::invert);
     }
 
     static MathObject divide(MathObject l, MathObject r) {
-        return elementWise(l,r,Scalar::divide);
+        return elementWise(l,r, NumbericValue::divide);
     }
 
     static MathObject mod(MathObject l, MathObject r) {
-        return elementWise(l,r,Scalar::mod);
+        return elementWise(l,r, NumbericValue::mod);
     }
     static MathObject pow(MathObject l, MathObject r) {
-        return elementWise(l,r,Scalar::pow);
+        return elementWise(l,r, NumbericValue::pow);
     }
     static MathObject round(MathObject o, int mode) {
         return elementWise(o,e->e.round(mode));
@@ -189,27 +189,27 @@ public interface MathObject {
     }
 
     static MathObject floorAnd(MathObject l, MathObject r) {
-        return elementWise(l,r,Scalar::floorAnd);
+        return elementWise(l,r, NumbericValue::floorAnd);
     }
     static MathObject floorOr(MathObject l, MathObject r) {
-        return elementWise(l,r,Scalar::floorOr);
+        return elementWise(l,r, NumbericValue::floorOr);
     }
     static MathObject floorXor(MathObject l, MathObject r) {
-        return elementWise(l,r,Scalar::floorXor);
+        return elementWise(l,r, NumbericValue::floorXor);
     }
     static MathObject floorAndNot(MathObject l, MathObject r) {
-        return elementWise(l,r,Scalar::floorAndNot);
+        return elementWise(l,r, NumbericValue::floorAndNot);
     }
 
     /**@param rewrapMaps if this value if true the program tries
      *                    to convert the result to a map if one of the arguments was a map
      * */
     static MathObject setOperation(MathObject l, MathObject r,
-                   BiFunction<FiniteSet, FiniteSet, FiniteSet> setOp,
-                   BiFunction<Scalar, Scalar, MathObject> scalarOp, boolean rewrapMaps){
-        if(l instanceof Scalar){
-            if(r instanceof Scalar){
-                return scalarOp.apply((Scalar) l,(Scalar) r);
+                                   BiFunction<FiniteSet, FiniteSet, FiniteSet> setOp,
+                                   BiFunction<NumbericValue, NumbericValue, MathObject> scalarOp, boolean rewrapMaps){
+        if(l instanceof NumbericValue){
+            if(r instanceof NumbericValue){
+                return scalarOp.apply((NumbericValue) l,(NumbericValue) r);
             }else if(r instanceof FiniteSet){
                 return setOp.apply(FiniteSet.from(l),(FiniteSet) r);
             }else if(r instanceof FiniteMap){
@@ -219,7 +219,7 @@ public interface MathObject {
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
         }else if(l instanceof FiniteSet){
-            if(r instanceof Scalar){
+            if(r instanceof NumbericValue){
                 return setOp.apply((FiniteSet) l, FiniteSet.from(r));
             }else if(r instanceof FiniteSet){
                 return setOp.apply((FiniteSet) l,(FiniteSet) r);
@@ -230,7 +230,7 @@ public interface MathObject {
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
         }else if(l instanceof FiniteMap){
-            if(r instanceof Scalar){
+            if(r instanceof NumbericValue){
                 FiniteSet set = setOp.apply(((FiniteMap) l).asSet(), FiniteSet.from(r));
                 return rewrapMaps?set.asMapIfPossible():set;
             }else if(r instanceof FiniteSet){
@@ -263,14 +263,13 @@ public interface MathObject {
                 (a,b)->a.equals(b)?FiniteSet.EMPTY_SET:FiniteSet.from(a), true);
     }
 
-    //TODO MatrixProduct
     static MathObject times(MathObject l, MathObject r) {
         return setOperation(l,r,FiniteSet::product,Pair::new, false);
     }
     static MathObject nAryTimes(MathObject[] objects){
         FiniteSet[] sets=new FiniteSet[objects.length];
         for (int i=0;i<objects.length;i++) {
-            if(objects[i] instanceof Scalar){
+            if(objects[i] instanceof NumbericValue){
                 sets[i]=FiniteSet.from(objects[i]);
             }else if(objects[i] instanceof FiniteSet){
                 sets[i]=(FiniteSet) objects[i];
@@ -284,24 +283,24 @@ public interface MathObject {
         return FiniteSet.product(sets);
     }
     static MathObject fAdd(MathObject l, MathObject r) {
-        return elementWise(l,r,Scalar::fAdd);
+        return elementWise(l,r, NumbericValue::fAdd);
     }
     static MathObject strConcat(MathObject l, MathObject r) {
-        return elementWise(l,r,Scalar::strConcat);
+        return elementWise(l,r, NumbericValue::strConcat);
     }
 
-    static Scalar min(MathObject l, MathObject r) {
-        if(l instanceof Scalar){
-            if(r instanceof Scalar){
-                return Scalar.min((Scalar) l,((Scalar)r));
+    static NumbericValue min(MathObject l, MathObject r) {
+        if(l instanceof NumbericValue){
+            if(r instanceof NumbericValue){
+                return NumbericValue.min((NumbericValue) l,((NumbericValue)r));
             }else if(r instanceof FiniteSet){
-                Scalar ret=(Scalar) l;
+                NumbericValue ret=(NumbericValue) l;
                 for(MathObject o:(FiniteSet) r){
                     ret=min(ret,o);
                 }
                 return ret;
             }else if(r instanceof FiniteMap){
-                Scalar ret=(Scalar) l;
+                NumbericValue ret=(NumbericValue) l;
                 for(MathObject o:(((FiniteMap) r).values())){
                     ret=min(ret,o);
                 }
@@ -310,14 +309,14 @@ public interface MathObject {
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
         }else if(l instanceof FiniteSet){
-            if(r instanceof Scalar){
-                Scalar ret=(Scalar) r;
+            if(r instanceof NumbericValue){
+                NumbericValue ret=(NumbericValue) r;
                 for(MathObject o:(FiniteSet) l){
                     ret=min(ret,o);
                 }
                 return ret;
             }else if(r instanceof FiniteSet){
-                Scalar ret=null;
+                NumbericValue ret=null;
                 for(MathObject o1:(FiniteSet) l){
                     for(MathObject o2:(FiniteSet) r){
                         if(ret==null){
@@ -329,7 +328,7 @@ public interface MathObject {
                 }
                 return ret==null?Real.Int.ZERO:ret;
             }else if(r instanceof FiniteMap){
-                Scalar ret=null;
+                NumbericValue ret=null;
                 for(MathObject o1:(FiniteSet) l){
                     for(MathObject o2:((FiniteMap)r).values()){
                         if(ret==null){
@@ -344,14 +343,14 @@ public interface MathObject {
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
         }else if(l instanceof FiniteMap){
-            if(r instanceof Scalar){
-                Scalar ret=(Scalar) r;
+            if(r instanceof NumbericValue){
+                NumbericValue ret=(NumbericValue) r;
                 for(MathObject o:((FiniteMap) l).values()){
                     ret=min(ret,o);
                 }
                 return ret;
             }else if(r instanceof FiniteSet){
-                Scalar ret=null;
+                NumbericValue ret=null;
                 for(MathObject o1:((FiniteMap) l).values()){
                     for(MathObject o2:(FiniteSet) r){
                         if(ret==null){
@@ -363,7 +362,7 @@ public interface MathObject {
                 }
                 return ret==null?Real.Int.ZERO:ret;
             }else if(r instanceof FiniteMap){
-                Scalar ret=null;
+                NumbericValue ret=null;
                 for(MathObject o1:((FiniteMap) l).values()){
                     for(MathObject o2:((FiniteMap) r).values()){
                         if(ret==null){
@@ -381,18 +380,18 @@ public interface MathObject {
             throw new IllegalArgumentException("Unexpected MathObject:"+l.getClass());
         }
     }
-    static Scalar max(MathObject l, MathObject r) {
-        if(l instanceof Scalar){
-            if(r instanceof Scalar){
-                return Scalar.max((Scalar) l,((Scalar)r));
+    static NumbericValue max(MathObject l, MathObject r) {
+        if(l instanceof NumbericValue){
+            if(r instanceof NumbericValue){
+                return NumbericValue.max((NumbericValue) l,((NumbericValue)r));
             }else if(r instanceof FiniteSet){
-                Scalar ret=(Scalar) l;
+                NumbericValue ret=(NumbericValue) l;
                 for(MathObject o:(FiniteSet) r){
                     ret=max(ret,o);
                 }
                 return ret;
             }else if(r instanceof FiniteMap){
-                Scalar ret=(Scalar) l;
+                NumbericValue ret=(NumbericValue) l;
                 for(MathObject o:(((FiniteMap) r).values())){
                     ret=max(ret,o);
                 }
@@ -401,14 +400,14 @@ public interface MathObject {
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
         }else if(l instanceof FiniteSet){
-            if(r instanceof Scalar){
-                Scalar ret=(Scalar) r;
+            if(r instanceof NumbericValue){
+                NumbericValue ret=(NumbericValue) r;
                 for(MathObject o:(FiniteSet) l){
                     ret=max(ret,o);
                 }
                 return ret;
             }else if(r instanceof FiniteSet){
-                Scalar ret=null;
+                NumbericValue ret=null;
                 for(MathObject o1:(FiniteSet) l){
                     for(MathObject o2:(FiniteSet) r){
                         if(ret==null){
@@ -420,7 +419,7 @@ public interface MathObject {
                 }
                 return ret==null?Real.Int.ZERO:ret;
             }else if(r instanceof FiniteMap){
-                Scalar ret=null;
+                NumbericValue ret=null;
                 for(MathObject o1:(FiniteSet) l){
                     for(MathObject o2:((FiniteMap)r).values()){
                         if(ret==null){
@@ -435,14 +434,14 @@ public interface MathObject {
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
         }else if(l instanceof FiniteMap){
-            if(r instanceof Scalar){
-                Scalar ret=(Scalar) r;
+            if(r instanceof NumbericValue){
+                NumbericValue ret=(NumbericValue) r;
                 for(MathObject o:((FiniteMap) l).values()){
                     ret=max(ret,o);
                 }
                 return ret;
             }else if(r instanceof FiniteSet){
-                Scalar ret=null;
+                NumbericValue ret=null;
                 for(MathObject o1:((FiniteMap) l).values()){
                     for(MathObject o2:(FiniteSet) r){
                         if(ret==null){
@@ -454,7 +453,7 @@ public interface MathObject {
                 }
                 return ret==null?Real.Int.ZERO:ret;
             }else if(r instanceof FiniteMap){
-                Scalar ret=null;
+                NumbericValue ret=null;
                 for(MathObject o1:((FiniteMap) l).values()){
                     for(MathObject o2:((FiniteMap) r).values()){
                         if(ret==null){
@@ -506,9 +505,9 @@ public interface MathObject {
 
 
     static int compare(MathObject a, MathObject b){
-        if(a instanceof Scalar){
-            if(b instanceof Scalar){
-                return ((Scalar) a).compareTo((Scalar) b);
+        if(a instanceof NumbericValue){
+            if(b instanceof NumbericValue){
+                return ((NumbericValue) a).compareTo((NumbericValue) b);
             }else if(b instanceof FiniteSet){
                 if(((FiniteSet) b).size()==0){
                     return 1;
@@ -533,7 +532,7 @@ public interface MathObject {
                 return -1;// a < {a}
             }
         }else if(a instanceof FiniteSet){
-            if(b instanceof Scalar){
+            if(b instanceof NumbericValue){
                 return -compare(b,a);
             }else if(b instanceof FiniteSet){
                 Iterator<MathObject> itr1=((FiniteSet) a).iterator();
@@ -546,7 +545,7 @@ public interface MathObject {
                 return c==0?-1:c;
             }
         }else if(a instanceof FiniteMap){
-            if(b instanceof Scalar){
+            if(b instanceof NumbericValue){
                 return -compare(b,a);
             }else if(b instanceof FiniteSet){
                 Iterator<MathObject> itr1=((FiniteMap) a).domain().iterator();
@@ -630,12 +629,13 @@ public interface MathObject {
          * @param input String that should be converted
          * @param base Base for the conversion
          * @param mode Type for the wrapping Object
-         * @param safeMode if true no Exceptions will be thrown
-         * @throws IllegalArgumentException if input represents no MathObject*///TODO better explanation of safeMode
+         * @param safeMode when safeMode is true the method will not throw an IllegalArgumentException,
+         *                and try to fix syntax errors in the input string
+         * @throws IllegalArgumentException if input represents no MathObject*/
         private static MathObject fromString(String input, BigInteger base, int mode, boolean safeMode) {
             if(input.isEmpty())
                 switch (mode){
-                    case MODE_TUPLE:
+                    case MODE_TUPLE:return FiniteMap.EMPTY_MAP;
                     case MODE_VALUE:return Real.Int.ZERO;
                     case MODE_SET:return FiniteSet.EMPTY_SET;
                     default:throw new IllegalArgumentException("Unknown mode:"+mode);
@@ -687,16 +687,6 @@ public interface MathObject {
                                     }
                                     p0 = p + 1;
                                 }break;
-                                case '[': {//Tuple
-                                    //end section
-                                    String tmp = input.substring(p0, p).trim();
-                                    if (tmp.length() > 0) {
-                                        parts.add(new ValueNode(numberFromString(base, tmp, safeMode)));
-                                    }
-                                    p0 = p + 1;
-                                    state = STATE_TUPLE;
-                                    break;
-                                }
                                 case '\''://string
                                 case '"': {
                                     //end section
@@ -707,6 +697,7 @@ public interface MathObject {
                                     p0 = p;//p instead of p0 to save start of string
                                     state = STATE_STRING;
                                 }break;
+                                case '[':
                                 case '(':
                                 case '{': {
                                     //end section
@@ -716,7 +707,7 @@ public interface MathObject {
                                     }
                                     p0 = p+1;//p instead of p0 to save start of bracket
                                     layer=1;
-                                    state= input.charAt(p)=='{'?STATE_SET:STATE_VALUE;
+                                    state= input.charAt(p)=='{'?STATE_SET:input.charAt(p)=='['?STATE_TUPLE:STATE_VALUE;
                                 }break;
                                 default:{
                                     if(Character.isWhitespace(input.charAt(p))) {
@@ -737,10 +728,16 @@ public interface MathObject {
                         }
                     }break;
                     case STATE_TUPLE: {
-                        if (input.charAt(p) == ']') {//end matrix
-                            parts.add(new ValueNode(fromString(input.substring(p0,p).trim(),base,MODE_TUPLE,safeMode)));
-                            p0 = p + 1;
-                            state = STATE_NUMBER;
+                        if (input.charAt(p) == ']') {//end tuple
+                            layer--;
+                            if(layer==0){
+                                String tmp = input.substring(p0, p);
+                                parts.add(new ValueNode(fromString(tmp,base,MODE_TUPLE,safeMode)));
+                                p0 = p + 1;
+                                state = STATE_NUMBER;
+                            }
+                        }else if(input.charAt(p) == '['){
+                            layer++;
                         }
                     }break;
                     case STATE_STRING: {
@@ -1055,17 +1052,21 @@ public interface MathObject {
                                 if(topLevel){
                                     if(mode==MODE_SET){
                                         parts.set(i - 1, new ValueNode(FiniteSet.from(l,r)));
-                                    }else{
+                                    }else if(safeMode||mode==MODE_TUPLE){
                                         parts.set(i - 1, new ValueNode(Tuple.create(
                                                 new MathObject[]{l,r})));
+                                    }else{
+                                        throw new IllegalArgumentException("unexpected ,");
                                     }
                                     topLevel=false;
                                 }else{
                                     if(mode==MODE_SET){
                                         parts.set(i - 1, new ValueNode(unite(l, asSet(r))));
-                                    }else{
+                                    }else  if(safeMode||mode==MODE_TUPLE){
                                         parts.set(i - 1, new ValueNode(tupleConcat(l,
                                                 Tuple.create(new MathObject[]{r}))));
+                                    }else{
+                                        throw new IllegalArgumentException("unexpected ,");
                                     }
                                 }
                                 i--;//Positon anpassen
@@ -1096,7 +1097,9 @@ public interface MathObject {
                     if (topLevel){
                         if(mode==MODE_SET) {
                             returnValue=FiniteSet.from(returnValue);
-                        }//interpret topLevel in tuple as number in brackets
+                        }else if(mode==MODE_TUPLE) {
+                            returnValue=Tuple.create(new MathObject[]{returnValue});
+                        }
                     }
                     if(isMap){
                         if(returnValue instanceof FiniteSet){
@@ -1118,18 +1121,17 @@ public interface MathObject {
         }
 
 
-        private static Scalar numberFromString(BigInteger base, String str, boolean safeMode) {
-            //dynamic base: $-> bin #->hex §->dec @base: ->BaseN
-            //TODO? doz
+        private static NumbericValue numberFromString(BigInteger base, String str, boolean safeMode) {
+            //dynamic base: $-> bin #->hex §->doz @base: ->BaseN
             if(str.startsWith("$")){//bin
                 str=str.substring(1);
                 base= Constants.BIG_INT_TWO;
             }else if(str.startsWith("#")){//hex
                 str=str.substring(1);
                 base=Constants.BIG_INT_SIXTEEN;
-            }else if(str.startsWith("§")){//dez
+            }else if(str.startsWith("§")){//doz
                 str=str.substring(1);
-                base=BigInteger.TEN;
+                base=Constants.BIG_INT_TWELVE;
             }else if(str.startsWith("@")){//baseN
                 str=str.substring(1);
                 int tmp=str.indexOf(':');

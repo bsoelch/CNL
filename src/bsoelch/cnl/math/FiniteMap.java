@@ -38,7 +38,7 @@ public interface FiniteMap extends MathObject {
             return Real.Int.ZERO;
         }
         @Override
-        public Scalar scalarValue() {
+        public NumbericValue numericValue() {
             return Real.Int.ZERO;
         }
         @Override
@@ -55,7 +55,7 @@ public interface FiniteMap extends MathObject {
         }
         @Override
         public String toString() {
-            return "()";
+            return "[]";
         }
         @Override
         public String toString(BigInteger base, boolean useSmallBase) {
@@ -212,8 +212,8 @@ public interface FiniteMap extends MathObject {
                     return Real.Int.ZERO;
             }
             @Override
-            public Scalar scalarValue() {
-                return o.scalarValue();
+            public NumbericValue numericValue() {
+                return o.numericValue();
             }
 
             @Override
