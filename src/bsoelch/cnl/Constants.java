@@ -81,7 +81,7 @@ public class Constants {
     public final static int BRACKET_FLAG_ELSE =0b1001;
     public final static int BRACKET_FLAG_END_WHILE_EQ =0b1011;
     public final static int BRACKET_FLAG_END_WHILE_NE =0b1101;
-    public final static int BRACKET_FLAG_BREAK =0b1111;//TODO implement break
+    public final static int BRACKET_FLAG_BREAK =0b1111;
 
     //111000.[BigInt] -> Constants
     public static final int HEADER_CONSTANTS = 0b000111;
@@ -395,7 +395,6 @@ public class Constants {
                         new ExecutionInfo.Unary(MODIFY_ARG0_ROOT, MathObject::imaginaryPart));
                 declareOperator(DYNAMIC_VAR,
                         new ExecutionInfo.Dynamic(1));
-                //TODO? split logic operators and Set-Operators
                 //9bit operators
                 declareOperator(AND,
                         new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, MathObject::floorAnd));
@@ -523,6 +522,56 @@ public class Constants {
 
                 //CONTAINS
                 //CONTAINS_KEY
+
+                //Nary Operations
+                declareOperator("SUM",
+                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3, MathObject::sum));
+                declareOperator("PROD",
+                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3, MathObject::product));
+                declareOperator("NARY_AND",
+                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3,(args)->{
+                            MathObject res=args[0];
+                            for(int i=1;i<args.length;i++) {
+                                res = MathObject.floorAnd(res, args[i]);
+                            }
+                            return res;
+                        }));
+                declareOperator("NARY_OR",
+                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3,(args)->{
+                            MathObject res=args[0];
+                            for(int i=1;i<args.length;i++) {
+                                res = MathObject.floorOr(res, args[i]);
+                            }
+                            return res;
+                        }));
+                declareOperator("NARY_CONCAT",
+                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3,(args)->{
+                            MathObject res=args[0];
+                            for(int i=1;i<args.length;i++) {
+                                res = MathObject.strConcat(res, args[i]);
+                            }
+                            return res;
+                        }));
+                declareOperator("NARY_TIMES",
+                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3, MathObject::nAryTimes));
+
+                declareOperator(NEW_SET,
+                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,1,
+                                (Function<MathObject[], MathObject>) FiniteSet::from));
+                declareOperator(NEW_TUPLE,
+                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3,
+                                Tuple::create));
+
+                //NARY_SUM_U (unwrap)
+                //NARY_PROD_U
+                //NARY_AND_U
+                //NARY_OR_U
+                //NEW_MAP
+                //?NARY_CONCAT_U
+                //NARY_BIN_CONCAT
+                //NARY_TUPLE_CONCAT
+
+                //NEW_MATRIX (Bi-Nary)
 
                 //FILE_GOTO_BIT <path> <count>
                 declareOperator("FILE_GOTO_BIT",
@@ -700,8 +749,8 @@ public class Constants {
                         new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env->(file, value)-> {
                             try {
                                 String path = file.asString();
-                                env.fileAt(path).writeBits(value.numericValue().round(MathObject.FLOOR).
-                                        realPart().num(),8);
+                                env.fileAt(path).writeByte(value.numericValue().round(MathObject.FLOOR).
+                                        realPart().num().intValue()&0xff);
                                 return Real.Int.ZERO;
                             }catch (IOException io){
                                 System.err.println('\n'+io.toString());
@@ -752,55 +801,6 @@ public class Constants {
                             }
                         }));
 
-                //Nary Operations
-                declareOperator("SUM",
-                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3, MathObject::sum));
-                declareOperator("PROD",
-                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3, MathObject::product));
-                declareOperator("NARY_AND",
-                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3,(args)->{
-                            MathObject res=args[0];
-                            for(int i=1;i<args.length;i++) {
-                                res = MathObject.floorAnd(res, args[i]);
-                            }
-                            return res;
-                        }));
-                declareOperator("NARY_OR",
-                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3,(args)->{
-                            MathObject res=args[0];
-                            for(int i=1;i<args.length;i++) {
-                                res = MathObject.floorOr(res, args[i]);
-                            }
-                            return res;
-                        }));
-                declareOperator("NARY_CONCAT",
-                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3,(args)->{
-                            MathObject res=args[0];
-                            for(int i=1;i<args.length;i++) {
-                                res = MathObject.strConcat(res, args[i]);
-                            }
-                            return res;
-                        }));
-                declareOperator("NARY_TIMES",
-                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3, MathObject::nAryTimes));
-
-                declareOperator(NEW_SET,
-                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,1,
-                                (Function<MathObject[], MathObject>) FiniteSet::from));
-                declareOperator(NEW_TUPLE,
-                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3,
-                                Tuple::create));
-
-                //NARY_SUM_U
-                //NARY_PROD_U
-                //NARY_AND_U
-                //NARY_OR_U
-                //NEW_MAP
-                //?NARY_CONCAT_U
-                //NARY_BIN_CONCAT
-                //NARY_TUPLE_CONCAT
-
-                //NEW_MATRIX (Bi-Nary)
 
 
                 //? GUI
@@ -1014,8 +1014,8 @@ public class Constants {
         static private void declareOperator(String name,ExecutionInfo executionInfo){
             if(!name.toUpperCase(Locale.ROOT).equals(name))
                 throw new IllegalArgumentException("name has to be Uppercase:"+name+"!="+name.toUpperCase(Locale.ROOT));
-            if(name.matches(".*?[\\p{javaWhitespace}@:,].*?"))
-                throw new IllegalArgumentException("name must not contain any Whitespaces nor one of the Characters @:,");
+            if(!name.matches("[A-Z]([A-Z_]*[A-Z])?"))
+                throw new IllegalArgumentException("name can only contain A-Z and underscores, an underscore cannot be the first or last character");
             if(operatorNames.containsKey(name))
                 throw new IllegalArgumentException("There is already an Operator with the given name");
             int id= operators.size();
