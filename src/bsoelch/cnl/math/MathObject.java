@@ -1,7 +1,6 @@
 package bsoelch.cnl.math;
 
 import bsoelch.cnl.Constants;
-import bsoelch.cnl.math.expression.ExpressionNode;
 import org.jetbrains.annotations.NotNull;
 
 import java.math.BigInteger;

@@ -34,19 +34,21 @@ public class Main {
     public static @NotNull MathObject[] getArgs(int argCount) {
         MathObject[] args=new MathObject[argCount];
         System.out.println();
-        System.out.println("Input Program Arguments:");
-        try(Scanner scan=new Scanner(System.in)){
-            for(int i=0;i< args.length;i++){
-                System.out.print("arg"+i+": ");
-                try {
-                    args[i] = MathObject.FromString.fromString(scan.nextLine().trim(), Constants.DEFAULT_BASE);
-                }catch (IllegalArgumentException iae){
-                    System.out.println(iae.getMessage());
-                    i--;
+        if(argCount>0) {
+            System.out.println("Input Program Arguments:");
+            try (Scanner scan = new Scanner(System.in)) {
+                for (int i = 0; i < args.length; i++) {
+                    System.out.print("arg" + i + ": ");
+                    try {
+                        args[i] = MathObject.FromString.fromString(scan.nextLine().trim(), Constants.DEFAULT_BASE);
+                    } catch (IllegalArgumentException iae) {
+                        System.out.println(iae.getMessage());
+                        i--;
+                    }
                 }
             }
+            System.out.println();
         }
-        System.out.println();
         return args;
     }
 
@@ -188,6 +190,7 @@ public class Main {
                 try {
                     test(fileFromPath(main));
                 }catch (IllegalArgumentException|IllegalStateException|IOException e){
+                    System.out.println("Test failed:");
                     System.out.println(e.getMessage());
                     return;//end program on error in test
                 }
@@ -210,6 +213,7 @@ public class Main {
                 try (Reader read=new InputStreamReader(new FileInputStream(fileFromPath(source)),StandardCharsets.UTF_8)){
                     compile(read, fileFromPath(main));
                 }catch (IllegalArgumentException|IllegalStateException|IOException e){
+                    System.out.println("Compiling failed:");
                     System.out.println(e.getMessage());
                     return;//end program on compile error
                 }
@@ -230,6 +234,7 @@ public class Main {
                 try(Writer write=new OutputStreamWriter(new FileOutputStream(fileFromPath(decompile)),StandardCharsets.UTF_8) ){
                     decompile(fileFromPath(main),write);
                 }catch (IllegalArgumentException|IllegalStateException|IOException e){
+                    System.out.println("Decompiling failed:");
                     System.out.println(e.getMessage());
                     return;//end program on decompile error
                 }
@@ -244,6 +249,7 @@ public class Main {
                     MathObject res=execute(fileFromPath(main),programArgs,runLibs);
                     System.out.println("Execution finished with return-value: "+res);
                 }catch (IllegalArgumentException|IllegalStateException|IOException e){
+                    System.out.println("Error while running program:");
                     System.out.println(e.getMessage());
                 }
             }//no else

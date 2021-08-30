@@ -22,7 +22,7 @@ public class Operator implements Action {
     /**Constructor for N-ary operators*/
     public Operator(int type, int additionalArgs, ExecutionEnvironment env) {
         if((Operators.flags(type)& Operators.FLAG_NARY)==0)
-            throw new IllegalArgumentException(type+" is no N-ary operator");
+            throw new IllegalArgumentException("the operator at id "+type+" is no N-ary operator");
         this.env = env;
         int numArgs=Operators.argCountById(type)+additionalArgs;
         args = new ValuePointer[numArgs];
@@ -84,8 +84,7 @@ public class Operator implements Action {
         String name=Operators.nameById(type);
         int flags=Operators.flags(type);
         if((flags& Operators.FLAG_NARY)!=0){
-            int defArgs=Operators.argCountById(type);
-            return name+":"+(args.length-defArgs);
+            return name+":"+args.length;
         }else{
             return name;
         }

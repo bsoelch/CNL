@@ -481,15 +481,18 @@ public class Translator {
                         }else if((flags & Operators.FLAG_NARY)==0){
                             throw new IllegalArgumentException("N-ary arguments for non N-ary operator");
                         }else {
-                            BigInteger count = new BigInteger(counts[0]);
-                            count = count.subtract(BigInteger.valueOf(Operators.argCountById((int) id)));
-                            if (count.signum() < 0) {
-                                //TODO use binary/unary replacements if available
-                                // SUM:2 -> ADD SUM:1 -> ID SUM:0 ->0 ...
-                                throw new IllegalArgumentException("Number of Arguments if less than " +
-                                        "the minimum allowed value");
+                            int count = new BigInteger(counts[0]).intValueExact();
+                            //TODO? replacement-constant for argCount==0
+                            int minArgs = Operators.argCountById((int) id);
+                            long replace=Operators.nAryReplacementId((int)id,count);
+                            if(replace!=-1){
+                                return new Operator((int)replace,exEnv);
+                            }else if (count< minArgs) {
+                                throw new IllegalArgumentException("Number of Arguments for NAry operator "+name+" is less than " +
+                                        "the minimum allowed value "+minArgs);
+                            }else{
+                                return new Operator((int)id, count-minArgs,exEnv);
                             }
-                            return new Operator((int)id,count.intValueExact(),exEnv);
                         }
                     }
                 }
@@ -575,14 +578,21 @@ public class Translator {
                 target.write(new long[]{Constants.HEADER_CONSTANTS},0,Constants.HEADER_CONSTANTS_LENGTH);
                 target.writeBigInt(BigInteger.valueOf(CONSTANT_EMPTY_SET),Constants.CONSTANTS_INT_HEADER
                         ,Constants.CONSTANTS_INT_BLOCK,Constants.CONSTANTS_INT_BIG_BLOCK);
-            }else{//TODO? shortcuts for sets of size 1 and 2
-                target.write(new long[]{HEADER_OPERATOR},0,HEADER_OPERATOR_LENGTH);
-                target.writeBigInt(BigInteger.valueOf(Operators.idByName(Operators.NEW_SET)),OPERATOR_INT_HEADER
-                        ,OPERATOR_INT_BLOCK,OPERATOR_INT_BIG_BLOCK);//TODO? use constant for minsize
-                target.writeBigInt(BigInteger.valueOf(size-1),NARY_INT_HEADER
-                        ,NARY_INT_BLOCK,NARY_INT_BIG_BLOCK);
-                for(MathObject o:(FiniteSet)value){
-                    writeValue(target,o);
+            }else{
+                long replace=Operators.nAryReplacementId(Operators.NEW_SET,size);
+                if(replace==-1) {
+                    target.write(new long[]{HEADER_OPERATOR}, 0, HEADER_OPERATOR_LENGTH);
+                    long id = Operators.idByName(Operators.NEW_SET);
+                    target.writeBigInt(BigInteger.valueOf(id), OPERATOR_INT_HEADER
+                            , OPERATOR_INT_BLOCK, OPERATOR_INT_BIG_BLOCK);
+                    target.writeBigInt(BigInteger.valueOf(size - Operators.argCountById((int)id)), NARY_INT_HEADER
+                            , NARY_INT_BLOCK, NARY_INT_BIG_BLOCK);
+                }else{
+                    target.writeBigInt(BigInteger.valueOf(replace), OPERATOR_INT_HEADER
+                            , OPERATOR_INT_BLOCK, OPERATOR_INT_BIG_BLOCK);
+                }
+                for (MathObject o : (FiniteSet) value) {
+                    writeValue(target, o);
                 }
             }
         }else if(value instanceof Tuple){
@@ -591,20 +601,19 @@ public class Translator {
                 target.write(new long[]{Constants.HEADER_CONSTANTS},0,Constants.HEADER_CONSTANTS_LENGTH);
                 target.writeBigInt(BigInteger.valueOf(CONSTANT_EMPTY_MAP),Constants.CONSTANTS_INT_HEADER
                         ,Constants.CONSTANTS_INT_BLOCK,Constants.CONSTANTS_INT_BIG_BLOCK);
-            }else if(size==1){
-                //TODO write single-Element Tuple
-            }else if(size==2){
-                target.write(new long[]{HEADER_OPERATOR},0,HEADER_OPERATOR_LENGTH);
-                target.writeBigInt(BigInteger.valueOf(Operators.idByName(Operators.NEW_PAIR)),OPERATOR_INT_HEADER
-                        ,OPERATOR_INT_BLOCK,OPERATOR_INT_BIG_BLOCK);
-                writeValue(target,((Tuple) value).get(0));
-                writeValue(target,((Tuple) value).get(1));
             }else{
-                target.write(new long[]{HEADER_OPERATOR},0,HEADER_OPERATOR_LENGTH);
-                target.writeBigInt(BigInteger.valueOf(Operators.idByName(Operators.NEW_TUPLE)),OPERATOR_INT_HEADER
-                        ,OPERATOR_INT_BLOCK,OPERATOR_INT_BIG_BLOCK);//TODO? use constant for minsize/move handling of special cases to Constants
-                target.writeBigInt(BigInteger.valueOf(size-3),NARY_INT_HEADER
-                        ,NARY_INT_BLOCK,NARY_INT_BIG_BLOCK);
+                long replace=Operators.nAryReplacementId(Operators.NEW_TUPLE,size);
+                if(replace==-1) {
+                    target.write(new long[]{HEADER_OPERATOR}, 0, HEADER_OPERATOR_LENGTH);
+                    long id = Operators.idByName(Operators.NEW_TUPLE);
+                    target.writeBigInt(BigInteger.valueOf(id), OPERATOR_INT_HEADER
+                            , OPERATOR_INT_BLOCK, OPERATOR_INT_BIG_BLOCK);
+                    target.writeBigInt(BigInteger.valueOf(size - Operators.argCountById((int)id)), NARY_INT_HEADER
+                            , NARY_INT_BLOCK, NARY_INT_BIG_BLOCK);
+                }else{
+                    target.writeBigInt(BigInteger.valueOf(replace), OPERATOR_INT_HEADER
+                            , OPERATOR_INT_BLOCK, OPERATOR_INT_BIG_BLOCK);
+                }
                 for(int i=0;i<size;i++){
                     writeValue(target,((Tuple) value).get(i));
                 }
@@ -722,12 +731,12 @@ public class Translator {
                     while (test.isImporting())
                         test.flatStep();//flatRun Imports
                     a = nextAction(source, null, test.programEnvironment(), test.executionEnvironment(), test.isTopLayer());
+                    test.stepInternal(a, false);//flat run code to detect syntax errors
                     if (a == EOF) {
                         Main.compileFinished(actions, target.bitPos());
                         target.truncateToSize(true);
                         return;
                     } else {
-                        test.stepInternal(a, false);//flat run code to detect syntax errors
                         a.writeTo(target);
                         actions++;
                     }
@@ -759,12 +768,12 @@ public class Translator {
                     while (test.isImporting())
                         test.flatStep();//flatRun Imports
                     a = nextAction(source, test.programEnvironment(), test.executionEnvironment(), test.isTopLayer());
+                    test.stepInternal(a, false);//flat run code to detect syntax errors
                     if (a == EOF) {
                         Main.decompileFinished(lines, actions);
                         target.close();
                         return;
                     } else {
-                        test.stepInternal(a, false);//flat run code to detect syntax errors
                         target.write(a.stringRepresentation());
                         if (test.lineStart()) {
                             target.write("\n");

@@ -1,12 +1,11 @@
 package bsoelch.cnl.math;
 
 import bsoelch.cnl.Constants;
-import bsoelch.cnl.math.expression.ExpressionNode;
 
 import java.math.BigInteger;
 
 /**scalar value, either a {@link NumericScalar} or a {@link Polynomial}*/
-public abstract class Scalar implements ExpressionNode, MathObject,Comparable<Scalar> {
+public abstract class Scalar implements MathObject,Comparable<Scalar> {
     Scalar(){}//package private constructor
 
     public abstract boolean isInt();
