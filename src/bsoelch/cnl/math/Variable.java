@@ -58,8 +58,9 @@ public class Variable implements Comparable<Variable> , ExpressionNode {
     }
 
     @Override
-    public ExpressionNode evaluate(Map<Variable, ExpressionNode> replace) {
-        return Objects.requireNonNull(replace.get(this));
+    public MathObject evaluate(Map<Variable, MathObject> replace) {
+        MathObject ret=replace.get(this);
+        return ret==null?Polynomial.from(this):ret;
     }
 
 }

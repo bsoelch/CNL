@@ -106,6 +106,15 @@ public final class Polynomial extends Scalar implements ExpressionNode {
         public int hashCode() {
             return Objects.hash(variables);
         }
+
+        public MathObject evaluate(Map<Variable, MathObject> replace) {
+            MathObject[] factors=new MathObject[variables.size()];
+            int i=0;
+            for(Map.Entry<Variable, BigInteger> e:variables.entrySet()){
+                factors[i++]=MathObject.pow(e.getKey().evaluate(replace),Real.from(e.getValue()));
+            }
+            return MathObject.product(factors);
+        }
     }
 
     public static Polynomial from(BigInteger varId,BigInteger power){
@@ -115,6 +124,11 @@ public final class Polynomial extends Scalar implements ExpressionNode {
         Variable v=new Variable(varId);
         Monomial m=new Monomial(Collections.singletonMap(v,power));
         return from(Collections.singletonMap(m,factor));
+    }
+    /**Polynomial wrapper of the given Variable*/
+    public static MathObject from(Variable variable) {
+        Monomial m=new Monomial(Collections.singletonMap(variable,BigInteger.ONE));
+        return from(Collections.singletonMap(m,Real.Int.ONE));
     }
 
     private static Scalar from(Map<Monomial, NumericScalar> monomials1) {
@@ -151,9 +165,13 @@ public final class Polynomial extends Scalar implements ExpressionNode {
     }
 
     @Override
-    public ExpressionNode evaluate(Map<Variable, ExpressionNode> replace) {
-        //TODO Evaluate Polynomial
-        throw new UnsupportedOperationException("Not yet implemented");
+    public MathObject evaluate(Map<Variable, MathObject> replace) {
+        MathObject[] summands=new MathObject[monomials.size()];
+        int i=0;
+        for(Map.Entry<Monomial, NumericScalar> e:monomials.entrySet()){
+            summands[i++]=MathObject.multiply(e.getValue(),e.getKey().evaluate(replace));
+        }
+        return MathObject.sum(summands);
     }
 
 
@@ -317,7 +335,7 @@ public final class Polynomial extends Scalar implements ExpressionNode {
 
     //TODO mod
 
-    //TODO test method
+    //TODO test Polynomial division
     public static Scalar[] reduce(Polynomial a, Polynomial b){
         Scalar a0=a,b0=b;
         TreeSet<Variable> commonVars=new TreeSet<>(a.variables.keySet());

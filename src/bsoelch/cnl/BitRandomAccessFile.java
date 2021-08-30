@@ -486,6 +486,8 @@ public class BitRandomAccessFile implements BitRandomAccessStream {
                     return len;
                 }
 
+                //TODO? mark/reset
+
                 @Override
                 public void close() throws IOException {
                     BitRandomAccessFile.this.close();

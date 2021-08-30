@@ -10,7 +10,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**Root of all MathObjects*/
-public interface MathObject extends ExpressionNode {
+public interface MathObject {
     int FLOOR = -1;
     int ROUND = 0;
     int CIEL = 1;
@@ -30,14 +30,6 @@ public interface MathObject extends ExpressionNode {
     }
     String intsAsString();
 
-    @Override
-    default Set<Variable> variables() {
-        return Collections.emptySet();
-    }
-    @Override
-    default ExpressionNode evaluate(Map<Variable, ExpressionNode> replace) {
-        return this;
-    }
 
     static MathObject not(MathObject o) {
         return isTrue(o)?Real.Int.ZERO:Real.Int.ONE;

@@ -101,7 +101,11 @@ public class Constants {
     public static final int CONSTANT_EMPTY_SET = 4;
     public static final int CONSTANT_EMPTY_MAP = 5;
 
-    //111001.[BigInt] -> Function(Arg) (4,8,16)
+    //111001.[BigInt][BigInt] -> Fraction (4,8,16)
+    public final static int HEADER_FRACTION =0b100111;
+    public final static int HEADER_FRACTION_LENGTH =4;
+
+    //111010.[BigInt] -> Function(Arg) (4,8,16)
     public static final int HEADER_FUNCTION_ARG = 0b010111;
     public static final int HEADER_FUNCTION_ARG_LENGTH = 6;
     /**length of BigInt header for Function arguments*/
@@ -116,8 +120,6 @@ public class Constants {
     public static final int FUNCTION_ID_INT_BLOCK =8;
     /**length of BigInt bigBlock for Function ids*/
     public static final int FUNCTION_ID_INT_BIG_BLOCK =16;
-
-    //111010.[BigInt][BigInt] -> Fraction (4,8,16) TODO? Fraction
 
     //111011.[BigInt] -> Environment (4,8,16)
     public static final int HEADER_ENVIRONMENT = 0b110111;

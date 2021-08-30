@@ -149,6 +149,11 @@ public class Translator {
                 BigInteger value = code.readBigInt(INT_HEADER, INT_BLOCK, INT_BIG_BLOCK);
                 return wrap(Real.from(value));
             }
+            case HEADER_FRACTION:{//TODO? encoding with less redundancy
+                BigInteger a = code.readBigInt(INT_HEADER, INT_BLOCK, INT_BIG_BLOCK);
+                BigInteger b = code.readBigInt(INT_HEADER, INT_BLOCK, INT_BIG_BLOCK).add(BigInteger.ONE);//b=0 no necessary
+                return wrap(Real.from(a,b));
+            }
             case HEADER_BRACKET:{
                 int id = getBracketID(code);
                 switch (id) {
@@ -680,17 +685,18 @@ public class Translator {
             if(value.num().equals(BigInteger.ONE)){
                 target.write(new long[]{HEADER_OPERATOR}, 0, HEADER_OPERATOR_LENGTH);
                 target.writeBigInt(BigInteger.valueOf(Operators.idByName(Operators.INVERT)), OPERATOR_INT_HEADER, OPERATOR_INT_BLOCK, OPERATOR_INT_BIG_BLOCK);
-            }else {
-                target.write(new long[]{HEADER_OPERATOR}, 0, HEADER_OPERATOR_LENGTH);
-                target.writeBigInt(BigInteger.valueOf(Operators.idByName(Operators.DIVIDE)), OPERATOR_INT_HEADER, OPERATOR_INT_BLOCK, OPERATOR_INT_BIG_BLOCK);
                 target.write(new long[]{HEADER_INT},0,HEADER_INT_LENGTH);
+                target.writeBigInt(value.den(),INT_HEADER,INT_BLOCK,INT_BIG_BLOCK);
+            }else {
+                target.write(new long[]{HEADER_FRACTION},0,HEADER_FRACTION_LENGTH);
                 target.writeBigInt(value.num(),INT_HEADER,INT_BLOCK,INT_BIG_BLOCK);
-            }//TODO? shortcut for Fraction
-            target.write(new long[]{HEADER_INT},0,HEADER_INT_LENGTH);
-            target.writeBigInt(value.den(),INT_HEADER,INT_BLOCK,INT_BIG_BLOCK);
+                target.writeBigInt(value.den().subtract(BigInteger.ONE),INT_HEADER,INT_BLOCK,INT_BIG_BLOCK);
+            }
         }
     }
 
+    //TODO? symbloic names in scirps (i.e &name) for varids/fktIds
+    // precompiling that replaces symbolic names with varIds (by frequency)
     public static void compile(Reader source,File targetFile) throws IOException {
         if (!(targetFile.exists() || targetFile.createNewFile()))
             throw new IOException("target-file does not exists");
