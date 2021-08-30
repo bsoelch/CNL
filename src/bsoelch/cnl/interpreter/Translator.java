@@ -695,8 +695,8 @@ public class Translator {
         }
     }
 
-    //TODO? symbloic names in scirps (i.e &name) for varids/fktIds
-    // precompiling that replaces symbolic names with varIds (by frequency)
+    //TODO? symbolic names in scripts (i.e &name) for varIds/fktIds
+    // pre-compiling that replaces symbolic names with varIds (by frequency)
     public static void compile(Reader source,File targetFile) throws IOException {
         if (!(targetFile.exists() || targetFile.createNewFile()))
             throw new IOException("target-file does not exists");
