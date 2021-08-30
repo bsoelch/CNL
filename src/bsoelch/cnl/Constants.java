@@ -2,6 +2,7 @@ package bsoelch.cnl;
 
 import bsoelch.cnl.interpreter.ExecutionEnvironment;
 import bsoelch.cnl.math.*;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -9,6 +10,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 
 public class Constants {
     static final public BigInteger BIG_INT_NEG_ONE = BigInteger.valueOf(-1);
@@ -525,17 +527,17 @@ public class Constants {
 
                 //Nary Operations
                 declareOperator("SUM",
-                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3, MathObject::sum));
+                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3, MathObject::sum, c-> c==2?ADD:null));
                 declareOperator("PROD",
-                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3, MathObject::product));
+                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3, MathObject::product, c-> c==2?MULTIPLY:null));
                 declareOperator("NARY_AND",
-                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3,(args)->{
+                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3,(args)->{//TODO? move evaluation to MathObject
                             MathObject res=args[0];
                             for(int i=1;i<args.length;i++) {
                                 res = MathObject.floorAnd(res, args[i]);
                             }
                             return res;
-                        }));
+                        }, c-> c==2?AND:null));
                 declareOperator("NARY_OR",
                         new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3,(args)->{
                             MathObject res=args[0];
@@ -543,24 +545,24 @@ public class Constants {
                                 res = MathObject.floorOr(res, args[i]);
                             }
                             return res;
-                        }));
-                declareOperator("NARY_CONCAT",
+                        }, c-> c==2?OR:null));
+                declareOperator("NARY_STR_CONCAT",
                         new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3,(args)->{
                             MathObject res=args[0];
                             for(int i=1;i<args.length;i++) {
                                 res = MathObject.strConcat(res, args[i]);
                             }
                             return res;
-                        }));
+                        }, c-> c==2?STRING_CONCAT:null));
                 declareOperator("NARY_TIMES",
-                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3, MathObject::nAryTimes));
+                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3, MathObject::nAryTimes, c-> c==2?TIMES:null));
 
                 declareOperator(NEW_SET,
-                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,1,
-                                (Function<MathObject[], MathObject>) FiniteSet::from));
+                        new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,1,//TODO shortcut for 1 and 2 element sets
+                                (Function<MathObject[], MathObject>) FiniteSet::from, c->null));
                 declareOperator(NEW_TUPLE,
                         new ExecutionInfo.Nary(MODIFY_ARG0_ROOT,3,
-                                Tuple::create));
+                                Tuple::create, c->c==2?NEW_PAIR:null));//TODO single argument tuple
 
                 //NARY_SUM_U (unwrap)
                 //NARY_PROD_U
@@ -906,16 +908,19 @@ public class Constants {
 
                 final Function<MathObject[], MathObject> f;
                 final BiFunction<ExecutionEnvironment, MathObject[], MathObject> fEnv;
+                final IntFunction<String> shortCuts;
 
-                Nary(int storeMode,int minArgs,Function<MathObject[], MathObject> f){
+                Nary(int storeMode, int minArgs, Function<MathObject[], MathObject> f,@NotNull IntFunction<String> shortCuts){
                     super(storeMode,FLAG_NARY);
                     this.minArgs=minArgs;
                     this.f=f;
+                    this.shortCuts = shortCuts;
                     this.fEnv=null;
                 }
-                Nary(int storeMode,int minArgs,BiFunction<ExecutionEnvironment, MathObject[], MathObject> fEnv){
+                Nary(int storeMode, int minArgs, BiFunction<ExecutionEnvironment, MathObject[], MathObject> fEnv,@NotNull  IntFunction<String> shortCuts){
                     super(storeMode,FLAG_NARY);
                     this.minArgs=minArgs;
+                    this.shortCuts = shortCuts;
                     this.f=null;
                     this.fEnv=fEnv;
                 }
@@ -923,13 +928,6 @@ public class Constants {
                 @Override
                 public int argCount() {
                     return minArgs;
-                }
-
-                /**@return name of an operation that replaces this n-ary operator for smaller argCounts
-                 * or null if there is no such operation*/
-                public String replacementFor(int argCount){
-                    //TODO replacements
-                    return null;
                 }
 
                 @Override
@@ -972,6 +970,40 @@ public class Constants {
             }
             return operatorInfo.name;
         }
+
+        /**@return id for a simple replacement-operator to n-ary operator with the given id,
+         *  when supplied with the given argCount or -1 if no such operator exists*/
+        public static long nAryReplacementId(int id,int argCount){
+            ensureOperatorsInitialized();
+            OperatorInfo operatorInfo = operators.get(id);
+            return getNAryReplacement(argCount, operatorInfo);
+        }
+        /**@return id for a simple replacement-operator to n-ary operator with the given name,
+         *  when supplied with the given argCount  or -1 if no such operator exists*/
+        public static long nAryReplacementId(String name,int argCount){
+            ensureOperatorsInitialized();
+            OperatorInfo operatorInfo = operatorNames.get(name);
+            return getNAryReplacement(argCount, operatorInfo);
+        }
+        private static long getNAryReplacement(int argCount, OperatorInfo operatorInfo) {
+            if ((operatorInfo.executionInfo.flags & FLAG_NARY) != 0) {//TODO ensure that FLAG n-ary only used with class nary
+                String name = ((ExecutionInfo.Nary) operatorInfo.executionInfo).shortCuts.apply(argCount);
+                String oldName=operatorInfo.name;
+                operatorInfo =operatorNames.get(name);
+                if(operatorInfo!=null){
+                    if(operatorInfo.executionInfo.argCount()!= argCount){
+                        throw new RuntimeException("replacement operator "+ operatorInfo.name+" for "+oldName+" has wrong number of arguments: "
+                                + operatorInfo.executionInfo.argCount()+" expected: "+ argCount);
+                    }
+                    return operatorInfo.id;
+                }else{
+                    return -1L;
+                }
+            } else {
+                throw new IllegalArgumentException(operatorInfo.name + " is no N-ary operator");
+            }
+        }
+
         /**@return The the result of the operator with the given id, under the given arguments*/
         public static MathObject execute(int id, ExecutionEnvironment env, MathObject[] args){
             ensureOperatorsInitialized();
@@ -1014,8 +1046,10 @@ public class Constants {
         static private void declareOperator(String name,ExecutionInfo executionInfo){
             if(!name.toUpperCase(Locale.ROOT).equals(name))
                 throw new IllegalArgumentException("name has to be Uppercase:"+name+"!="+name.toUpperCase(Locale.ROOT));
-            if(!name.matches("[A-Z]([A-Z_]*[A-Z])?"))
-                throw new IllegalArgumentException("name can only contain A-Z and underscores, an underscore cannot be the first or last character");
+            if(!name.matches("[A-Z]([0-9A-Z_]*[A-Z0-9])?"))
+                throw new IllegalArgumentException("illegal operatorName:"+name+
+                        "\n names can only contain uppercase latin letters, digits and underscores," +
+                        " names cannot start with a digit an underscore cannot be the first or last character");
             if(operatorNames.containsKey(name))
                 throw new IllegalArgumentException("There is already an Operator with the given name");
             int id= operators.size();
