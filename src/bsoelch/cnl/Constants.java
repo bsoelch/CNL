@@ -6,6 +6,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.function.BiFunction;
@@ -142,15 +143,16 @@ public class Constants {
     public static final int HEADER_FUNCTION_DECLARATION = 0b00101111;
     public static final int HEADER_FUNCTION_DECLARATION_LENGTH = 8;
 
-    //11110010.[BigInt] -> Polynomial Var
-
+    //11110010.
     //11110011.
     //11110100.
-    //11110101.
-    //11110110.[outID]{BASE} ->Out
-    public static final int HEADER_OUT = 0b11001111;
+
+    //11110101.[outID]{BASE} ->Out
+    public static final int HEADER_OUT = 0b10101111;
     public static final int HEADER_OUT_LENGTH = 8;
-    //TODO? FLAG: write line
+    //11110110.[outID]{BASE} ->Out_NewLine
+    public static final int HEADER_OUT_NEW_LINE = 0b11001111;
+    public static final int HEADER_OUT_NEW_LINE_LENGTH = 8;
 
     /**reads an outId from the given File:
      * OutIds are of the Form:
@@ -540,6 +542,8 @@ public class Constants {
                                     Pair::new));
                     declareOperator(WRAP2_IN_SET,
                             new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, (BiFunction<MathObject, MathObject, MathObject>) FiniteSet::from));
+                    declareOperator(SINGLETON_MAP,
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, (k,v)->FiniteMap.from(Collections.singletonMap(k,v),1)));
                     //TUPLE_GET_FIRST
                     //TUPLE_GET_LAST
                     //TUPLE_GET <index>

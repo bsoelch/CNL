@@ -138,20 +138,20 @@ public class Interpreter implements Closeable {
 
     Iterator<String> lines(){
         return new Iterator<String>() {
-            final Iterator<FunctionEnvironment> itr=callStack.iterator();
-            boolean iterating=true;
+            final Iterator<FunctionEnvironment> itr=callStack.descendingIterator();
+            boolean first=true;
             @Override
             public boolean hasNext() {
-                return iterating;
+                return first||itr.hasNext();
             }
 
             @Override
             public String next() {
-                if(itr.hasNext()){
-                    return itr.next().currentLine;
-                }else{
-                    iterating=false;
+                if(first){
+                    first=false;
                     return currentLine.toString();
+                }else{
+                    return itr.next().currentLine;
                 }
             }
         };
@@ -178,8 +178,6 @@ public class Interpreter implements Closeable {
     }
 
     private boolean doStep(boolean doBranching) throws IOException, SyntaxError {
-        if(actionStack.isEmpty())//clear line
-            currentLine.setLength(0);
         Action a;
         if(isScript){
             a= Translator.nextAction(code.reader(),code, programEnvironment(), executionEnvironment(), isTopLayer());
@@ -194,6 +192,8 @@ public class Interpreter implements Closeable {
     }
 
     boolean stepInternal(Action a,boolean doBranching) throws IOException, SyntaxError {
+        if(actionStack.isEmpty())//clear line
+            currentLine.setLength(0);
         if(a == Translator.EOF|| a == Translator.EXIT){
             return exit(doBranching);
         }else if(a instanceof RunIn){//Unwrap RunIn
@@ -419,6 +419,7 @@ public class Interpreter implements Closeable {
 
     private void addToStack(Action action, boolean doBranching) throws IOException, SyntaxError {
         actionStack.add(action);
+        currentLine.append(action.stringRepresentation()).append(' ');
         evaluateStack(false,doBranching);//simplify after adding
     }
 

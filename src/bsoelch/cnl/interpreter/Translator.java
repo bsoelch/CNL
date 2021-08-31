@@ -218,7 +218,8 @@ public class Translator {
                 }
                 return new Input((int)tmp[0],base);
             }
-            case HEADER_OUT:{
+            case HEADER_OUT:
+            case HEADER_OUT_NEW_LINE:{
                 int id= Constants.readOutId(code);
                 boolean isNumber,useSmallBase;
                 BigInteger base;
@@ -249,7 +250,7 @@ public class Translator {
                     }
                     type=id%OUT_NUMBER_BLOCK_LENGTH;
                 }
-                return new Output(isNumber,useSmallBase,base,type);
+                return new Output(isNumber,useSmallBase, header==HEADER_OUT_NEW_LINE, base,type);
             }
             default:throw new IllegalArgumentException("Unknown Header: 0b"+Integer.toBinaryString(header));
         }
@@ -372,10 +373,18 @@ public class Translator {
             return wrap(MathObject.FromString.fromString(str, DEFAULT_BASE));
         }else if(str.toUpperCase(Locale.ROOT).startsWith("OUT_")){//Output
             str=str.substring(4);//remove Out from String
+            boolean newLine=false;
+            if(str.startsWith("LINE_")){
+                str=str.substring(5);
+                newLine=true;
+            }else if(str.startsWith("LN_")){
+                str=str.substring(3);
+                newLine=true;
+            }
             if(str.equals("STR")||str.equals("STRING")){
-               return new Output(false,true,BigInteger.ZERO,OUT_STR);
+               return new Output(false,true, newLine, BigInteger.ZERO,OUT_STR);
             }else if(str.equals("STR_INTS")||str.equals("STRING_INTS")){
-                return new Output(false,true,BigInteger.ZERO,OUT_STR_INT);
+                return new Output(false,true, newLine, BigInteger.ZERO,OUT_STR_INT);
             }else if(str.startsWith("NUMBER")){
                 str=str.substring(6);
                 boolean bigBase;
@@ -426,7 +435,7 @@ public class Translator {
                     default:
                         throw new IllegalArgumentException("Unexpected NumberType:"+str);
                 }
-                return new Output(true,!bigBase,baseValue,type);
+                return new Output(true,!bigBase, newLine, baseValue,type);
             }else{
                 throw new IllegalArgumentException("Unknown OutputType:"+str);
             }

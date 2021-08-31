@@ -10,16 +10,17 @@ import java.math.BigInteger;
 import static bsoelch.cnl.Constants.*;
 
 class Output implements Action {
-    final boolean isNumber,useSmallBase;
+    final boolean isNumber,useSmallBase, newLine;
     final int type;
     final BigInteger base;
 
     ValuePointer value;
     Real precision;
 
-    public Output(boolean isNumber, boolean useSmallBase, BigInteger base, int type) {
+    public Output(boolean isNumber, boolean useSmallBase, boolean newLine, BigInteger base, int type) {
         this.isNumber=isNumber;
         this.useSmallBase=useSmallBase;
+        this.newLine = newLine;
         this.base=base;
         this.type=type;
         if(isNumber){
@@ -54,18 +55,24 @@ class Output implements Action {
             switch (type){
                 case OUT_FLAG_FRACTION:{//fraction
                     System.out.print(value.getValue().toString(base, useSmallBase));
+                    if(newLine)
+                        System.out.println();
                     return value;
                 }
                 case OUT_FLAG_FIXED_POINT_EXACT:
                 case OUT_FLAG_FIXED_POINT:{//fixed Point
                     System.out.print(value.getValue()
                             .toStringFixedPoint(base, precision, useSmallBase));
+                    if(newLine)
+                        System.out.println();
                     return value;
                 }
                 case OUT_FLAG_FLOAT_EXACT:
                 case OUT_FLAG_FLOAT:{//floating Point
                     System.out.print(value.getValue()
                             .toStringFloat(base, precision, useSmallBase));
+                    if(newLine)
+                        System.out.println();
                     return value;
                 }
                 default:throw new IllegalStateException("Unknown OutputType:"+type);
@@ -73,8 +80,12 @@ class Output implements Action {
         } else {
             if (type == OUT_STR) {
                 System.out.print(value.getValue().asString());
+                if(newLine)
+                    System.out.println();
             } else if (type == OUT_STR_INT) {
                 System.out.print(value.getValue().intsAsString());
+                if(newLine)
+                    System.out.println();
             } else {
                 throw new IllegalArgumentException("Unexpected StringOut type:" + type);
             }
@@ -84,7 +95,11 @@ class Output implements Action {
 
     @Override
     public void writeTo(BitRandomAccessStream target) throws IOException {
-        target.write(new long[]{HEADER_OUT},0, HEADER_OUT_LENGTH);
+        if(newLine) {
+            target.write(new long[]{HEADER_OUT_NEW_LINE}, 0, HEADER_OUT_NEW_LINE_LENGTH);
+        }else{
+            target.write(new long[]{HEADER_OUT}, 0, HEADER_OUT_LENGTH);
+        }
         int baseId;
         if(base.equals(BIG_INT_TWO)){
             baseId=OUT_BASE_FLAG_BIN;
@@ -105,7 +120,7 @@ class Output implements Action {
     @Override
     public String stringRepresentation() {
         if(isNumber){
-            String ret="OUT_NUMBER";
+            String ret=newLine?"OUT_LINE_NUMBER":"OUT_NUMBER";
             if(!useSmallBase){
                 ret+="_BIG_BASE";
             }
@@ -128,8 +143,8 @@ class Output implements Action {
             }
         }else{
             switch (type){
-                case OUT_STR:return "OUT_STR";
-                case OUT_STR_INT:return "OUT_STR_INT";
+                case OUT_STR:return newLine?"OUT_LINE_STR":"OUT_STR";
+                case OUT_STR_INT:return newLine?"OUT_LINE_STR_INT":"OUT_STR_INT";
                 default:throw new IllegalArgumentException("Illegal type for OUT_STR:"+type);
             }
 
