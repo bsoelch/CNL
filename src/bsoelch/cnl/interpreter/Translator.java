@@ -1,9 +1,6 @@
 package bsoelch.cnl.interpreter;
 
-import bsoelch.cnl.BitRandomAccessFile;
-import bsoelch.cnl.BitRandomAccessStream;
-import bsoelch.cnl.Constants;
-import bsoelch.cnl.Main;
+import bsoelch.cnl.*;
 import bsoelch.cnl.math.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -113,8 +110,8 @@ public class Translator {
         return (int)tmp[0];
     }
 
-    public static Action nextAction(BitRandomAccessStream code, ProgramEnvironment progEnv,
-                                    ExecutionEnvironment exEnv, boolean isTopLayer) throws IOException {
+    public static Action nextAction(BitRandomAccessStream code, ProgramEnvironment programEnvironment,
+                                    ExecutionEnvironment executionEnvironment, boolean isTopLayer) throws IOException {
         Interpreter.CodePosition prevPos=new Interpreter.CodePosition(code, false);
         int header= readHeader(code);
         if(header==-1){//End of file
@@ -128,23 +125,23 @@ public class Translator {
                 if((flags& Operators.FLAG_DYNAMIC)!=0){
                     String name=Operators.nameById(intID);
                     if (name.equals(Operators.DYNAMIC_VAR)) {
-                        return new VarPointer(progEnv, null);
+                        return new VarPointer(programEnvironment, null);
                     } else if (name.equals(Operators.CALL_FUNCTION)) {
                         BigInteger fId=code.readBigInt(FUNCTION_ID_INT_HEADER,FUNCTION_ID_INT_BLOCK,FUNCTION_ID_INT_BIG_BLOCK);
-                        return new CallFunction(progEnv,fId);
+                        return new CallFunction(programEnvironment,fId);
                     } else{
                         throw new IllegalArgumentException("Unknown Dynamic Operator: "+name);
                     }
                 } else if((flags& Operators.FLAG_NARY)!=0){
                     BigInteger numArgs=code.readBigInt(NARY_INT_HEADER,NARY_INT_BLOCK,NARY_INT_BIG_BLOCK);
-                    return new Operator(intID, numArgs.intValueExact(), exEnv);
+                    return new Operator(intID, numArgs.intValueExact(), executionEnvironment);
                 }else{
-                    return new Operator(intID, exEnv);
+                    return new Operator(intID, executionEnvironment);
                 }
             }
             case HEADER_VAR:{
                 BigInteger id = code.readBigInt(VAR_INT_HEADER, VAR_INT_BLOCK, VAR_INT_BIG_BLOCK);
-                return new VarPointer(progEnv, Real.from(id));//TODO? caching
+                return new VarPointer(programEnvironment, Real.from(id));//TODO? caching
             }
             case HEADER_INT:{
                 BigInteger value = code.readBigInt(INT_HEADER, INT_BLOCK, INT_BIG_BLOCK);
@@ -169,17 +166,17 @@ public class Translator {
                     case BRACKET_FLAG_ELIF_NE:
                     case BRACKET_FLAG_END:
                     case BRACKET_FLAG_BREAK:
-                        return new BracketDeclaration(progEnv, id, prevPos);
+                        return new BracketDeclaration(programEnvironment, id, prevPos);
                     case BRACKET_FLAG_DO:
-                        return new BracketDeclaration(progEnv, id, new Interpreter.CodePosition(code, false));
+                        return new BracketDeclaration(programEnvironment, id, new Interpreter.CodePosition(code, false));
 
                 }
             }
             case HEADER_CONSTANTS:{
                 BigInteger id= code.readBigInt(CONSTANTS_INT_HEADER,CONSTANTS_INT_BLOCK,CONSTANTS_INT_BIG_BLOCK);
                 switch (id.intValueExact()){
-                    case CONSTANT_RES:return new ArgPointer(progEnv,true);
-                    case CONSTANT_ARG_COUNT:return new ArgPointer(progEnv,false);
+                    case CONSTANT_RES:return new ArgPointer(programEnvironment,true);
+                    case CONSTANT_ARG_COUNT:return new ArgPointer(programEnvironment,false);
                     case CONSTANT_I:return I;
                     case CONSTANT_EXIT:return EXIT;
                     case CONSTANT_EMPTY_SET:return EMPTY_SET;
@@ -188,14 +185,14 @@ public class Translator {
             }
             case HEADER_FUNCTION_ARG:{
                 BigInteger id= code.readBigInt(FUNCTION_ARG_INT_HEADER, FUNCTION_ARG_INT_BLOCK, FUNCTION_ARG_INT_BIG_BLOCK);
-                return new ArgPointer(progEnv,id);
+                return new ArgPointer(programEnvironment,id);
             }
             case HEADER_FUNCTION_DECLARATION:{
                 if(!isTopLayer)
                     throw new IllegalStateException("Function Declarations in Brackets are not allowed");
                 BigInteger argCount = code.readBigInt(FUNCTION_ARG_INT_HEADER, FUNCTION_ARG_INT_BLOCK, FUNCTION_ARG_INT_BIG_BLOCK);
                 BigInteger id = code.readBigInt(FUNCTION_ID_INT_HEADER, FUNCTION_ID_INT_BLOCK, FUNCTION_ID_INT_BIG_BLOCK);
-                return new FunctionDeclaration(id,new Function(progEnv,new Interpreter.CodePosition(code, false)
+                return new FunctionDeclaration(id,new Function(programEnvironment,new Interpreter.CodePosition(code, false)
                         ,argCount.intValueExact()));
             }
             case HEADER_ENVIRONMENT:{
@@ -210,7 +207,7 @@ public class Translator {
                 if(!isTopLayer)
                     throw new IllegalStateException("Imports in Brackets are not allowed");
                 BigInteger id= code.readBigInt(ENVIRONMENTS_INT_HEADER,ENVIRONMENTS_INT_BLOCK,ENVIRONMENTS_INT_BIG_BLOCK);
-                return new Import(progEnv,id);
+                return new Import(programEnvironment,id);
             }
             case HEADER_IN:{
                 long[] tmp=new long[1];
@@ -360,7 +357,8 @@ public class Translator {
         }
     }
 
-    static Action nextAction(Reader code, @Nullable BitRandomAccessStream bitCode, ProgramEnvironment env, ExecutionEnvironment exEnv, boolean isTopLayer) throws IOException {
+    static Action nextAction(Reader code, @Nullable BitRandomAccessStream bitCode, ProgramEnvironment programEnvironment,
+                             ExecutionEnvironment executionEnvironment, boolean isTopLayer) throws IOException {
         String str;
         Interpreter.CodePosition prevPos=bitCode==null?NO_POS:new Interpreter.CodePosition(bitCode, true);
         do {
@@ -436,12 +434,12 @@ public class Translator {
             BigInteger id = new BigInteger(str.substring(3));
             if(id.signum()==-1)
                 throw new IllegalArgumentException("Negative Id");
-            return new VarPointer(env,Real.from(id));
+            return new VarPointer(programEnvironment,Real.from(id));
         }else if(str.length()>3&&str.toUpperCase(Locale.ROOT).startsWith("ARG")){//Function Argument
             BigInteger id = new BigInteger(str.substring(3));
             if(id.signum()==-1)
                 throw new IllegalArgumentException("Negative Id");
-            return new ArgPointer(env,id);
+            return new ArgPointer(programEnvironment,id);
         }else if(str.toUpperCase(Locale.ROOT).startsWith("NEW_FUNC:")&&str.endsWith("[")){//Function declaration
             if(!isTopLayer)
                 throw new IllegalStateException("Function declarations in Brackets are not allowed");
@@ -450,7 +448,7 @@ public class Translator {
             BigInteger id=new BigInteger(params.substring(params.indexOf(',')+1));
             if(args.signum()==-1)
                 throw new IllegalArgumentException("Negative Id");
-            return new FunctionDeclaration(id,new Function(env,bitCode==null?NO_POS:new Interpreter.CodePosition(bitCode, true),args.intValueExact()));
+            return new FunctionDeclaration(id,new Function(programEnvironment,bitCode==null?NO_POS:new Interpreter.CodePosition(bitCode, true),args.intValueExact()));
         }else if(str.toUpperCase(Locale.ROOT).startsWith("RUN_IN:")){//Environment
             BigInteger id=new BigInteger(str.substring(7));
             if(id.signum()==-1)
@@ -463,7 +461,7 @@ public class Translator {
             BigInteger id=new BigInteger(str.substring(10));
             if(id.signum()==-1)
                 throw new IllegalArgumentException("Negative Id");
-            return new Import(env,id);
+            return new Import(programEnvironment,id);
         }else if(str.toUpperCase(Locale.ROOT).startsWith("IN_")){//Input
             if(str.startsWith("IN_BASE")){
                 BigInteger base=new BigInteger(str.substring(7));
@@ -495,7 +493,7 @@ public class Translator {
                         int flags = Operators.flags((int) id);
                         if((flags & Operators.FLAG_DYNAMIC)!=0){
                             if(Operators.nameById((int)id).equals(Operators.CALL_FUNCTION)){
-                                return new CallFunction(env,new BigInteger(counts[0]));
+                                return new CallFunction(programEnvironment,new BigInteger(counts[0]));
                             }else{
                                 throw new IllegalArgumentException("N-ary arguments for non N-ary operator");
                             }
@@ -509,12 +507,12 @@ public class Translator {
                                 int minArgs = Operators.argCountById((int) id);
                                 long replace = Operators.nAryReplacementId((int) id, count);
                                 if (replace != -1) {
-                                    return new Operator((int) replace, exEnv);
+                                    return new Operator((int) replace, executionEnvironment);
                                 } else if (count < minArgs) {
                                     throw new IllegalArgumentException("Number of Arguments for NAry operator " + name + " is less than " +
                                             "the minimum allowed value " + minArgs);
                                 } else {
-                                    return new Operator((int) id, count - minArgs, exEnv);
+                                    return new Operator((int) id, count - minArgs, executionEnvironment);
                                 }
                             }
                         }
@@ -523,53 +521,53 @@ public class Translator {
             }else{//nary without args -> exactly minArgs arguments
                 id=Operators.idByName(str.toUpperCase(Locale.ROOT));
                 if(id!=-1){//Operators
-                    return new Operator((int)id,exEnv);
+                    return new Operator((int)id,executionEnvironment);
                 }
             }
             switch (str.toUpperCase(Locale.ROOT)){
                 //Brackets
                 case "[?": {
-                    return new BracketDeclaration(env,BRACKET_FLAG_IF_NE,prevPos);
+                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_IF_NE,prevPos);
                 }
                 case "[!":{
-                    return new BracketDeclaration(env,BRACKET_FLAG_IF_EQ,prevPos);
+                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_IF_EQ,prevPos);
                 }
                 case "[.?":{
-                    return new BracketDeclaration(env,BRACKET_FLAG_WHILE_NE,prevPos);
+                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_WHILE_NE,prevPos);
                 }
                 case "[.!":{
-                    return new BracketDeclaration(env,BRACKET_FLAG_WHILE_EQ,prevPos);
+                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_WHILE_EQ,prevPos);
                 }
                 case "[":{
-                    return new BracketDeclaration(env,BRACKET_FLAG_DO,bitCode==null?NO_POS:new Interpreter.CodePosition(bitCode, true));
+                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_DO,bitCode==null?NO_POS:new Interpreter.CodePosition(bitCode, true));
                 }
                 case "|":{
-                    return new BracketDeclaration(env,BRACKET_FLAG_ELSE,prevPos);
+                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_ELSE,prevPos);
                 }
                 case "|!":{
-                    return new BracketDeclaration(env,BRACKET_FLAG_ELIF_EQ,prevPos);
+                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_ELIF_EQ,prevPos);
                 }
                 case "|?":{
-                    return new BracketDeclaration(env,BRACKET_FLAG_ELIF_NE,prevPos);
+                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_ELIF_NE,prevPos);
                 }
                 case "]":{
-                    return new BracketDeclaration(env,BRACKET_FLAG_END,prevPos);
+                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_END,prevPos);
                 }
                 case "]!":{
-                    return new BracketDeclaration(env,BRACKET_FLAG_END_WHILE_EQ,prevPos);
+                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_END_WHILE_EQ,prevPos);
                 }
                 case "]?":{
-                    return new BracketDeclaration(env,BRACKET_FLAG_END_WHILE_NE,prevPos);
+                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_END_WHILE_NE,prevPos);
                 }
                 case "BREAK":{
-                    return new BracketDeclaration(env,BRACKET_FLAG_BREAK,prevPos);
+                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_BREAK,prevPos);
                 }
 
                 //Constants
                 case "RES":
-                    return new ArgPointer(env,true);
+                    return new ArgPointer(programEnvironment,true);
                 case "ARG_COUNT":
-                    return new ArgPointer(env,false);
+                    return new ArgPointer(programEnvironment,false);
                 case "I":
                     return I;
                 case "EXIT":
@@ -728,7 +726,7 @@ public class Translator {
 
     //TODO? symbolic names in scripts (i.e &name) for varIds/fktIds
     // pre-compiling that replaces symbolic names with varIds (by frequency)
-    public static void compile(Reader source,File targetFile) throws IOException {
+    public static void compile(Reader source,File targetFile) throws IOException, SyntaxError {
         if (!(targetFile.exists() || targetFile.createNewFile()))
             throw new IOException("target-file does not exists");
         FileHeader header = readScriptFileHeader(source);
@@ -752,7 +750,11 @@ public class Translator {
                 do {
                     while (test.isImporting())
                         test.flatStep();//flatRun Imports
-                    a = nextAction(source, null, test.programEnvironment(), test.executionEnvironment(), test.isTopLayer());
+                    try {
+                        a = nextAction(source, null, test.programEnvironment(), test.executionEnvironment(), test.isTopLayer());
+                    }catch (IllegalArgumentException|UnsupportedOperationException e){
+                        throw new SyntaxError(test,e);
+                    }
                     test.stepInternal(a, false);//flat run code to detect syntax errors
                     if (a == EOF) {
                         Main.compileFinished(actions, target.bitPos());
@@ -767,7 +769,7 @@ public class Translator {
         }
     }
 
-    public static void decompile(File sourceFile,Writer target) throws IOException {
+    public static void decompile(File sourceFile,Writer target) throws IOException, SyntaxError {
         try(BitRandomAccessStream source=new BitRandomAccessFile(sourceFile,"rw")) {
             FileHeader header = readCodeFileHeader(source);
             if (header.type == FILE_TYPE_INVALID)
@@ -789,7 +791,11 @@ public class Translator {
                 do {
                     while (test.isImporting())
                         test.flatStep();//flatRun Imports
-                    a = nextAction(source, test.programEnvironment(), test.executionEnvironment(), test.isTopLayer());
+                    try {
+                        a = nextAction(source, test.programEnvironment(), test.executionEnvironment(), test.isTopLayer());
+                    }catch (UnsupportedOperationException|IllegalArgumentException e){
+                        throw new SyntaxError(test,e);
+                    }
                     test.stepInternal(a, false);//flat run code to detect syntax errors
                     if (a == EOF) {
                         Main.decompileFinished(lines, actions);

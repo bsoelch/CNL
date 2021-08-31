@@ -432,7 +432,7 @@ public abstract class Real extends NumericValue {
             if(tmp[1].signum()==0) {
                 return from(intPart);
             }else {
-                Real approx=Int.ZERO;
+                Real approx;
                 if(tmp[1].signum()<0){
                     intPart=intPart.subtract(BigInteger.ONE);
                     tmp[1]=tmp[1].add(b);//ensure fractionalPart>0

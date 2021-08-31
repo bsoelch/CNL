@@ -1,6 +1,7 @@
 package bsoelch.cnl;
 
 import bsoelch.cnl.interpreter.Interpreter;
+import bsoelch.cnl.interpreter.SyntaxError;
 import bsoelch.cnl.interpreter.Translator;
 import bsoelch.cnl.math.MathObject;
 import bsoelch.cnl.math.Tuple;
@@ -55,17 +56,17 @@ public class Main {
     }
 
 
-    public static void test(File testFile) throws IOException {
+    public static void test(File testFile) throws IOException, SyntaxError {
         Interpreter ip=new Interpreter(testFile,null, true);
         ip.test();
     }
-    public static void compile(Reader source, File target) throws IOException {
+    public static void compile(Reader source, File target) throws IOException, SyntaxError {
         Translator.compile(source,target);
     }
-    public static void decompile(File source, Writer target) throws IOException {
+    public static void decompile(File source, Writer target) throws IOException, SyntaxError {
         Translator.decompile(source,target);
     }
-    public static MathObject execute(File code,MathObject[] args,boolean forceRunLibs) throws IOException {
+    public static MathObject execute(File code,MathObject[] args,boolean forceRunLibs) throws IOException, SyntaxError {
         Interpreter ip=new Interpreter(code,args, forceRunLibs);
         System.out.println();//space to separate code output from rest of console
         return ip.run();
@@ -259,10 +260,15 @@ public class Main {
                 }
                 try {
                     test(fileFromPath(main));
-                }catch (IllegalArgumentException|IllegalStateException|IOException e){
+                }catch (IOException io){
+                    System.out.println("IOException while execution Test:");
+                    System.out.println(io.getMessage());
+                    return;//end program on error
+                }catch (SyntaxError se){
                     System.out.println("Test failed:");
-                    System.out.println(e.getMessage());
-                    return;//end program on error in test
+                    System.out.println(se.getMessage());
+                    printStack(se);
+                    return;//end program on error
                 }
             }//no else
             if((actions&ACTION_COMPILE)!=0){
@@ -282,10 +288,15 @@ public class Main {
                 }
                 try (Reader read=new InputStreamReader(new FileInputStream(fileFromPath(source)),StandardCharsets.UTF_8)){
                     compile(read, fileFromPath(main));
-                }catch (IllegalArgumentException|IllegalStateException|IOException e){
+                }catch (IOException io){
+                    System.out.println("IOException during Compiling:");
+                    System.out.println(io.getMessage());
+                    return;//end program on error
+                }catch (SyntaxError se){
                     System.out.println("Compiling failed:");
-                    System.out.println(e.getMessage());
-                    return;//end program on compile error
+                    System.out.println(se.getMessage());
+                    printStack(se);
+                    return;//end program on error
                 }
             }//no else
             if((actions&ACTION_DECOMPILE)!=0){
@@ -303,10 +314,15 @@ public class Main {
                 }
                 try(Writer write=new OutputStreamWriter(new FileOutputStream(fileFromPath(decompile)),StandardCharsets.UTF_8) ){
                     decompile(fileFromPath(main),write);
-                }catch (IllegalArgumentException|IllegalStateException|IOException e){
+                }catch (IOException io){
+                    System.out.println("IOException during Decompiling:");
+                    System.out.println(io.getMessage());
+                    return;//end program on error
+                }catch (SyntaxError se){
                     System.out.println("Decompiling failed:");
-                    System.out.println(e.getMessage());
-                    return;//end program on decompile error
+                    System.out.println(se.getMessage());
+                    printStack(se);
+                    return;//end program on error
                 }
             }//no else
             if((actions&ACTION_EXECUTE)!=0){
@@ -318,11 +334,27 @@ public class Main {
                 try {
                     MathObject res=execute(fileFromPath(main),programArgs,runLibs);
                     System.out.println("Execution finished with return-value: "+res);
-                }catch (IllegalArgumentException|IllegalStateException|IOException e){
-                    System.out.println("Error while running program:");
-                    System.out.println(e.getMessage());
+                }catch (IOException io){
+                    System.out.println("IOException during Execution:");
+                    System.out.println(io.getMessage());
+                }catch (SyntaxError se){
+                    System.out.println("Execution failed:");
+                    System.out.println(se.getMessage());
+                    printStack(se);
                 }
             }//no else
+        }
+    }
+
+    private static void printStack(SyntaxError se) {
+        boolean first=true;
+        for(String line: se.getStack()){
+            if(first){
+                System.out.println("While executing Line:"+line);
+                first=false;
+            }else{
+                System.out.println(" called from:"+line);
+            }
         }
     }
 

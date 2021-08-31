@@ -13,10 +13,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayDeque;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Objects;
+import java.util.*;
 
 import static bsoelch.cnl.Constants.*;
 
@@ -72,8 +69,6 @@ public class Interpreter implements Closeable {
     private BitRandomAccessStream code;
     private boolean isScript;
 
-    private long lineCounter=0;
-
     final private ProgramEnvironment root;
 
     private final ArrayDeque<ProgramEnvironment> envStack=new ArrayDeque<>();
@@ -89,8 +84,7 @@ public class Interpreter implements Closeable {
     private final HashSet<ProgramEnvironment> importEnvironments=new HashSet<>();
 
     private ArrayDeque<Action> actionStack=new ArrayDeque<>();
-
-    private final StringBuilder currentLine =new StringBuilder();
+    private StringBuilder currentLine=new StringBuilder();
 
     public Interpreter(File codeFile, @Nullable MathObject[] args, boolean forceRunLibs) throws IOException {
         this(args, true, codeFile, forceRunLibs);
@@ -142,47 +136,64 @@ public class Interpreter implements Closeable {
         return importReturnStack.size()>0;
     }
 
-    public MathObject run() throws IOException {
+    Iterator<String> lines(){
+        return new Iterator<String>() {
+            final Iterator<FunctionEnvironment> itr=callStack.iterator();
+            boolean iterating=true;
+            @Override
+            public boolean hasNext() {
+                return iterating;
+            }
+
+            @Override
+            public String next() {
+                if(itr.hasNext()){
+                    return itr.next().currentLine;
+                }else{
+                    iterating=false;
+                    return currentLine.toString();
+                }
+            }
+        };
+    }
+
+    public MathObject run() throws IOException, SyntaxError {
         return run(true);
     }
-    public void test() throws IOException {
+    public void test() throws IOException, SyntaxError {
         run(false);
     }
 
-    MathObject run(boolean doBranching) throws IOException {
+    MathObject run(boolean doBranching) throws IOException, SyntaxError {
         long count=0;
-        while(doStep(doBranching)){
+        while (doStep(doBranching)) {
             count++;
         }
-        Main.executeFinished(count,doBranching);
+        Main.executeFinished(count, doBranching);
         return envStack.getLast().getRes();
     }
 
-    void flatStep() throws IOException {
+    void flatStep() throws IOException, SyntaxError {
         doStep(false);
     }
 
-    private boolean doStep(boolean doBranching) throws IOException {
-        if(actionStack.isEmpty()){
+    private boolean doStep(boolean doBranching) throws IOException, SyntaxError {
+        if(actionStack.isEmpty())//clear line
             currentLine.setLength(0);
-            lineCounter++;
-        }
         Action a;
         if(isScript){
             a= Translator.nextAction(code.reader(),code, programEnvironment(), executionEnvironment(), isTopLayer());
         }else{
             a= Translator.nextAction(code, programEnvironment(), executionEnvironment(), isTopLayer());
         }
-        currentLine.append(a.stringRepresentation()).append(' ');
         try {
             return stepInternal(a, doBranching);
         }catch (IllegalArgumentException|IllegalStateException e){
-            //TODO better handling of error messages
-            throw new IllegalStateException("Error while execution line "+lineCounter+": "+currentLine+" \n"+e.toString(),e);
+            throw new SyntaxError(this,e);
         }
     }
 
-    boolean stepInternal(Action a,boolean doBranching) throws IOException {
+    boolean stepInternal(Action a,boolean doBranching) throws IOException, SyntaxError {
         if(a == Translator.EOF|| a == Translator.EXIT){
             return exit(doBranching);
         }else if(a instanceof RunIn){//Unwrap RunIn
@@ -214,10 +225,10 @@ public class Interpreter implements Closeable {
                                     }
                                 }
                                 default:
-                                    throw new IllegalStateException("Unexpected ELSE statement");
+                                    throw new SyntaxError(this,"Unexpected ELSE statement");
                             }
                         } else {
-                            throw new IllegalStateException("Unexpected ELSE statement");
+                            throw new SyntaxError(this,"Unexpected ELSE statement");
                         }
                     }
                     break;
@@ -239,7 +250,11 @@ public class Interpreter implements Closeable {
                         } else if (top instanceof FunctionEnvironment) {//exit Function
                             exitFunction(callStack.removeLast(),doBranching);
                         } else {
-                            throw new IllegalStateException(top == null ? "Unexpected End of loop" : "Unexpected BracketEnvironment");
+                            if(top==null){
+                                throw new SyntaxError(this, "Unexpected End of loop");
+                            }else{
+                                throw new RuntimeException("Unexpected type of BracketEnvironment:"+top.getClass());
+                            }
                         }
                     }
                     return true;
@@ -249,7 +264,7 @@ public class Interpreter implements Closeable {
                         int count=0;
                         do {//calculate number of open non breakable brackets
                             if(brackets.isEmpty())
-                                throw new IllegalStateException("BREAK statement outside of loop");
+                                throw new SyntaxError(this,"BREAK statement outside of loop");
                             top = brackets.removeLast();//get next bracket
                             reconstruct.addFirst(top);//addFirst to keep order of brackets
                             count++;
@@ -276,7 +291,7 @@ public class Interpreter implements Closeable {
     private final static int SKIP_LOOP=1,SKIP_IF=2,SKIP_END_IF=3,SKIP_FUNCTION=5;
 
     /**Skips to the next element in the structure given by {@code type}*/
-    private void skipTo(int stepType, int openBrackets) throws IOException {
+    private void skipTo(int stepType, int openBrackets) throws IOException, SyntaxError {
         int bracketCount=openBrackets;
         Action a;
         while (bracketCount>0){
@@ -286,7 +301,7 @@ public class Interpreter implements Closeable {
                 a= Translator.nextAction(code,envStack.getLast(), exEnv,brackets.isEmpty());
             }
             if(a== Translator.EOF){//ignore EXIT statements
-                throw new IllegalStateException("Unfinished Loop");
+                throw new SyntaxError(this,"Unfinished Loop");
             }else if(a instanceof FunctionDeclaration){
                 bracketCount++;
             }else if(a instanceof BracketDeclaration){
@@ -304,20 +319,20 @@ public class Interpreter implements Closeable {
                             if(((BracketDeclaration) a).type!= BRACKET_FLAG_ELSE){
                                 BracketEnvironment bracket = brackets.peekLast();
                                 if(!(bracket instanceof LoopEnvironment))
-                                    throw new IllegalStateException("Unexpected ELSE-statement");
+                                    throw new SyntaxError(this,"Unexpected ELSE-statement");
                                 switch (((LoopEnvironment) bracket).state){
                                     case BRACKET_FLAG_IF_EQ:
                                     case BRACKET_FLAG_IF_NE:
                                     case BRACKET_FLAG_ELIF_EQ:
                                     case BRACKET_FLAG_ELIF_NE:break;
                                     default:
-                                        throw new IllegalStateException("Unexpected ELSE-statement");
+                                        throw new SyntaxError(this,"Unexpected ELSE-statement");
                                 }//inherit environment from parent
                                 addToStack(a, true);
                                 break;
                             }
                         }else{
-                            throw new IllegalStateException("Unexpected ELSE-statement");
+                            throw new SyntaxError(this,"Unexpected ELSE-statement");
                         }
                     }break;
                     case BRACKET_FLAG_END_WHILE_EQ:
@@ -326,12 +341,12 @@ public class Interpreter implements Closeable {
                         if(bracketCount==0&&stepType==SKIP_LOOP){
                             removeBracket();
                         }else if(bracketCount<=0)//do while should not be end of a skip statement
-                            throw new IllegalStateException("Unexpected end of DO-WHILE");
+                            throw new SyntaxError(this,"Unexpected end of DO-WHILE");
                     }break;
                     case BRACKET_FLAG_END:{
                         bracketCount--;
                         if(bracketCount<0)
-                            throw new IllegalStateException("SyntaxError: Unexpected end of bracket");
+                            throw new SyntaxError(this,"Unexpected end of bracket");
                         if(bracketCount==0) {
                             switch (stepType){
                                 case SKIP_LOOP:
@@ -349,12 +364,13 @@ public class Interpreter implements Closeable {
         }
     }
 
-    private void exitFunction(FunctionEnvironment function,boolean doBranching) throws IOException {
+    private void exitFunction(FunctionEnvironment function,boolean doBranching) throws IOException, SyntaxError {
         BracketEnvironment env = removeBracket();
         if (env != function) {//close all brackets
             throw new RuntimeException("brackets and callStack out of sync");
         }
         actionStack= function.prevStack;//exit function
+        currentLine = new StringBuilder(function.currentLine);
         if(doBranching) {
             goTo(function.bracketStart);
         }
@@ -362,7 +378,7 @@ public class Interpreter implements Closeable {
     }
 
 
-    private boolean exit(boolean doBranching) throws IOException {
+    private boolean exit(boolean doBranching) throws IOException, SyntaxError {
         evaluateStack(true,doBranching);
         if(callStack.size()>0){
             exitFunction(callStack.removeLast(),doBranching);
@@ -401,12 +417,12 @@ public class Interpreter implements Closeable {
     }
 
 
-    private void addToStack(Action action, boolean doBranching) throws IOException {
+    private void addToStack(Action action, boolean doBranching) throws IOException, SyntaxError {
         actionStack.add(action);
         evaluateStack(false,doBranching);//simplify after adding
     }
 
-    private void evaluateStack(boolean forceEvaluate,boolean doBranching) throws IOException {
+    private void evaluateStack(boolean forceEvaluate,boolean doBranching) throws IOException, SyntaxError {
         Action last;
         ValuePointer value;
         while (actionStack.size()>0){
@@ -415,11 +431,11 @@ public class Interpreter implements Closeable {
             if(!forceEvaluate&&last.acceptsArg(flags))
                 return;//stack can accept further arguments
             if(last.requiresArg())
-                throw new IllegalStateException("Missing Argument");
+                throw new SyntaxError(this,"Missing Argument");
             actionStack.removeLast();
             if(last instanceof ValuePointer){
                 if(last instanceof ArgPointer&&callStack.isEmpty()&&importReturnStack.size()>0){
-                    throw new IllegalStateException("Cannot use Program Arguments within Imports");
+                    throw new SyntaxError(this,"Cannot use Program Arguments in Imported files");
                 }
                 value=(ValuePointer) last;
             }else if(last instanceof Operator){
@@ -442,13 +458,14 @@ public class Interpreter implements Closeable {
                 }
             }else if(last instanceof CallFunction){
                 if(forceEvaluate)
-                    throw new IllegalStateException("Waiting for Function call");
+                    throw new SyntaxError(this,"Waiting for Function call");
                 FunctionEnvironment call = new FunctionEnvironment(((CallFunction) last).getDeclarationEnvironment(),
-                        new CodePosition(code, isScript), actionStack,new ProgramEnvironment.ArgumentData(((CallFunction) last).getArgs()));
+                        new CodePosition(code, isScript), actionStack,new ProgramEnvironment.ArgumentData(((CallFunction) last).getArgs()), currentLine.toString());
                 if(doBranching) {
                     addBracket(call);//add function call to brackets to allow easy management of open structures
                     callStack.addLast(call);
                     actionStack = new ArrayDeque<>();
+                    currentLine=new StringBuilder();
                     goTo(((CallFunction) last).getFunctionStart());
                     return;
                 }else{
@@ -510,25 +527,25 @@ public class Interpreter implements Closeable {
                         if(doBranching&&((BracketDeclaration) last).param.equals(Real.Int.ZERO)){
                             BracketEnvironment loop=brackets.peekLast();
                             if(!(loop instanceof LoopEnvironment)||((LoopEnvironment)loop).state!= BRACKET_FLAG_DO)
-                                throw new IllegalStateException("Unexpected end of DO-WHILE loop");
+                                throw new SyntaxError(this,"Unexpected end of DO-WHILE loop");
                             goTo(loop.bracketStart);
                         }else{
                             BracketEnvironment closed= removeBracket();
                             if(!(closed instanceof LoopEnvironment)||((LoopEnvironment)closed).state!= BRACKET_FLAG_DO)
-                                throw new IllegalStateException("Unexpected end of DO-WHILE loop");
+                                throw new SyntaxError(this,"Unexpected end of DO-WHILE loop");
                         }break;
                     case BRACKET_FLAG_END_WHILE_NE:
                         if(doBranching&&!((BracketDeclaration) last).param.equals(Real.Int.ZERO)){
                             BracketEnvironment loop=brackets.peekLast();
                             if(!(loop instanceof LoopEnvironment)||((LoopEnvironment)loop).state!= BRACKET_FLAG_DO)
-                                throw new IllegalStateException("Unexpected end of DO-WHILE loop");
+                                throw new SyntaxError(this,"Unexpected end of DO-WHILE loop");
                             goTo(loop.bracketStart);
                         }else{
                             BracketEnvironment closed= Interpreter.this.removeBracket();
                             if(!(closed instanceof LoopEnvironment)||((LoopEnvironment)closed).state!= BRACKET_FLAG_DO)
-                                throw new IllegalStateException("Unexpected end of DO-WHILE loop");
+                                throw new SyntaxError(this,"Unexpected end of DO-WHILE loop");
                         }break;
-                    default:throw new IllegalStateException("Unexpected state of Bracket");
+                    default:throw new SyntaxError(this,"Unexpected state of Bracket");
                 }
                 ensureRoot();
                 return;
@@ -542,37 +559,38 @@ public class Interpreter implements Closeable {
                     ValuePointer[] args=new ValuePointer[((FunctionDeclaration) last).function.argCount];
                     Arrays.fill(args,Translator.ZERO);//Default Value
                     FunctionEnvironment call = new FunctionEnvironment(((FunctionDeclaration) last).function.declarationEnvironment,
-                            new CodePosition(code, isScript), actionStack,new ProgramEnvironment.ArgumentData(args));
+                            new CodePosition(code, isScript), actionStack,new ProgramEnvironment.ArgumentData(args), currentLine.toString());
                     addBracket(call);//add function call to brackets to allow easy management of open structures
                     callStack.addLast(call);
                     actionStack = new ArrayDeque<>();
+                    currentLine=new StringBuilder();
                 }
                 return;
             }else if(last instanceof Import){
                 importReturnStack.addLast(new ImportReturnPosition(codeDir, new CodePosition(code, isScript),((Import) last).getTarget()));
                 if(!importEnvironments.add(((Import) last).getTarget()))
-                    throw new IllegalStateException("Multiple Imports in the same Environment");
+                    throw new SyntaxError(this,"Multiple Imports in the same Environment");
                 envStack.addLast(((Import) last).getTarget());
                 File target=new File(codeDir.getAbsolutePath()+File.separator+((Import) last).getSource());
                 codeDir =target.getParentFile();
                 code =new BitRandomAccessFile(target,"r");
                 Translator.FileHeader header=Translator.readCodeFileHeader(code);
                 if(header.type==Translator.FILE_TYPE_INVALID){
-                    throw new IllegalArgumentException("Invalid import-File: "+target.getAbsolutePath());
+                    throw new SyntaxError(this,"Invalid import-File: "+target.getAbsolutePath());
                 }else if((header.type&Translator.FILE_TYPE_EXECUTABLE)!=0){
-                    throw new IllegalArgumentException("Cannot import Executables: "+target.getAbsolutePath());
+                    throw new SyntaxError(this,"Invalid import-File: "+target.getAbsolutePath()+" cannot import Executables");
                 }else{
                     isScript=((header.type&Translator.FILE_TYPE_SCRIPT)!=0);
                 }
                 if(!importDejaVu.add(code.getSourceId())) {//check if codeFile is already imported in this direct hierarchy
-                    throw new IllegalStateException("Cyclic Import in: "+importDejaVu);
+                    throw new SyntaxError(this,"Cyclic Import in: "+importDejaVu);
                 }
                 ensureRoot();
                 return;
             }else if(last instanceof ProgramEnvironment){
-                throw new IllegalStateException("Unfinished Expression");
+                throw new SyntaxError(this,"Unfinished Expression");
             }else{
-                throw new RuntimeException("Unexpected Action");
+                throw new RuntimeException("Unexpected type of Action:"+last.getClass());
             }
             //Value weiterleiten
             while (actionStack.size()>0&&actionStack.getLast() instanceof ProgramEnvironment){
@@ -603,17 +621,17 @@ public class Interpreter implements Closeable {
         brackets.addLast(env);
     }
 
-    private void ensureRoot() {
+    private void ensureRoot() throws SyntaxError {
         while (actionStack.size()>0){
             if(actionStack.removeLast() instanceof ProgramEnvironment){
                 envStack.removeLast();//synchronize envStack and actionStack
             }else{
-                throw new IllegalStateException("Bracket declaration on non-root Level");
+                throw new SyntaxError(this,"Bracket declaration on non-root Level");
             }
         }
     }
 
-    private void updateIfState(int newState) {
+    private void updateIfState(int newState) throws SyntaxError {
         BracketEnvironment env = brackets.peekLast();
         if (env instanceof LoopEnvironment) {
             switch (((LoopEnvironment) env).state) {
@@ -624,10 +642,10 @@ public class Interpreter implements Closeable {
                     ((LoopEnvironment) env).state = newState;
                     break;
                 default:
-                    throw new IllegalStateException("unexpected elif");
+                    throw new SyntaxError(this,"unexpected elif-statement");
             }
         } else {
-            throw new IllegalStateException("unexpected elif");
+            throw new SyntaxError(this,"unexpected elif-statement");
         }
     }
 
