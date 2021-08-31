@@ -18,7 +18,7 @@ public class Main {
     static private final int ACTION_DECOMPILE=0b100;
     static private final int ACTION_TEST=0b1000;
 
-    static private final Scanner scan=new Scanner(System.in);
+    static private final Reader in=new InputStreamReader(System.in);
 
     public static void compileFinished(long actions, long bits){
         System.out.println();
@@ -73,23 +73,71 @@ public class Main {
 
     //TODO customizable IO-console, getFileByUrl, ...
 
-    public static String readChar(){
-        return scan.next(".");//read one character
+
+    private static char nextChar() {
+        try {
+            int read = in.read();
+            if (read == -1)
+                throw new RuntimeException("Unexpected end of System.in");
+            return (char) read;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
+    public static String readUnicodeChar(){
+            //read one codepoint
+            char read = nextChar();
+            if(Character.isHighSurrogate(read)){
+                char low = nextChar();
+                return new String(new char[]{read,low});
+            }
+            return ""+read;
+    }
+
     public static String readWord(){
-        String word;
-        do {
-            word = scan.next(".*?\\p{javaWhitespace}").trim();//read one word
-        }while (word.length()==0);//skip empty words
-        return word;
+        StringBuilder word=new StringBuilder();
+        char r;
+        while(true) {//ignore leading whitespaces
+            if (!Character.isWhitespace(r = nextChar())) break;
+        }
+        word.append(r);
+        while(!Character.isWhitespace(r=nextChar())) {
+            word.append(r);
+        }
+        return word.toString();
     }
     public static String readValue(){
-        StringBuilder val=new StringBuilder(readWord());
-        //TODO check for open brackets
+        StringBuilder val=new StringBuilder();
+        char r;
+        int brackets=0,sqBrackets=0,setBrackets=0;
+        boolean string1=false,string2=false;
+        while(true) {//ignore leading whitespaces
+            if (!Character.isWhitespace(r = nextChar())) break;
+        }
+        do{
+            val.append(r);
+            switch (r){
+                case '(':if(!(string1|string2))brackets++;break;
+                case '[':if(!(string1|string2))sqBrackets++;break;
+                case '{':if(!(string1|string2))setBrackets++;break;
+                case ')':if(!(string1|string2))brackets--;break;
+                case ']':if(!(string1|string2))sqBrackets--;break;
+                case '}':if(!(string1|string2))setBrackets--;break;
+                case '\'':if(!string2)string1=!string1;break;
+                case '"':if(!string1)string2=!string2;break;
+                case '\\':if(string1||string2)val.append(readUnicodeChar());//skip next char
+            }
+            r=nextChar();
+        }while (string1||string2||brackets>0||sqBrackets>0||setBrackets>0||(!Character.isWhitespace(r)));
         return val.toString();
     }
     public static String readLine(){
-        return scan.nextLine();//read one line
+        StringBuilder word=new StringBuilder();
+        char r;
+        while(!((r=nextChar())=='\n'||r=='\r')) {
+            word.append(r);
+        }
+        return word.toString();
     }
 
 

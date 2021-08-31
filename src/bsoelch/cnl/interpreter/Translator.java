@@ -374,9 +374,9 @@ public class Translator {
             return wrap(MathObject.FromString.fromString(str, DEFAULT_BASE));
         }else if(str.toUpperCase(Locale.ROOT).startsWith("OUT_")){//Output
             str=str.substring(4);//remove Out from String
-            if(str.equals("STR")){
+            if(str.equals("STR")||str.equals("STRING")){
                return new Output(false,true,BigInteger.ZERO,OUT_STR);
-            }else if(str.equals("STR_INT")){
+            }else if(str.equals("STR_INTS")||str.equals("STRING_INTS")){
                 return new Output(false,true,BigInteger.ZERO,OUT_STR_INT);
             }else if(str.startsWith("NUMBER")){
                 str=str.substring(6);
@@ -520,7 +520,7 @@ public class Translator {
                         }
                     }
                 }
-            }else{
+            }else{//nary without args -> exactly minArgs arguments
                 id=Operators.idByName(str.toUpperCase(Locale.ROOT));
                 if(id!=-1){//Operators
                     return new Operator((int)id,exEnv);

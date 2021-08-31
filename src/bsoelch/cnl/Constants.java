@@ -529,14 +529,6 @@ public class Constants {
                     declareOperator(TUPLE_CONCAT,
                             new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
                                     MathObject::tupleConcat));
-                    //TUPLE_GET_FIRST
-                    //TUPLE_GET_LAST
-                    //TUPLE_GET <index>
-                    //TUPLE_SET <index>
-                    //TUPLE_INSERT <index>
-                    //TUPLE_REMOVE_LAST
-                    //TUPLE_REMOVE_FIRST
-                    //TUPLE_REMOVE <index>
 
                     //WrapIn
                     declareOperator(WRAP_IN_TUPLE,
@@ -549,6 +541,18 @@ public class Constants {
                                     Pair::new));
                     declareOperator(WRAP2_IN_SET,
                             new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, (BiFunction<MathObject, MathObject, MathObject>) FiniteSet::from));
+                    //TUPLE_GET_FIRST
+                    //TUPLE_GET_LAST
+                    //TUPLE_GET <index>
+                    //TUPLE_SET <index>
+                    //TUPLE_INSERT <index>
+                    //TUPLE_REMOVE_LAST
+                    //TUPLE_REMOVE_FIRST
+                    //TUPLE_REMOVE <index>
+
+                    //MAP_INSERT
+                    //MAP_REMOVE
+                    //MAP_REMOVE_VALUES
 
                     //CONTAINS
                     //CONTAINS_KEY
@@ -559,24 +563,59 @@ public class Constants {
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
                                     (args)->MathObject.nAryReduce(args,Real.Int.ZERO,MathObject::add)
                             , c -> c == 2 ? ADD : null, Real.Int.ZERO));
+                    declareOperator("DEEP_SUM",
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 1,
+                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO,NumbericValue::add)
+                                    , c -> null, Real.Int.ZERO));
                     declareOperator("PROD",
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
                                     (args)->MathObject.nAryReduce(args,Real.Int.ONE,MathObject::multiply)
                                     , c -> c == 2 ? MULTIPLY : null, Real.Int.ONE));
+                    declareOperator("DEEP_PROD",
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 1,
+                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ONE,NumbericValue::multiply)
+                                    , c ->  null, Real.Int.ONE));
                     declareOperator("NARY_AND",
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
                                     (args)->MathObject.nAryReduce(args,Real.Int.ONE,MathObject::floorAnd)
                                     , c -> c == 2 ? AND : null, Real.Int.ONE));
+                    declareOperator("DEEP_AND",
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 1,
+                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ONE,NumbericValue::floorAnd)
+                                    , c ->  null, Real.Int.ONE));
                     declareOperator("NARY_OR",
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
                                     (args)->MathObject.nAryReduce(args,Real.Int.ZERO,MathObject::floorOr)
                                     , c -> c == 2 ? OR : null, Real.Int.ZERO));
+                    declareOperator("DEEP_OR",
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 1,
+                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO,NumbericValue::floorOr)
+                                    , c ->null, Real.Int.ZERO));
                     declareOperator("NARY_STR_CONCAT",
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
                                     (args)->MathObject.nAryReduce(args,Real.Int.ZERO,MathObject::strConcat)
                                     , c -> c == 2 ? STRING_CONCAT : null, Real.Int.ZERO));
-                    declareOperator("NARY_TIMES",
-                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3, MathObject::nAryTimes, c -> c == 2 ? TIMES : null, FiniteSet.EMPTY_SET));
+                    declareOperator("DEEP_STR_CONCAT",
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 1,//TODO? concat ints in Fraction/Complex
+                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO,NumbericValue::strConcat)
+                                    , c -> null, Real.Int.ZERO));
+                   declareOperator("NARY_MIN",
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
+                                    (args)->MathObject.nAryReduce(args,Real.Int.ZERO,MathObject::min)
+                                    , c -> c == 2 ? MIN : null, FiniteSet.EMPTY_SET));
+                    declareOperator("DEEP_MIN",
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 1,
+                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO,NumbericValue::min)
+                                    , c -> null, Real.Int.ZERO));
+                    declareOperator("NARY_MAX",
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
+                                    (args)->MathObject.nAryReduce(args,Real.Int.ZERO,MathObject::max)
+                                    , c -> c == 2 ? MAX : null, FiniteSet.EMPTY_SET));
+                    declareOperator("DEEP_MAX",
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 1,
+                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO,NumbericValue::max)
+                                    , c -> null, Real.Int.ZERO));
+                    //NARY_BIN_CONCAT
 
                     declareOperator(NEW_SET,
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
@@ -597,17 +636,14 @@ public class Constants {
                                         }
                                         return FiniteMap.from(map,1);
                                     }, c -> c==2?SINGLETON_MAP:null, FiniteMap.EMPTY_MAP));
-
-                    //NARY_SUM_U (unwrap)
-                    //NARY_PROD_U
-                    //NARY_AND_U
-                    //NARY_OR_U
-                    //NEW_MAP
-                    //?NARY_CONCAT_U
-                    //NARY_BIN_CONCAT
-                    //NARY_TUPLE_CONCAT
-
                     //NEW_MATRIX (Bi-Nary)
+
+                    declareOperator("NARY_TIMES",
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3, MathObject::nAryTimes, c -> c == 2 ? TIMES : null, FiniteSet.EMPTY_SET));
+                    declareOperator("NARY_TUPLE_CONCAT",
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 1,
+                                    (args)->MathObject.nAryReduce(args,Real.Int.ZERO,MathObject::tupleConcat)
+                                    , c -> null, Real.Int.ZERO));
                 }
                 //FileIO
                 {

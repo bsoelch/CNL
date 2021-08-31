@@ -102,7 +102,7 @@ public class Input implements Action {
     public ValuePointer read() {
         MathObject value;
         switch (type){
-            case Constants.IN_TYPE_CHAR:value=Real.from(Real.stringAsBigInt(Main.readChar()));break;
+            case Constants.IN_TYPE_CHAR:value=Real.from(Real.stringAsBigInt(Main.readUnicodeChar()));break;
             case Constants.IN_TYPE_WORD:value=Real.from(Real.stringAsBigInt(Main.readWord()));break;
             case Constants.IN_TYPE_LINE:value=Real.from(Real.stringAsBigInt(Main.readLine()));break;
             case Constants.IN_TYPE_BIN:

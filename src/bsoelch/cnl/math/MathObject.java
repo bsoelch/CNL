@@ -122,6 +122,50 @@ public interface MathObject {
             return ret;
         }
     }
+    static NumbericValue deepNAryReduce(MathObject[] objects, NumbericValue nilaryValue, BinaryOperator<NumbericValue> reduce){
+        if(objects.length==0) {
+            return nilaryValue;
+        }else if(objects.length==1) {
+            if(objects[0] instanceof NumbericValue) {
+                return (NumbericValue)objects[0];
+            }else if(objects[0] instanceof FiniteSet){
+                NumbericValue tmp=null,next;
+                for(MathObject o:((FiniteSet) objects[0])){
+                    next=deepNAryReduce(new MathObject[]{o},nilaryValue,reduce);
+                    if(tmp==null){
+                        tmp=next;
+                    }else{
+                        tmp=reduce.apply(tmp,next);
+                    }
+                }
+                return tmp==null?nilaryValue:tmp;
+            }else if(objects[0] instanceof FiniteMap){
+                NumbericValue tmp=null,next;
+                for(MathObject o:((FiniteMap) objects[0]).values()){
+                    next=deepNAryReduce(new MathObject[]{o},nilaryValue,reduce);
+                    if(tmp==null){
+                        tmp=next;
+                    }else{
+                        tmp=reduce.apply(tmp,next);
+                    }
+                }
+                return tmp==null?nilaryValue:tmp;
+            }else{
+                throw new RuntimeException("Unexpected MathObject class:"+objects[0].getClass());
+            }
+        }else{
+            NumbericValue tmp=null,next;
+            for(MathObject o:objects){
+                next=deepNAryReduce(new MathObject[]{o},nilaryValue,reduce);
+                if(tmp==null){
+                    tmp=next;
+                }else{
+                    tmp=reduce.apply(tmp,next);
+                }
+            }
+            return tmp==null?nilaryValue:tmp;
+        }
+    }
 
     static MathObject add(MathObject l, MathObject r) {
         return elementWise(l,r, NumbericValue::add);
@@ -289,188 +333,11 @@ public interface MathObject {
         return elementWise(l,r, NumbericValue::strConcat);
     }
 
-    //TODO deep-reduce
-    static NumbericValue min(MathObject l, MathObject r) {
-        if(l instanceof NumbericValue){
-            if(r instanceof NumbericValue){
-                return NumbericValue.min((NumbericValue) l,((NumbericValue)r));
-            }else if(r instanceof FiniteSet){
-                NumbericValue ret=(NumbericValue) l;
-                for(MathObject o:(FiniteSet) r){
-                    ret=min(ret,o);
-                }
-                return ret;
-            }else if(r instanceof FiniteMap){
-                NumbericValue ret=(NumbericValue) l;
-                for(MathObject o:(((FiniteMap) r).values())){
-                    ret=min(ret,o);
-                }
-                return ret;
-            }else{
-                throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
-            }
-        }else if(l instanceof FiniteSet){
-            if(r instanceof NumbericValue){
-                NumbericValue ret=(NumbericValue) r;
-                for(MathObject o:(FiniteSet) l){
-                    ret=min(ret,o);
-                }
-                return ret;
-            }else if(r instanceof FiniteSet){
-                NumbericValue ret=null;
-                for(MathObject o1:(FiniteSet) l){
-                    for(MathObject o2:(FiniteSet) r){
-                        if(ret==null){
-                            ret=min(o1,o2);
-                        }else{
-                            ret=min(ret,min(o1,o2));
-                        }
-                    }
-                }
-                return ret==null?Real.Int.ZERO:ret;
-            }else if(r instanceof FiniteMap){
-                NumbericValue ret=null;
-                for(MathObject o1:(FiniteSet) l){
-                    for(MathObject o2:((FiniteMap)r).values()){
-                        if(ret==null){
-                            ret=min(o1,o2);
-                        }else{
-                            ret=min(ret,min(o1,o2));
-                        }
-                    }
-                }
-                return ret==null?Real.Int.ZERO:ret;
-            }else{
-                throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
-            }
-        }else if(l instanceof FiniteMap){
-            if(r instanceof NumbericValue){
-                NumbericValue ret=(NumbericValue) r;
-                for(MathObject o:((FiniteMap) l).values()){
-                    ret=min(ret,o);
-                }
-                return ret;
-            }else if(r instanceof FiniteSet){
-                NumbericValue ret=null;
-                for(MathObject o1:((FiniteMap) l).values()){
-                    for(MathObject o2:(FiniteSet) r){
-                        if(ret==null){
-                            ret=min(o1,o2);
-                        }else{
-                            ret=min(ret,min(o1,o2));
-                        }
-                    }
-                }
-                return ret==null?Real.Int.ZERO:ret;
-            }else if(r instanceof FiniteMap){
-                NumbericValue ret=null;
-                for(MathObject o1:((FiniteMap) l).values()){
-                    for(MathObject o2:((FiniteMap) r).values()){
-                        if(ret==null){
-                            ret=min(o1,o2);
-                        }else{
-                            ret=min(ret,min(o1,o2));
-                        }
-                    }
-                }
-                return ret==null?Real.Int.ZERO:ret;
-            }else{
-                throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
-            }
-        }else{
-            throw new IllegalArgumentException("Unexpected MathObject:"+l.getClass());
-        }
+    static MathObject min(MathObject l, MathObject r) {
+        return compare(l,r)<0?l:r;
     }
-    static NumbericValue max(MathObject l, MathObject r) {
-        if(l instanceof NumbericValue){
-            if(r instanceof NumbericValue){
-                return NumbericValue.max((NumbericValue) l,((NumbericValue)r));
-            }else if(r instanceof FiniteSet){
-                NumbericValue ret=(NumbericValue) l;
-                for(MathObject o:(FiniteSet) r){
-                    ret=max(ret,o);
-                }
-                return ret;
-            }else if(r instanceof FiniteMap){
-                NumbericValue ret=(NumbericValue) l;
-                for(MathObject o:(((FiniteMap) r).values())){
-                    ret=max(ret,o);
-                }
-                return ret;
-            }else{
-                throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
-            }
-        }else if(l instanceof FiniteSet){
-            if(r instanceof NumbericValue){
-                NumbericValue ret=(NumbericValue) r;
-                for(MathObject o:(FiniteSet) l){
-                    ret=max(ret,o);
-                }
-                return ret;
-            }else if(r instanceof FiniteSet){
-                NumbericValue ret=null;
-                for(MathObject o1:(FiniteSet) l){
-                    for(MathObject o2:(FiniteSet) r){
-                        if(ret==null){
-                            ret=max(o1,o2);
-                        }else{
-                            ret=max(ret,max(o1,o2));
-                        }
-                    }
-                }
-                return ret==null?Real.Int.ZERO:ret;
-            }else if(r instanceof FiniteMap){
-                NumbericValue ret=null;
-                for(MathObject o1:(FiniteSet) l){
-                    for(MathObject o2:((FiniteMap)r).values()){
-                        if(ret==null){
-                            ret=max(o1,o2);
-                        }else{
-                            ret=max(ret,max(o1,o2));
-                        }
-                    }
-                }
-                return ret==null?Real.Int.ZERO:ret;
-            }else{
-                throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
-            }
-        }else if(l instanceof FiniteMap){
-            if(r instanceof NumbericValue){
-                NumbericValue ret=(NumbericValue) r;
-                for(MathObject o:((FiniteMap) l).values()){
-                    ret=max(ret,o);
-                }
-                return ret;
-            }else if(r instanceof FiniteSet){
-                NumbericValue ret=null;
-                for(MathObject o1:((FiniteMap) l).values()){
-                    for(MathObject o2:(FiniteSet) r){
-                        if(ret==null){
-                            ret=max(o1,o2);
-                        }else{
-                            ret=max(ret,max(o1,o2));
-                        }
-                    }
-                }
-                return ret==null?Real.Int.ZERO:ret;
-            }else if(r instanceof FiniteMap){
-                NumbericValue ret=null;
-                for(MathObject o1:((FiniteMap) l).values()){
-                    for(MathObject o2:((FiniteMap) r).values()){
-                        if(ret==null){
-                            ret=max(o1,o2);
-                        }else{
-                            ret=max(ret,max(o1,o2));
-                        }
-                    }
-                }
-                return ret==null?Real.Int.ZERO:ret;
-            }else{
-                throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
-            }
-        }else{
-            throw new IllegalArgumentException("Unexpected MathObject:"+l.getClass());
-        }
+    static MathObject max(MathObject l, MathObject r) {
+        return compare(l,r)>0?l:r;
     }
 
     static Tuple tupleConcat(MathObject a,MathObject b) {
@@ -1137,7 +1004,7 @@ public interface MathObject {
 
 
         private static NumbericValue numberFromString(BigInteger base, String str, boolean safeMode) {
-            //dynamic base: $-> bin #->hex §->doz @base: ->BaseN
+            //dynamic base: $-> bin #->hex §->doz @base: ->BaseN //TODO? dec prefix
             if(str.startsWith("$")){//bin
                 str=str.substring(1);
                 base= Constants.BIG_INT_TWO;
