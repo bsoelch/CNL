@@ -214,8 +214,12 @@ public class Translator {
             }
             case HEADER_IN:{
                 long[] tmp=new long[1];
-                code.readFully(tmp,0,2);
-                return new Input((int)tmp[0]);
+                code.readFully(tmp,0, IN_TYPESS_LENGTH);
+                BigInteger base=null;
+                if(tmp[0]==IN_TYPE_BASE_N){
+                    base=code.readBigInt(IO_INT_HEADER,IO_INT_BLOCK,IO_INT_BIG_BLOCK);
+                }
+                return new Input((int)tmp[0],base);
             }
             case HEADER_OUT:{
                 int id= Constants.readOutId(code);
@@ -241,7 +245,7 @@ public class Translator {
                         case OUT_BASE_FLAG_HEX:
                             base=BIG_INT_SIXTEEN;break;
                         case OUT_BASE_FLAG_BASE_N:
-                            base=code.readBigInt(OUT_INT_HEADER,OUT_INT_BLOCK,OUT_INT_BIG_BLOCK)
+                            base=code.readBigInt(IO_INT_HEADER, IO_INT_BLOCK, IO_INT_BIG_BLOCK)
                                     .add(OUT_BASE_OFFSET);
                             break;
                         default:throw new RuntimeException("Unknown BaseType:"+id/OUT_NUMBER_BLOCK_LENGTH);
@@ -460,6 +464,22 @@ public class Translator {
             if(id.signum()==-1)
                 throw new IllegalArgumentException("Negative Id");
             return new Import(env,id);
+        }else if(str.toUpperCase(Locale.ROOT).startsWith("IN_")){//Input
+            if(str.startsWith("IN_BASE")){
+                BigInteger base=new BigInteger(str.substring(7));
+                return new Input(IN_TYPE_BASE_N,base);
+            }else{
+                switch (str){
+                    case "IN_CHAR":return new Input(IN_TYPE_CHAR,null);
+                    case "IN_WORD":return new Input(IN_TYPE_WORD,null);
+                    case "IN_LINE":return new Input(IN_TYPE_LINE,null);
+                    case "IN_BIN":return new Input(IN_TYPE_BIN,null);
+                    case "IN_DEC":return new Input(IN_TYPE_DEC,null);
+                    case "IN_DOZ":return new Input(IN_TYPE_DOZ,null);
+                    case "IN_HEX":return new Input(IN_TYPE_HEX,null);
+                    default:throw new IllegalStateException("Unexpected InputType:"+str);
+                }
+            }
         }else{
             long id;
             if(str.contains(":")){
@@ -544,15 +564,6 @@ public class Translator {
                 case "BREAK":{
                     return new BracketDeclaration(env,BRACKET_FLAG_BREAK,prevPos);
                 }
-                //IO
-                case "IN_INT":
-                    return new Input(IO_FLAG_INT);
-                case "IN_FRACTION":
-                    return new Input(IO_FLAG_FRACTION);
-                case "IN_FLOAT":
-                    return new Input(IO_FLAG_FLOAT);
-                case "IN_STR":
-                    return new Input(IO_FLAG_STRING);
 
                 //Constants
                 case "RES":

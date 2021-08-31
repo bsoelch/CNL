@@ -520,9 +520,7 @@ public class BitRandomAccessFile implements BitRandomAccessStream {
                 @Override
                 public void write(char[] cbuf, int off, int len) throws IOException {
                     byte[] bytes=new String(cbuf,off,len).getBytes(StandardCharsets.UTF_8);
-                    //TODO writeMultipleBytes
-                    for(byte b:bytes)
-                        writeByte(b&0xff);
+                    writeBytes(bytes,0,bytes.length);
                 }
 
                 @Override

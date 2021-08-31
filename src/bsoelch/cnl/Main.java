@@ -18,6 +18,8 @@ public class Main {
     static private final int ACTION_DECOMPILE=0b100;
     static private final int ACTION_TEST=0b1000;
 
+    static private final Scanner scan=new Scanner(System.in);
+
     public static void compileFinished(long actions, long bits){
         System.out.println();
         System.out.println("Compiled: " + actions + " actions, " +bits + " bits");
@@ -70,6 +72,26 @@ public class Main {
     }
 
     //TODO customizable IO-console, getFileByUrl, ...
+
+    public static String readChar(){
+        return scan.next(".");//read one character
+    }
+    public static String readWord(){
+        String word;
+        do {
+            word = scan.next(".*?\\p{javaWhitespace}").trim();//read one word
+        }while (word.length()==0);//skip empty words
+        return word;
+    }
+    public static String readValue(){
+        StringBuilder val=new StringBuilder(readWord());
+        //TODO check for open brackets
+        return val.toString();
+    }
+    public static String readLine(){
+        return scan.nextLine();//read one line
+    }
+
 
 
     public static void main(String[] args) {

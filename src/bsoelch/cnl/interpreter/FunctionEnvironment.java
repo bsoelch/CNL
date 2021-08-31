@@ -36,7 +36,8 @@ class FunctionEnvironment extends BracketEnvironment implements ProgramEnvironme
     }
 
     @Override
-    public @NotNull MathObject getVar(MathObject id) {//TODO? only NumericIds
+    public @NotNull MathObject getVar(MathObject id) {
+        id=id.numericValue();
         MathObject value = vars.get(id);
         if (value == null)
             return localRoot.getVar(id);//read values from parent layer if not assigned
@@ -45,11 +46,13 @@ class FunctionEnvironment extends BracketEnvironment implements ProgramEnvironme
 
     @Override
     public boolean hasVar(MathObject id) {
+        id=id.numericValue();
         return vars.containsKey(id);
     }
 
     @Override
     public void putVar(MathObject id, MathObject value) {
+        id=id.numericValue();
         vars.put(id,value);
     }
 

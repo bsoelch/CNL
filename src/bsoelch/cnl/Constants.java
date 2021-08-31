@@ -207,9 +207,9 @@ public class Constants {
         }
     }
 
-    public static final int OUT_INT_HEADER=6;//3-34 in one block
-    public static final int OUT_INT_BLOCK=8;
-    public static final int OUT_INT_BIG_BLOCK=16;
+    public static final int IO_INT_HEADER =6;//3-34 in one block
+    public static final int IO_INT_BLOCK =8;
+    public static final int IO_INT_BIG_BLOCK =16;
     public static final BigInteger OUT_BASE_OFFSET=BIG_INT_THREE;//smallest base without baseType
 
     public static final int OUT_BIG_BASE_START=25;
@@ -228,14 +228,19 @@ public class Constants {
     public static final int OUT_BASE_FLAG_HEX=3;
     public static final int OUT_BASE_FLAG_BASE_N=4;
 
-
     //11110111.++ ->In
     public static final int HEADER_IN = 0b11101111;
     public static final int HEADER_IN_LENGTH = 8;
-    public static final int IO_FLAG_INT = 0;
-    public static final int IO_FLAG_FRACTION = 1;
-    public static final int IO_FLAG_FLOAT = 2;
-    public static final int IO_FLAG_STRING = 3;
+
+    public static final int IN_TYPESS_LENGTH = 3;
+    public static final int IN_TYPE_CHAR = 0b000;
+    public static final int IN_TYPE_WORD= 0b001;
+    public static final int IN_TYPE_LINE = 0b010;
+    public static final int IN_TYPE_BIN = 0b011;
+    public static final int IN_TYPE_DEC = 0b100;
+    public static final int IN_TYPE_DOZ = 0b101;
+    public static final int IN_TYPE_HEX = 0b110;
+    public static final int IN_TYPE_BASE_N = 0b111;
 
     //TODO Matrices
 
@@ -551,33 +556,25 @@ public class Constants {
                 //Nary Operations
                 {
                     declareOperator("SUM",
-                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3, MathObject::sum, c -> c == 2 ? ADD : null, Real.Int.ZERO));
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
+                                    (args)->MathObject.nAryReduce(args,Real.Int.ZERO,MathObject::add)
+                            , c -> c == 2 ? ADD : null, Real.Int.ZERO));
                     declareOperator("PROD",
-                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3, MathObject::product, c -> c == 2 ? MULTIPLY : null, Real.Int.ONE));
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
+                                    (args)->MathObject.nAryReduce(args,Real.Int.ONE,MathObject::multiply)
+                                    , c -> c == 2 ? MULTIPLY : null, Real.Int.ONE));
                     declareOperator("NARY_AND",
-                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3, (args) -> {//TODO? move evaluation to MathObject
-                                MathObject res = args[0];
-                                for (int i = 1; i < args.length; i++) {
-                                    res = MathObject.floorAnd(res, args[i]);
-                                }
-                                return res;
-                            }, c -> c == 2 ? AND : null, Real.Int.ONE));
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
+                                    (args)->MathObject.nAryReduce(args,Real.Int.ONE,MathObject::floorAnd)
+                                    , c -> c == 2 ? AND : null, Real.Int.ONE));
                     declareOperator("NARY_OR",
-                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3, (args) -> {
-                                MathObject res = args[0];
-                                for (int i = 1; i < args.length; i++) {
-                                    res = MathObject.floorOr(res, args[i]);
-                                }
-                                return res;
-                            }, c -> c == 2 ? OR : null, Real.Int.ZERO));
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
+                                    (args)->MathObject.nAryReduce(args,Real.Int.ZERO,MathObject::floorOr)
+                                    , c -> c == 2 ? OR : null, Real.Int.ZERO));
                     declareOperator("NARY_STR_CONCAT",
-                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3, (args) -> {
-                                MathObject res = args[0];
-                                for (int i = 1; i < args.length; i++) {
-                                    res = MathObject.strConcat(res, args[i]);
-                                }
-                                return res;
-                            }, c -> c == 2 ? STRING_CONCAT : null, Real.Int.ZERO));
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
+                                    (args)->MathObject.nAryReduce(args,Real.Int.ZERO,MathObject::strConcat)
+                                    , c -> c == 2 ? STRING_CONCAT : null, Real.Int.ZERO));
                     declareOperator("NARY_TIMES",
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3, MathObject::nAryTimes, c -> c == 2 ? TIMES : null, FiniteSet.EMPTY_SET));
 

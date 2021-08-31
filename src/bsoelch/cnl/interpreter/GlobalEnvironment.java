@@ -32,7 +32,8 @@ class GlobalEnvironment implements ProgramEnvironment {
 
     @Override
     @NotNull
-    public MathObject getVar(MathObject id) {//TODO? only NumericIds
+    public MathObject getVar(MathObject id) {
+        id=id.numericValue();
         MathObject value = vars.get(id);
         if (value == null)
             value = Real.Int.ZERO;
@@ -41,11 +42,13 @@ class GlobalEnvironment implements ProgramEnvironment {
 
     @Override
     public boolean hasVar(MathObject id) {
+        id=id.numericValue();
         return vars.containsKey(id);
     }
 
     @Override
     public void putVar(MathObject id, MathObject value) {
+        id=id.numericValue();
         vars.put(id, value);
     }
 

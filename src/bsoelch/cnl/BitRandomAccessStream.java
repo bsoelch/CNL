@@ -2,7 +2,6 @@ package bsoelch.cnl;
 
 import java.io.*;
 import java.math.BigInteger;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 //TODO separate interfaces for read and write?
@@ -59,37 +58,43 @@ public interface BitRandomAccessStream extends Closeable {
             }
             byte[] bytes=new byte[count+1];
             bytes[0]= (byte) cp;
-            for(int i=1;i<bytes.length;i++){//TODO readBytes Methode
-                cp=readByte();
-                if(cp==-1)
-                    return -1;
-                bytes[i]=(byte)cp;
-            }
+            readBytesFully(bytes,1,bytes.length-1);
             return new String(bytes).codePointAt(0);
         }
     }
     default void writeUTF8(int cp) throws IOException {
         byte[] bytes=String.valueOf(Character.toChars(cp)).getBytes(StandardCharsets.UTF_8);
-        for (byte aByte : bytes) {//TODO writeBytes Methode
-            writeByte(aByte);
-        }
+        writeBytes(bytes,0,bytes.length);
     }
 
     /**writes all cached changes*/
     void writeChanges() throws IOException;
 
     /** reads up to len bits and stores them in the long-array starting at bit-index off
-     *  @param target long[] in which the bit-data is stored (small-endian)
+     *  @param target long[] in which the bit-data is stored (little-endian)
      *  @param off stating bit-index in the array
      *  @param len maximal number of bits read
      *  @return total number of bits read or -1 for end of file
-     *  @see #readFully(long[], long, long) */ //TODO? check if endian is correct
+     *  @see #readFully(long[], long, long) */
     long read(long[] target, long off, long len) throws IOException;
 
+    /** reads exactly len bytes and stores them in the byte-array starting at byte-index off
+     *  @param data byte[] in which the byte-data is stored (little-endian)
+     *  @param off stating index in the array
+     *  @param len number of bytes to read
+     *  @throws java.io.EOFException if the file ends*/
+    default void readBytesFully(byte[] data, int off, int len) throws IOException{
+        long[] bits=new long[len/8+1];
+        readFully(bits,0,8L*len);
+        for(int i=0;i<len;i++){
+              data[off+i]=(byte)((bits[i/8]>>>8*(i%8))&0xff);
+        }
+    }
+
     /** reads exactly len bits and stores them in the long-array starting at bit-index off
-     *  @param target long[] in which the bit-data is stored (small-endian)
+     *  @param target long[] in which the bit-data is stored (little-endian)
      *  @param off stating bit-index in the array
-     *  @param len maximal number of bits read
+     *  @param len number of bits to read
      *  @throws java.io.EOFException if the file ends
      *  @see #read(long[], long, long) */
     void readFully(long[] target, long off, long len) throws IOException;
@@ -99,6 +104,20 @@ public interface BitRandomAccessStream extends Closeable {
      *  @param off stating bit-index in the array
      *  @param len number of bits to write*/
     void write(long[] source, long off, long len) throws IOException;
+
+    default void writeBytes(byte[] data, int off, int len) throws IOException{
+        long[] longData=new long[len/8+1];
+        int i=0,shift=0;
+        for(int j=0;j<len;j++){
+            longData[i]|=data[j+off]&0xffL<<shift;
+            shift+=8;
+            if(shift>=64){
+                shift=0;
+                i++;
+            }
+        }
+        write(longData,0,8L*len);
+    }
 
     /**reads count bits and returns the result as an unsigned integer
      * @param count number of bits to read

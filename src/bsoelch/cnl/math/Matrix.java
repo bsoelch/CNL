@@ -9,16 +9,7 @@ import java.util.function.Function;
 
 import static bsoelch.cnl.math.Real.Int;
 
-public final class Matrix{//TODO implement MathObject
-    static final char MATRIX_START = '{';
-    static final String ROW_SEPARATOR = ",";
-    static final String ROW_START = "{";
-    static final String ENTRY_SEPARATOR = ";";
-    static final String ROW_END = "}";
-    static final char MATRIX_END = '}';
-
-    //TODO MathSettings.autoRescaleMatrices
-
+public final class Matrix implements MathObject{//TODO add to operations in MathObject
     private final NumbericValue[][] matrix;
 
     static public Matrix identityMatrix(int n){
@@ -69,7 +60,7 @@ public final class Matrix{//TODO implement MathObject
         return applyToAll(NumbericValue::conjugate);
     }
 
-    public NumbericValue scalarValue() {
+    public NumbericValue numericValue() {
         return entryAt(0);//TODO? better Implementation
     }
 
@@ -99,28 +90,37 @@ public final class Matrix{//TODO implement MathObject
     public String toStringFloat(BigInteger base, Real precision, boolean useSmallBase) {
         return toString(s->s.toStringFloat(base,precision, useSmallBase));
     }
+    @Override
+    public String intsAsString() {
+        return toString(MathObject::intsAsString);
+    }
+    @Override
+    public String asString() {
+        return numericValue().asString();
+    }
+
     private String toString(Function<NumbericValue,String> entryToString){
-        StringBuilder str=new StringBuilder(""+MATRIX_START);
+        StringBuilder str=new StringBuilder("[");
         boolean firstRow=true,firstColumn;
         for(NumbericValue[] row:matrix){
             if(firstRow){
                 firstRow=false;
             }else{
-                str.append(ROW_SEPARATOR);
+                str.append(", ");
             }
-            str.append(ROW_START);
+            str.append("[");
             firstColumn=true;
             for(NumbericValue s:row){
                 if (firstColumn) {
                     firstColumn=false;
                 } else {
-                    str.append(ENTRY_SEPARATOR).append(' ');
+                    str.append(", ");
                 }
                 str.append(entryToString.apply(s));
             }
-            str.append(ROW_END);
+            str.append("]");
         }
-        return str.append(MATRIX_END).toString();
+        return str.append("]").toString();
     }
 
     public NumbericValue entryAt(int i, int j){
@@ -213,8 +213,13 @@ public final class Matrix{//TODO implement MathObject
     }
 
     /**@return  this * m2^-1*/
-    public Matrix divide(Matrix m2){
+    public Matrix rDivide(Matrix m2){
         return multiply(m2.invert());
+    }
+
+    /**@return  m2^-1 * this */
+    public Matrix lDivide(Matrix m2){
+        return m2.invert().multiply(this);
     }
 
     public Matrix transpose(){

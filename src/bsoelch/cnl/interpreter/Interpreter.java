@@ -59,17 +59,15 @@ public class Interpreter implements Closeable {
         final CodePosition codePos;
         final File codeFile;
         final ProgramEnvironment prevEnv;
-        final ExecutionEnvironment exEnv;
 
-        ImportReturnPosition(File codeFile, CodePosition codePos, ProgramEnvironment prevEnv,ExecutionEnvironment exEnv) {
+        ImportReturnPosition(File codeFile, CodePosition codePos, ProgramEnvironment prevEnv) {
             this.codePos = codePos;
             this.codeFile = codeFile;
             this.prevEnv = prevEnv;
-            this.exEnv=exEnv;
         }
     }
 
-    private ExecutionEnvironment exEnv;
+    private final ExecutionEnvironment exEnv;
     private File codeDir;
     private BitRandomAccessStream code;
     private boolean isScript;
@@ -374,7 +372,6 @@ public class Interpreter implements Closeable {
             importDejaVu.remove(code.getSourceId());//remove from dejaVu stack after closing
             ImportReturnPosition ret=importReturnStack.removeLast();
             codeDir =ret.codeFile;
-            exEnv=ret.exEnv;
             if(ret.prevEnv!=envStack.removeLast())
                 throw new RuntimeException("envStack out of sync with Imports");
             goTo(ret.codePos);
@@ -430,7 +427,7 @@ public class Interpreter implements Closeable {
                 if(doBranching) {
                     value = ((Operator) last).preformOperation(flags);
                 }else{
-                    value= Translator.ZERO;//TODO? specific DefaultValue
+                    value= Translator.ZERO;
                 }
             }else if(last instanceof Input){
                 if(doBranching) {
@@ -553,13 +550,12 @@ public class Interpreter implements Closeable {
                 }
                 return;
             }else if(last instanceof Import){
-                importReturnStack.addLast(new ImportReturnPosition(codeDir, new CodePosition(code, isScript),((Import) last).getTarget(),exEnv));
+                importReturnStack.addLast(new ImportReturnPosition(codeDir, new CodePosition(code, isScript),((Import) last).getTarget()));
                 if(!importEnvironments.add(((Import) last).getTarget()))
                     throw new IllegalStateException("Multiple Imports in the same Environment");
                 envStack.addLast(((Import) last).getTarget());
                 File target=new File(codeDir.getAbsolutePath()+File.separator+((Import) last).getSource());
                 codeDir =target.getParentFile();
-                exEnv=new ExecutionEnvironment(codeDir,exEnv);//change root-directory of ExecutionEnvironment
                 code =new BitRandomAccessFile(target,"r");
                 Translator.FileHeader header=Translator.readCodeFileHeader(code);
                 if(header.type==Translator.FILE_TYPE_INVALID){

@@ -6,6 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.function.BiFunction;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 
 /**Root of all MathObjects*/
@@ -62,7 +63,7 @@ public interface MathObject {
     }
 
     static MathObject elementWise(MathObject l, MathObject r,
-                                  BiFunction<NumbericValue, NumbericValue, NumbericValue> scalarOperation){
+                                  BinaryOperator<NumbericValue> scalarOperation){
         if(l instanceof NumbericValue){
             if(r instanceof NumbericValue){
                 return scalarOperation.apply((NumbericValue) l,((NumbericValue)r));
@@ -108,18 +109,26 @@ public interface MathObject {
             throw new IllegalArgumentException("Unexpected MathObject:"+o.getClass());
         }
     }
+    static MathObject nAryReduce(MathObject[] objects, MathObject nilaryValue, BinaryOperator<MathObject> reduce){
+        if(objects.length==0) {
+            return nilaryValue;
+        }else if(objects.length==1) {
+            return objects[0];
+        }else{
+            MathObject ret=objects[0];
+            for (int i=1;i<objects.length;i++) {
+                ret = reduce.apply(ret, objects[i]);
+            }
+            return ret;
+        }
+    }
 
     static MathObject add(MathObject l, MathObject r) {
         return elementWise(l,r, NumbericValue::add);
     }
-    static MathObject sum(MathObject[] objects){
-        MathObject sum=Real.Int.ZERO;
-        for (MathObject arg : objects) {
-            sum = MathObject.add(sum, arg);
-        }
-        return sum;
+    static MathObject subtract(MathObject l, MathObject r) {
+        return elementWise(l,r, NumbericValue::subtract);
     }
-
     static MathObject negate(MathObject o) {
         return elementWise(o, NumbericValue::negate);
     }
@@ -132,18 +141,9 @@ public interface MathObject {
     static MathObject conjugate(MathObject o) {
         return elementWise(o, NumbericValue::conjugate);
     }
-    static MathObject subtract(MathObject l, MathObject r) {
-        return elementWise(l,r, NumbericValue::subtract);
-    }
+
     static MathObject multiply(MathObject l, MathObject r) {
         return elementWise(l,r, NumbericValue::multiply);
-    }
-    static MathObject product(MathObject[] objects){
-        MathObject prod=Real.Int.ONE;
-        for (MathObject arg : objects) {
-            prod = MathObject.multiply(prod, arg);
-        }
-        return prod;
     }
 
     static Real sqAbs(MathObject o) {
@@ -205,7 +205,7 @@ public interface MathObject {
      *                    to convert the result to a map if one of the arguments was a map
      * */
     static MathObject setOperation(MathObject l, MathObject r,
-                                   BiFunction<FiniteSet, FiniteSet, FiniteSet> setOp,
+                                   BinaryOperator<FiniteSet> setOp,
                                    BiFunction<NumbericValue, NumbericValue, MathObject> scalarOp, boolean rewrapMaps){
         if(l instanceof NumbericValue){
             if(r instanceof NumbericValue){
@@ -289,6 +289,7 @@ public interface MathObject {
         return elementWise(l,r, NumbericValue::strConcat);
     }
 
+    //TODO deep-reduce
     static NumbericValue min(MathObject l, MathObject r) {
         if(l instanceof NumbericValue){
             if(r instanceof NumbericValue){
@@ -610,11 +611,20 @@ public interface MathObject {
             private OperatorNode(String value) {
                 this.value = value;
             }
+
+            @Override
+            public String toString() {
+                return "Operator:("+value+")";
+            }
         }
         private static class ValueNode implements Node{
             final MathObject value;
             private ValueNode(MathObject value) {
                 this.value = value;
+            }
+            @Override
+            public String toString() {
+                return "("+value+")";
             }
         }
 
@@ -1061,7 +1071,7 @@ public interface MathObject {
                                     topLevel=false;
                                 }else{
                                     if(mode==MODE_SET){
-                                        parts.set(i - 1, new ValueNode(unite(l, asSet(r))));
+                                        parts.set(i - 1, new ValueNode(unite(l, FiniteSet.from(r))));
                                     }else  if(safeMode||mode==MODE_TUPLE){
                                         parts.set(i - 1, new ValueNode(tupleConcat(l,
                                                 Tuple.create(new MathObject[]{r}))));
@@ -1103,7 +1113,12 @@ public interface MathObject {
                     }
                     if(isMap){
                         if(returnValue instanceof FiniteSet){
-                            return ((FiniteSet) returnValue).asMapIfPossible();
+                            MathObject map= ((FiniteSet) returnValue).asMapIfPossible();
+                            if(safeMode||map instanceof FiniteMap) {
+                                return map;
+                            }else{
+                                throw new IllegalArgumentException("Unable to resolve Map:"+part);
+                            }
                         }else if(returnValue instanceof Tuple){
                             MathObject map= (topLevel?FiniteSet.from(returnValue)
                                     :((Tuple) returnValue).values()).asMapIfPossible();
