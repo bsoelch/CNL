@@ -107,7 +107,7 @@ public class Constants {
 
     //111001.[BigInt][BigInt] -> Fraction (4,8,16)
     public static final int HEADER_FRACTION =0b100111;
-    public static final int HEADER_FRACTION_LENGTH =4;
+    public static final int HEADER_FRACTION_LENGTH =6;
 
     //111010.[BigInt] -> Function(Arg) (4,8,16)
     public static final int HEADER_FUNCTION_ARG = 0b010111;
@@ -150,8 +150,7 @@ public class Constants {
     //11110110.[outID]{BASE} ->Out
     public static final int HEADER_OUT = 0b11001111;
     public static final int HEADER_OUT_LENGTH = 8;
-
-    //IN_NUMBER_[BIN/DEC/DOZ/HEX/BASE_N], IN_STR, IN_CHAR
+    //TODO? FLAG: write line
 
     /**reads an outId from the given File:
      * OutIds are of the Form:
@@ -323,7 +322,7 @@ public class Constants {
         /**A(+)B mit a/b (+) c/d = (a+c)/(b+d)*/
         public static final String F_ADD = "F_ADD";
         /**calculates an approximate value for A with an error less than Re B*/
-        public static final String APPROXIMATE = "APROX";
+        public static final String APPROXIMATE = "APPROX";
         /**A?B:C*/
         public static final String OPTIONAL = "IF";
         /**calls function [A]*/
@@ -565,7 +564,7 @@ public class Constants {
                             , c -> c == 2 ? ADD : null, Real.Int.ZERO));
                     declareOperator("DEEP_SUM",
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 1,
-                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO,NumbericValue::add)
+                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO, NumericValue::add)
                                     , c -> null, Real.Int.ZERO));
                     declareOperator("PROD",
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
@@ -573,7 +572,7 @@ public class Constants {
                                     , c -> c == 2 ? MULTIPLY : null, Real.Int.ONE));
                     declareOperator("DEEP_PROD",
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 1,
-                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ONE,NumbericValue::multiply)
+                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ONE, NumericValue::multiply)
                                     , c ->  null, Real.Int.ONE));
                     declareOperator("NARY_AND",
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
@@ -581,7 +580,7 @@ public class Constants {
                                     , c -> c == 2 ? AND : null, Real.Int.ONE));
                     declareOperator("DEEP_AND",
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 1,
-                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ONE,NumbericValue::floorAnd)
+                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ONE, NumericValue::floorAnd)
                                     , c ->  null, Real.Int.ONE));
                     declareOperator("NARY_OR",
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
@@ -589,7 +588,7 @@ public class Constants {
                                     , c -> c == 2 ? OR : null, Real.Int.ZERO));
                     declareOperator("DEEP_OR",
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 1,
-                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO,NumbericValue::floorOr)
+                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO, NumericValue::floorOr)
                                     , c ->null, Real.Int.ZERO));
                     declareOperator("NARY_STR_CONCAT",
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
@@ -597,7 +596,7 @@ public class Constants {
                                     , c -> c == 2 ? STRING_CONCAT : null, Real.Int.ZERO));
                     declareOperator("DEEP_STR_CONCAT",
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 1,//TODO? concat ints in Fraction/Complex
-                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO,NumbericValue::strConcat)
+                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO, NumericValue::strConcat)
                                     , c -> null, Real.Int.ZERO));
                    declareOperator("NARY_MIN",
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
@@ -605,7 +604,7 @@ public class Constants {
                                     , c -> c == 2 ? MIN : null, FiniteSet.EMPTY_SET));
                     declareOperator("DEEP_MIN",
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 1,
-                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO,NumbericValue::min)
+                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO, NumericValue::min)
                                     , c -> null, Real.Int.ZERO));
                     declareOperator("NARY_MAX",
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
@@ -613,7 +612,7 @@ public class Constants {
                                     , c -> c == 2 ? MAX : null, FiniteSet.EMPTY_SET));
                     declareOperator("DEEP_MAX",
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 1,
-                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO,NumbericValue::max)
+                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO, NumericValue::max)
                                     , c -> null, Real.Int.ZERO));
                     //NARY_BIN_CONCAT
 

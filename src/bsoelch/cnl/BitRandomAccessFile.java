@@ -452,6 +452,7 @@ public class BitRandomAccessFile implements BitRandomAccessStream {
     public Reader reader(){
         if (readerCache == null) {
             readerCache = new Reader() {
+                long mark=-1;
                 int surrogateCache=-1;
                 @Override
                 public int read() throws IOException {
@@ -486,7 +487,31 @@ public class BitRandomAccessFile implements BitRandomAccessStream {
                     return len;
                 }
 
-                //TODO? mark/reset
+                /**marks to current position for {@link #reset()}
+                 * @param readAheadLimit is ignored in this implementation
+                 * @see #reset() */
+                @Override
+                public void mark(int readAheadLimit){
+                    mark=bitPos();
+                }
+
+                /**{@inheritDoc}*/
+                @Override
+                public boolean markSupported() {
+                    return true;
+                }
+
+                /**goes to the marked position if existent
+                 * @throws IOException if no position was marked
+                 * @see #mark*/
+                @Override
+                public void reset() throws IOException {
+                    if(mark!=-1){
+                        seek(mark);
+                    }else{
+                        throw new IOException("mark not set");
+                    }
+                }
 
                 @Override
                 public void close() throws IOException {

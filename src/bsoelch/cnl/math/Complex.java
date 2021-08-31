@@ -7,13 +7,13 @@ import java.util.Objects;
 import java.util.function.Function;
 
 /**Zahl in Q[i]*/
-public final class Complex extends NumbericValue {
+public final class Complex extends NumericValue {
     public static final Complex I = new Complex(Real.Int.ZERO, Real.Int.ONE);
 
     /** a/b + * c/d */
     private final Real re,im;
 
-    public static NumbericValue from(Real re, Real im){
+    public static NumericValue from(Real re, Real im){
         if(im.equals(Real.Int.ZERO))
             return re;
         if(re.equals(Real.Int.ZERO)&&im.equals(Real.Int.ONE))
@@ -26,18 +26,18 @@ public final class Complex extends NumbericValue {
         this.im=im;
     }
 
-    public NumbericValue negate() {
+    public NumericValue negate() {
         return from(re.negate(),im.negate());
     }
-    public NumbericValue conjugate() {
+    public NumericValue conjugate() {
         return from(re,im.negate());
     }
 
-    public NumbericValue invert() {
-        return NumbericValue.multiply(conjugate(),sqAbs().invert());
+    public NumericValue invert() {
+        return NumericValue.multiply(conjugate(),sqAbs().invert());
     }
 
-    public NumbericValue round(int mode) {
+    public NumericValue round(int mode) {
         return from(re.round(mode),im.round(mode));
     }
 
@@ -56,7 +56,7 @@ public final class Complex extends NumbericValue {
         return im;
     }
 
-    public NumbericValue approx(Real precision) {
+    public NumericValue approx(Real precision) {
         return from(re.approx(precision),im.approx(precision));
     }
 
@@ -66,7 +66,7 @@ public final class Complex extends NumbericValue {
     }
 
     @Override
-    public int compareTo(@NotNull NumbericValue s) {
+    public int compareTo(@NotNull NumericValue s) {
         if(s instanceof Real){
             int c=re.compareTo(s);
             if(c!=0)
@@ -85,7 +85,7 @@ public final class Complex extends NumbericValue {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof NumbericValue)) return false;
+        if (!(o instanceof NumericValue)) return false;
         if(o instanceof Real){
             return im.equals(Real.Int.ZERO)&&re.equals(o);
         }else if(o instanceof Complex){

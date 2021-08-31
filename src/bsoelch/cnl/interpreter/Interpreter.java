@@ -182,7 +182,6 @@ public class Interpreter implements Closeable {
         }
     }
 
-
     boolean stepInternal(Action a,boolean doBranching) throws IOException {
         if(a == Translator.EOF|| a == Translator.EXIT){
             return exit(doBranching);

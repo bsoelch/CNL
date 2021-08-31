@@ -5,15 +5,12 @@ import org.jetbrains.annotations.NotNull;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Objects;
+import java.util.*;
 
 import static bsoelch.cnl.Constants.*;
 
 /**Real number, ist {@link Int} oder {@link Fraction}*/
-public abstract class Real extends NumbericValue {
+public abstract class Real extends NumericValue {
 
     Real() {
     }//package private Constructor
@@ -320,7 +317,7 @@ public abstract class Real extends NumbericValue {
         }
 
         @Override
-        public int compareTo(@NotNull NumbericValue o) {
+        public int compareTo(@NotNull NumericValue o) {
             if (o instanceof Int) {
                 Int anInt = (Int) o;
                 return value.compareTo(anInt.value);
@@ -332,7 +329,7 @@ public abstract class Real extends NumbericValue {
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof NumbericValue)) return false;
+            if (!(o instanceof NumericValue)) return false;
             if (o instanceof Int) {
                 Int anInt = (Int) o;
                 return value.equals(anInt.value);
@@ -428,57 +425,50 @@ public abstract class Real extends NumbericValue {
             return from(b, a);
         }
 
-        public Real approx(Real precision) {//TODO better Code
-            if (precision.num().signum() <= 0) {
-                throw new IllegalArgumentException("precision has to be >=0");
-            }
-            BigInteger a1 = a, b1 = b;
-            boolean sgn = false;
-            if (b1.compareTo(precision.den()) < 0) {//TODO? better Check
-                return this;
-            } else if (a1.signum() < 0) {
-                a1 = a1.negate();
-                sgn = true;
-            }
-            BigInteger[] tmp = a1.divideAndRemainder(b1);
-            boolean hi = false;
-            if (tmp[1].multiply(BIG_INT_TWO).compareTo(b1) > 0) {//tmp[1]>b/2
-                hi = true;
-                tmp[1] = b1.subtract(tmp[1]);
-            }
-            if (tmp[1].multiply(precision.den()).compareTo(b1.multiply(precision.num())) < 0) {// tmp[1]/b < prec
-                if (hi)
-                    tmp[0] = tmp[0].add(BigInteger.ONE);
-                return from(sgn ? tmp[0].negate() : tmp[0], BigInteger.ONE);
-            } else if ((b1.subtract(tmp[1].multiply(BIG_INT_TWO))).multiply(precision.den())
-                    .compareTo(b1.multiply(BIG_INT_TWO).multiply(precision.num())) < 0) {// 1/2-tmp[1]/b < prec
-                tmp[0] = tmp[0].multiply(BIG_INT_TWO).add(BigInteger.ONE);
-                return from(sgn ? tmp[0].negate() : tmp[0], BIG_INT_TWO);
-            }
-            BigInteger l1 = BigInteger.ZERO, l2 = BigInteger.ONE, h1 = BigInteger.ONE, h2 = BIG_INT_TWO, c1, c2;
-            int cmp;
-            do {
-                c1 = l1.add(h1);
-                c2 = l2.add(h2);
-                cmp = tmp[1].multiply(c2).compareTo(b1.multiply(c1));
-                if (cmp == 0) {
-                    break;//c1/c2 = tmp[1]/b
-                } else if (cmp > 0) {//tmp[1]/b > c1/c2
-                    l1 = c1;
-                    l2 = c2;
-                } else {
-                    h1 = c1;
-                    h2 = c2;
+        public Real approx(Real delta) {
+            delta=delta.abs();
+            BigInteger[] tmp=a.divideAndRemainder(b);
+            BigInteger intPart=tmp[0];
+            if(tmp[1].signum()==0) {
+                return from(intPart);
+            }else {
+                Real approx=Int.ZERO;
+                if(tmp[1].signum()<0){
+                    intPart=intPart.subtract(BigInteger.ONE);
+                    tmp[1]=tmp[1].add(b);//ensure fractionalPart>0
                 }
-            } while ((tmp[1].multiply(c2).subtract(b1.multiply(c1))).abs().multiply(precision.den())
-                    .compareTo(b1.multiply(c2).multiply(precision.num())) > 0);
-            a1 = tmp[0].multiply(c2).add(hi ? c2.subtract(c1) : c1);
-            b1 = c2;
-            return from(a1, b1);
+                BigInteger a1 = tmp[1], a2 = a1, b2 = b;
+                Real fractionalPart=from(a1,b);
+                ArrayDeque<BigInteger> coefficients = new ArrayDeque<>();
+                do {
+                    tmp = b2.divideAndRemainder(a2);
+                    coefficients.addFirst(tmp[0]);
+                    b2 = a2;
+                    a2 = tmp[1];
+                    approx=eval(coefficients,a2.shiftLeft(1).compareTo(b2)>0);
+                } while (a2.signum() > 0 && (Real.subtract(approx,fractionalPart)
+                        .abs().compareTo(delta)>0));
+                return Real.add(from(intPart), approx);
+            }
+        }
+        private static Real eval(ArrayDeque<BigInteger> coefficients,boolean roundUp){
+            Real val=null;
+            for(BigInteger i:coefficients){
+                if(val==null){
+                    if(roundUp){
+                        val=from(BigInteger.ONE,i.add(BigInteger.ONE));
+                    }else{
+                        val=from(BigInteger.ONE,i);
+                    }
+                }else{
+                        val=Real.add(val,from(i)).invert();
+                }
+            }
+            return val;
         }
 
         @Override
-        public int compareTo(@NotNull NumbericValue o) {
+        public int compareTo(@NotNull NumericValue o) {
             if (o instanceof Int) {
                 return a.compareTo(b.multiply(((Int) o).value));
             } else if (o instanceof Fraction) {
@@ -492,7 +482,7 @@ public abstract class Real extends NumbericValue {
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof NumbericValue)) return false;
+            if (!(o instanceof NumericValue)) return false;
             if (o instanceof Int) {
                 return Objects.equals(a, ((Int) o).num()) && Objects.equals(b, BigInteger.ONE);
             } else if (o instanceof Fraction) {
@@ -609,7 +599,7 @@ public abstract class Real extends NumbericValue {
         if(numDigits>0&&!div[1].equals(BigInteger.ZERO)) {
             ret.append(".");
             num = div[1].multiply(base);
-            ret.ensureCapacity(den.intValue() & 0x7fffffff);
+            ret.ensureCapacity(numDigits);
             boolean smallBase = useSmallBase && base.compareTo(MAX_INT) < 0 && base.intValueExact() < DIGITS.length();
             for (int i = 0; i < numDigits; i++) {
                 div = num.divideAndRemainder(den);

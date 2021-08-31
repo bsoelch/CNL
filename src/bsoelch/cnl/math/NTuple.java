@@ -15,7 +15,7 @@ final class NTuple implements Tuple{
     }
 
     @Override
-    public NumbericValue numericValue() {
+    public NumericValue numericValue() {
         return objects.length>0?objects[0].numericValue():Real.Int.ZERO;
     }
 

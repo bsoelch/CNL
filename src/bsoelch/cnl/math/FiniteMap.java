@@ -38,7 +38,7 @@ public interface FiniteMap extends MathObject {
             return Real.Int.ZERO;
         }
         @Override
-        public NumbericValue numericValue() {
+        public NumericValue numericValue() {
             return Real.Int.ZERO;
         }
         @Override
@@ -212,7 +212,7 @@ public interface FiniteMap extends MathObject {
                     return Real.Int.ZERO;
             }
             @Override
-            public NumbericValue numericValue() {
+            public NumericValue numericValue() {
                 return o.numericValue();
             }
 

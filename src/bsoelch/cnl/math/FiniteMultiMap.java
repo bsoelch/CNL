@@ -168,7 +168,7 @@ public class FiniteMultiMap implements FiniteMap,FiniteMap.MultiMap {
     }
 
     @Override
-    public NumbericValue numericValue() {
+    public NumericValue numericValue() {
         if(map.isEmpty())
             return Real.Int.ZERO;
         return map.firstEntry().getValue().numericValue();

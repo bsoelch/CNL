@@ -146,7 +146,7 @@ public final class FiniteSet implements MathObject,Iterable<MathObject>{
     }
 
     @Override
-    public NumbericValue numericValue() {
+    public NumericValue numericValue() {
         return contents.isEmpty()?Real.Int.ZERO: contents.last().numericValue();
     }
     public MathObject asMapIfPossible(){

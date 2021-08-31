@@ -585,8 +585,8 @@ public class Translator {
 
 
     public static void writeValue(BitRandomAccessStream target, MathObject value) throws IOException {
-        if(value instanceof NumbericValue){
-            writeNumeric(target, (NumbericValue) value);
+        if(value instanceof NumericValue){
+            writeNumeric(target, (NumericValue) value);
         }else if(value instanceof FiniteSet){
             int size=((FiniteSet) value).size();
             if(size==0){
@@ -664,7 +664,7 @@ public class Translator {
     }
 
 
-    private static void writeNumeric(BitRandomAccessStream target, NumbericValue value) throws IOException {
+    private static void writeNumeric(BitRandomAccessStream target, NumericValue value) throws IOException {
         if(value.isReal()){
             writeReal(target,value.realPart());
         }else if(value instanceof Complex){

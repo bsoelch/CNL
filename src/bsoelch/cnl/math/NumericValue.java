@@ -5,8 +5,8 @@ import bsoelch.cnl.Constants;
 import java.math.BigInteger;
 
 /**{@link MathObject} representing a number has to be either a {@link Real} or a {@link Complex}*/
-public abstract class NumbericValue implements MathObject,Comparable<NumbericValue> {
-    NumbericValue(){}//package private constructor
+public abstract class NumericValue implements MathObject,Comparable<NumericValue> {
+    NumericValue(){}//package private constructor
 
     /**@return true iff all Real's in this Scalar are Integers*/
     public abstract boolean isInt();
@@ -18,22 +18,23 @@ public abstract class NumbericValue implements MathObject,Comparable<NumbericVal
     /**@return element-wise imaginary-part of this Scalar*/
     public abstract Real imaginaryPart();
     /**@return element-wise complex conjugate of this Scalar*/
-    public abstract NumbericValue conjugate();
+    public abstract NumericValue conjugate();
 
     public abstract Real sqAbs();
 
     @Override
-    public NumbericValue numericValue() {
+    public NumericValue numericValue() {
         return this;
     }
 
-    public abstract NumbericValue negate();
+    public abstract NumericValue negate();
 
-    public abstract NumbericValue invert();
+    public abstract NumericValue invert();
 
-    abstract public NumbericValue round(int mode);
+    abstract public NumericValue round(int mode);
 
-    public abstract NumbericValue approx(Real precision);
+    /**simplified approximation of this NumbericValue with an error of at most precision*/
+    public abstract NumericValue approx(Real precision);
 
     @Override
     public String toString() {
@@ -42,7 +43,7 @@ public abstract class NumbericValue implements MathObject,Comparable<NumbericVal
 
 
 
-    static public NumbericValue add(NumbericValue a, NumbericValue b){
+    static public NumericValue add(NumericValue a, NumericValue b){
         if(a instanceof Real){
             if(b instanceof Real){
                 return Real.add((Real)a,(Real)b);
@@ -64,7 +65,7 @@ public abstract class NumbericValue implements MathObject,Comparable<NumbericVal
         }
     }
 
-    static public NumbericValue subtract(NumbericValue a, NumbericValue b){
+    static public NumericValue subtract(NumericValue a, NumericValue b){
         if(a instanceof Real){
             if(b instanceof Real){
                 return Real.subtract((Real)a,(Real)b);
@@ -86,7 +87,7 @@ public abstract class NumbericValue implements MathObject,Comparable<NumbericVal
         }
     }
 
-    static public NumbericValue multiply(NumbericValue a, NumbericValue b){
+    static public NumericValue multiply(NumericValue a, NumericValue b){
         if(a instanceof Real){
             if(b instanceof Real){
                 return Real.multiply((Real)a,(Real)b);
@@ -109,7 +110,7 @@ public abstract class NumbericValue implements MathObject,Comparable<NumbericVal
         }
     }
 
-    static public NumbericValue divide(NumbericValue a, NumbericValue b){
+    static public NumericValue divide(NumericValue a, NumericValue b){
         if(a instanceof Real){
             if(b instanceof Real){
                 return Real.divide((Real)a,(Real)b);
@@ -132,7 +133,7 @@ public abstract class NumbericValue implements MathObject,Comparable<NumbericVal
     }
 
     /**a&floor b*/
-    public static NumbericValue floorAnd(NumbericValue a, NumbericValue b) {
+    public static NumericValue floorAnd(NumericValue a, NumericValue b) {
         if(a instanceof Real){
             if(b instanceof Real){
                 return Real.floorAnd((Real)a,(Real)b);
@@ -155,7 +156,7 @@ public abstract class NumbericValue implements MathObject,Comparable<NumbericVal
     }
 
     /**a|floor b*/
-    public static NumbericValue floorOr(NumbericValue a, NumbericValue b) {
+    public static NumericValue floorOr(NumericValue a, NumericValue b) {
         if(a instanceof Real){
             if(b instanceof Real){
                 return Real.floorOr((Real)a,(Real)b);
@@ -177,7 +178,7 @@ public abstract class NumbericValue implements MathObject,Comparable<NumbericVal
         }
     }
     /**a^floor b*/
-    public static NumbericValue floorXor(NumbericValue a, NumbericValue b) {
+    public static NumericValue floorXor(NumericValue a, NumericValue b) {
         if(a instanceof Real){
             if(b instanceof Real){
                 return Real.floorXor((Real)a,(Real)b);
@@ -199,7 +200,7 @@ public abstract class NumbericValue implements MathObject,Comparable<NumbericVal
         }
     }
     /**a&!floor b*/
-    public static NumbericValue floorAndNot(NumbericValue a, NumbericValue b) {
+    public static NumericValue floorAndNot(NumericValue a, NumericValue b) {
         if(a instanceof Real){
             if(b instanceof Real){
                 return Real.floorAndNot((Real)a,(Real)b);
@@ -220,7 +221,7 @@ public abstract class NumbericValue implements MathObject,Comparable<NumbericVal
             throw new IllegalArgumentException("Unexpected Scalar-class:"+a.getClass());
         }
     }
-    public static NumbericValue fAdd(NumbericValue a, NumbericValue b) {
+    public static NumericValue fAdd(NumericValue a, NumericValue b) {
         if(a instanceof Real){
             if(b instanceof Real){
                 return Real.fAdd((Real)a,(Real)b);
@@ -241,7 +242,7 @@ public abstract class NumbericValue implements MathObject,Comparable<NumbericVal
             throw new IllegalArgumentException("Unexpected Scalar-class:"+a.getClass());
         }
     }
-    public static NumbericValue strConcat(NumbericValue a, NumbericValue b) {
+    public static NumericValue strConcat(NumericValue a, NumericValue b) {
         if(a instanceof Real){
             if(b instanceof Real){
                 return Real.concat((Real)a,(Real)b);
@@ -263,27 +264,27 @@ public abstract class NumbericValue implements MathObject,Comparable<NumbericVal
         }
     }
 
-    public static NumbericValue min(NumbericValue a, NumbericValue b) {
+    public static NumericValue min(NumericValue a, NumericValue b) {
         return a.compareTo(b)<=0?a:b;
     }
-    public static NumbericValue max(NumbericValue a, NumbericValue b) {
+    public static NumericValue max(NumericValue a, NumericValue b) {
         return a.compareTo(b)>=0?a:b;
     }
 
 
-    public static NumbericValue mod(NumbericValue l, NumbericValue r){
+    public static NumericValue mod(NumericValue l, NumericValue r){
         return subtract(l, multiply(r, divide(l,r).round(FLOOR)));
     }
-    public static NumbericValue pow(NumbericValue l, NumbericValue r){
+    public static NumericValue pow(NumericValue l, NumericValue r){
         return powBigInt(l,r.round(-1).realPart().num());
     }
-    static NumbericValue powBigInt(NumbericValue l, BigInteger power) {
+    static NumericValue powBigInt(NumericValue l, BigInteger power) {
         if(power.signum()==0){
             return Real.Int.ONE;
         }else if(power.signum()<0){
             return powBigInt(l,power.negate()).invert();
         }else{
-            NumbericValue ret= Real.Int.ONE,s= l;
+            NumericValue ret= Real.Int.ONE,s= l;
             while(power.signum()>0){
                 if(power.and(BigInteger.ONE).equals(BigInteger.ONE)){
                     ret= multiply(ret,s);
