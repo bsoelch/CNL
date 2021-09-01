@@ -593,12 +593,13 @@ public class Interpreter implements Closeable {
             }else{
                 throw new RuntimeException("Unexpected type of Action:"+last.getClass());
             }
-            //Value weiterleiten
+            //close open Environments
             while (actionStack.size()>0&&actionStack.getLast() instanceof ProgramEnvironment){
                 actionStack.removeLast();
                 envStack.removeLast();
             }
             if(actionStack.size()>0){
+                //pass value to next action
                 actionStack.getLast().pushArg(value);
             }else{
                 //handle return values

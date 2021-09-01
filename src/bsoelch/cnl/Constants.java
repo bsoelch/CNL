@@ -154,60 +154,6 @@ public class Constants {
     public static final int HEADER_OUT_NEW_LINE = 0b11001111;
     public static final int HEADER_OUT_NEW_LINE_LENGTH = 8;
 
-    /**reads an outId from the given File:
-     * OutIds are of the Form:
-     * <li> id>=OUT_STR_START -> STR
-     * <li> Number: (bigBase?OUT_BIG_BASE_START:0)+[BASE_ID]*OUT_NUMBER_BLOCK_LENGTH+[TYPE_ID] */
-    public static int readOutId(BitRandomAccessStream file) throws IOException {
-        int r=file.readBit();
-        if(r==0){
-            return 0;
-        }else if(r==1){
-            r=file.readBit();
-            long[] tmp=new long[1];
-            if(r==0){//10__
-                file.readFully(tmp,0,2);
-                return (int)(tmp[0]+1);
-            }else if(r==1){
-                r=file.readBit();
-                if(r==0){//110____
-                    file.readFully(tmp,0,4);
-                    return (int)(tmp[0]+5);
-                }else if(r==1){//111_____
-                    file.readFully(tmp,0,5);
-                    return (int)(tmp[0]+21);
-                }
-            }
-        }
-        return -1;//END of File
-    }
-    /**writes the outId to the given File:
-     * OutIds are of the Form:
-     * <li> id>=OUT_STR_START -> STR
-     * <li> Number: (bigBase?OUT_BIG_BASE_START:0)+[BASE_ID]*OUT_NUMBER_BLOCK_LENGTH+[TYPE_ID] */
-    public static void writeOutId(BitRandomAccessStream file, int id) throws IOException {
-        if(id==0){//0
-            file.writeBit(false);
-        }else{
-            id--;
-            if(id<4){//10__
-                file.write(new long[]{((id&0b11)<<2)|0b01},0,4);
-            }else {
-                id -= 4;
-                if(id<16){//110____
-                    file.write(new long[]{((id&0b1111)<<3)|0b011},0,7);
-                }else{
-                    id-=16;
-                    if(id<32){//111_____
-                        file.write(new long[]{((id&0b11111)<<3)|0b111},0,8);
-                    }else{
-                        throw new IllegalArgumentException("Id out out range:"+(id+1+4+16));
-                    }
-                }
-            }
-        }
-    }
-
     public static final int IO_INT_HEADER =6;//3-34 in one block
     public static final int IO_INT_BLOCK =8;
     public static final int IO_INT_BIG_BLOCK =16;
@@ -233,7 +179,7 @@ public class Constants {
     public static final int HEADER_IN = 0b11101111;
     public static final int HEADER_IN_LENGTH = 8;
 
-    public static final int IN_TYPESS_LENGTH = 3;
+    public static final int IN_TYPES_LENGTH = 3;
     public static final int IN_TYPE_CHAR = 0b000;
     public static final int IN_TYPE_WORD= 0b001;
     public static final int IN_TYPE_LINE = 0b010;
@@ -242,8 +188,6 @@ public class Constants {
     public static final int IN_TYPE_DOZ = 0b101;
     public static final int IN_TYPE_HEX = 0b110;
     public static final int IN_TYPE_BASE_N = 0b111;
-
-    //TODO Matrices
 
     public static class Operators {
         public static final int FLAG_DYNAMIC=1;
@@ -286,7 +230,7 @@ public class Constants {
         /**max A,B*/
         public static final String MAX = "MAX";
         /**highest one bit in the binary representation von A*/
-        public static final String BIT_LENGTH = "LEN";
+        public static final String BIT_LENGTH = "BIT_LENGTH";
         /**Var[A]*/
         public static final String DYNAMIC_VAR = "DYNAMIC_VAR";
         /**A+B*/
@@ -474,7 +418,7 @@ public class Constants {
                 declareOperator(APPROXIMATE,
                         new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
                                 (a,b)-> MathObject.approximate(a,b.numericValue().realPart())));
-                declareOperator(BIT_LENGTH,//TODO better implementation of bitLength (? elementwise floor(log2))
+                declareOperator(BIT_LENGTH,//TODO better implementation of bitLength (? element-wise floor(log2))
                         new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
                                 (a)-> Real.from(a.numericValue().realPart()
                                         .num().abs().bitLength()
@@ -509,7 +453,7 @@ public class Constants {
                 //sets/tuples/maps
                 {
                     //Type Conversion
-                    declareOperator("SCALAR_VALUE",
+                    declareOperator("NUMERIC_VALUE",
                             new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
                                     MathObject::numericValue));
                     declareOperator("AS_SET",
@@ -518,6 +462,50 @@ public class Constants {
                     declareOperator("AS_MAP",
                             new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
                                     MathObject::asMap));
+                    declareOperator("AS_MATRIX",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    Matrix::asMatrix));
+                    //Type Checking //TODO? smarter Type checking
+                    declareOperator("IS_INTEGER",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    o-> (o instanceof Real.Int?Real.Int.ONE:Real.Int.ZERO)));
+                    declareOperator("IS_NUMERIC",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    o-> (o instanceof NumericValue?Real.Int.ONE:Real.Int.ZERO)));
+                    declareOperator("IS_SET",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                            o-> (o instanceof FiniteSet?Real.Int.ONE:Real.Int.ZERO)));
+                    declareOperator("IS_TUPLE",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    o-> (o instanceof Tuple?Real.Int.ONE:Real.Int.ZERO)));
+                    declareOperator("IS_MAP",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    o-> (o instanceof FiniteMap?Real.Int.ONE:Real.Int.ZERO)));
+                    declareOperator("IS_MATRIX",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    o-> (o instanceof Matrix?Real.Int.ONE:Real.Int.ZERO)));
+                    //TODO size operator
+                    //simple creators (nary creators in Nary section)
+                    declareOperator(WRAP_IN_TUPLE,
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    o -> Tuple.create(new MathObject[]{o})));
+                    declareOperator(WRAP_IN_SET,
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT, (Function<MathObject, MathObject>) FiniteSet::from));
+                    declareOperator(NEW_PAIR,
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    Pair::new));
+                    declareOperator(WRAP2_IN_SET,
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, (BiFunction<MathObject, MathObject, MathObject>) FiniteSet::from));
+                    declareOperator(SINGLETON_MAP,
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, (k,v)->FiniteMap.from(Collections.singletonMap(k,v))));
+                    declareOperator("IDENTITY_MATRIX",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    (l)->Matrix.identityMatrix(l.numericValue().realPart().num().intValueExact())));
+                    declareOperator("DIAGONAL_MATRIX",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    (l,v)->Matrix.diagonalMatrix(l.numericValue().realPart().num().intValueExact(),v.numericValue())));
+                    //TO_DIAGONAL_MATRIX    MathObject -> "row" -> diagonal
+
                     declareOperator(CUT,
                             new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, MathObject::intersect));
                     declareOperator(UNITE,
@@ -531,19 +519,6 @@ public class Constants {
                             new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
                                     MathObject::tupleConcat));
 
-                    //WrapIn
-                    declareOperator(WRAP_IN_TUPLE,
-                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
-                                    o -> Tuple.create(new MathObject[]{o})));
-                    declareOperator(WRAP_IN_SET,
-                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT, (Function<MathObject, MathObject>) FiniteSet::from));
-                    declareOperator(NEW_PAIR,
-                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
-                                    Pair::new));
-                    declareOperator(WRAP2_IN_SET,
-                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, (BiFunction<MathObject, MathObject, MathObject>) FiniteSet::from));
-                    declareOperator(SINGLETON_MAP,
-                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, (k,v)->FiniteMap.from(Collections.singletonMap(k,v),1)));
                     //TUPLE_GET_FIRST
                     //TUPLE_GET_LAST
                     //TUPLE_GET <index>
@@ -599,8 +574,8 @@ public class Constants {
                                     (args)->MathObject.nAryReduce(args,Real.Int.ZERO,MathObject::strConcat)
                                     , c -> c == 2 ? STRING_CONCAT : null, Real.Int.ZERO));
                     declareOperator("DEEP_STR_CONCAT",
-                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 1,//TODO? concat ints in Fraction/Complex
-                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO, NumericValue::strConcat)
+                            new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 1,
+                                    (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO, NumericValue::deepStrConcat)
                                     , c -> null, Real.Int.ZERO));
                    declareOperator("NARY_MIN",
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
@@ -637,7 +612,7 @@ public class Constants {
                                                 throw new IllegalArgumentException("duplicate key in NEW_MAP: "+args[i]);
                                             }
                                         }
-                                        return FiniteMap.from(map,1);
+                                        return FiniteMap.from(map);
                                     }, c -> c==2?SINGLETON_MAP:null, FiniteMap.EMPTY_MAP));
                     //NEW_MATRIX (Bi-Nary)
 

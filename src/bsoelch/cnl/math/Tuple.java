@@ -1,8 +1,10 @@
 package bsoelch.cnl.math;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Iterator;
 
-public interface Tuple extends FiniteMap {
+public interface Tuple extends FiniteMap,Iterable<MathObject>{
     int size();
     MathObject get(int i);
 
@@ -20,6 +22,21 @@ public interface Tuple extends FiniteMap {
             }
         };
     }
+    @Override
+    default @NotNull Iterator<MathObject> iterator() {
+        return new Iterator<MathObject>() {
+            int i=0;
+            @Override
+            public boolean hasNext() {
+                return i<size();
+            }
+            @Override
+            public MathObject next() {
+                return get(i++);
+            }
+        };
+    }
+
 
     static Tuple create(MathObject[] objects){
         for(MathObject o:objects) {

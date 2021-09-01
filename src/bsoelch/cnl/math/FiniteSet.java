@@ -157,10 +157,9 @@ public final class FiniteSet implements MathObject,Iterable<MathObject>{
                         return this;
             }
         }
-        return FiniteMap.from(objects,1);
+        return FiniteMap.from(objects);
     }
     public  FiniteMap asMap(){
-        int minLen=-1;
         TreeMap<MathObject,MathObject> objects=new TreeMap<>(MathObject::compare);
         for(MathObject e:contents){
             if (e instanceof Tuple) {
@@ -169,15 +168,13 @@ public final class FiniteSet implements MathObject,Iterable<MathObject>{
                     int i=0;
                     for(;i<keys.length;i++)
                         keys[i]=((Tuple) e).get(i);
-                    objects.put(Tuple.create(keys),((Tuple) e).get(i));
-                    minLen=Math.min(minLen,keys.length);
+                    objects.put(Tuple.create(keys),((Tuple) e).get(i));//TODO better handling of multiKeys
                 }else{
                     objects.put(((Tuple) e).get(0),((Tuple) e).get(1));
-                    minLen=1;
                 }
             }
         }
-        return FiniteMap.from(objects,minLen);
+        return FiniteMap.from(objects);
     }
 
     @Override

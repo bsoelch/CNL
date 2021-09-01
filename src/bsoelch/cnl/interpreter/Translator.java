@@ -96,14 +96,71 @@ public class Translator {
         return header;
     }
 
+    /**reads an outId from the given File:
+     * OutIds are of the Form:
+     * <li> id>=OUT_STR_START -> STR
+     * <li> Number: (bigBase?OUT_BIG_BASE_START:0)+[BASE_ID]*OUT_NUMBER_BLOCK_LENGTH+[TYPE_ID]
+     * @see #writeOutId(BitRandomAccessStream, int) */
+    public static int readOutId(BitRandomAccessStream file) throws IOException {
+        int r=file.readBit();
+        if(r==0){
+            return 0;
+        }else if(r==1){
+            r=file.readBit();
+            long[] tmp=new long[1];
+            if(r==0){//10__
+                file.readFully(tmp,0,2);
+                return (int)(tmp[0]+1);
+            }else if(r==1){
+                r=file.readBit();
+                if(r==0){//110____
+                    file.readFully(tmp,0,4);
+                    return (int)(tmp[0]+5);
+                }else if(r==1){//111_____
+                    file.readFully(tmp,0,5);
+                    return (int)(tmp[0]+21);
+                }
+            }
+        }
+        return -1;//END of File
+    }
+
+    /**writes the outId to the given File:
+     * OutIds are of the Form:
+     * <li> id>=OUT_STR_START -> STR
+     * <li> Number: (bigBase?OUT_BIG_BASE_START:0)+[BASE_ID]*OUT_NUMBER_BLOCK_LENGTH+[TYPE_ID]
+     * @see #readOutId(BitRandomAccessStream) */
+    public static void writeOutId(BitRandomAccessStream file, int id) throws IOException {
+        if(id==0){//0
+            file.writeBit(false);
+        }else{
+            id--;
+            if(id<4){//10__
+                file.write(new long[]{((id&0b11)<<2)|0b01},0,4);
+            }else {
+                id -= 4;
+                if(id<16){//110____
+                    file.write(new long[]{((id&0b1111)<<3)|0b011},0,7);
+                }else{
+                    id-=16;
+                    if(id<32){//111_____
+                        file.write(new long[]{((id&0b11111)<<3)|0b111},0,8);
+                    }else{
+                        throw new IllegalArgumentException("Id out out range:"+(id+1+4+16));
+                    }
+                }
+            }
+        }
+    }
+
     static public int getBracketID(BitRandomAccessStream file) throws IOException {
         long[] tmp=new long[1];
         int next;
         if((next=file.readBit())==1){//improved BitUsage of 12 possible values
             tmp[0]=1;
-            file.readFully(tmp,1,3);
+            file.readFully(tmp,1,BRACKET_FLAG_LENGTH_ODD-1);
         }else if(next==0){
-            file.readFully(tmp,1,2);
+            file.readFully(tmp,1,BRACKET_FLAG_LENGTH_EVEN-1);
         }else{
             throw new IllegalStateException("Unexpected End of File");
         }
@@ -211,7 +268,7 @@ public class Translator {
             }
             case HEADER_IN:{
                 long[] tmp=new long[1];
-                code.readFully(tmp,0, IN_TYPESS_LENGTH);
+                code.readFully(tmp,0, IN_TYPES_LENGTH);
                 BigInteger base=null;
                 if(tmp[0]==IN_TYPE_BASE_N){
                     base=code.readBigInt(IO_INT_HEADER,IO_INT_BLOCK,IO_INT_BIG_BLOCK);
@@ -220,7 +277,7 @@ public class Translator {
             }
             case HEADER_OUT:
             case HEADER_OUT_NEW_LINE:{
-                int id= Constants.readOutId(code);
+                int id= readOutId(code);
                 boolean isNumber,useSmallBase;
                 BigInteger base;
                 int type;
@@ -636,8 +693,8 @@ public class Translator {
                     target.writeBigInt(BigInteger.valueOf(replace), OPERATOR_INT_HEADER
                             , OPERATOR_INT_BLOCK, OPERATOR_INT_BIG_BLOCK);
                 }
-                for(int i=0;i<size;i++){
-                    writeValue(target,((Tuple) value).get(i));
+                for(MathObject e:(Tuple)value){
+                    writeValue(target,e);
                 }
             }
         }else if(value instanceof FiniteMap){

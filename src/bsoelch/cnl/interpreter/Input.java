@@ -50,15 +50,15 @@ public class Input implements Action {
         target.write(new long[]{Constants.HEADER_IN},0,Constants.HEADER_IN_LENGTH);
         if(base!=null){
             if(base.equals(Constants.BIG_INT_TWO)){
-                target.write(new long[]{Constants.IN_TYPE_BIN},0,Constants.IN_TYPESS_LENGTH);
+                target.write(new long[]{Constants.IN_TYPE_BIN},0,Constants.IN_TYPES_LENGTH);
             }else if(base.equals(BigInteger.TEN)){
-                target.write(new long[]{Constants.IN_TYPE_DEC},0,Constants.IN_TYPESS_LENGTH);
+                target.write(new long[]{Constants.IN_TYPE_DEC},0,Constants.IN_TYPES_LENGTH);
             }else if(base.equals(Constants.BIG_INT_TWELVE)){
-                target.write(new long[]{Constants.IN_TYPE_DOZ},0,Constants.IN_TYPESS_LENGTH);
+                target.write(new long[]{Constants.IN_TYPE_DOZ},0,Constants.IN_TYPES_LENGTH);
             }else if(base.equals(Constants.BIG_INT_SIXTEEN)){
-                target.write(new long[]{Constants.IN_TYPE_HEX},0,Constants.IN_TYPESS_LENGTH);
+                target.write(new long[]{Constants.IN_TYPE_HEX},0,Constants.IN_TYPES_LENGTH);
             }else{
-                target.write(new long[]{Constants.IN_TYPE_BASE_N},0,Constants.IN_TYPESS_LENGTH);
+                target.write(new long[]{Constants.IN_TYPE_BASE_N},0,Constants.IN_TYPES_LENGTH);
                 target.writeBigInt(base,Constants.IO_INT_HEADER,Constants.IO_INT_BLOCK,Constants.IO_INT_BIG_BLOCK);
             }
         }else{
@@ -66,7 +66,7 @@ public class Input implements Action {
                 case Constants.IN_TYPE_CHAR:
                 case Constants.IN_TYPE_WORD:
                 case Constants.IN_TYPE_LINE:
-                    target.write(new long[]{type},0,Constants.IN_TYPESS_LENGTH);
+                    target.write(new long[]{type},0,Constants.IN_TYPES_LENGTH);
                     break;
                 default:
                     throw new RuntimeException("Unexpected string Input-type:"+type);

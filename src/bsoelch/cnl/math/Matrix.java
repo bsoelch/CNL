@@ -4,8 +4,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -26,23 +26,127 @@ public final class Matrix implements MathObject,Iterable<NumericValue>{
         return new Matrix(data);
     }
 
-    public Matrix(NumericValue[][] matrix) {
+    /**Converts the given MathObject to a Matrix*/
+    static public Matrix asMatrix(MathObject o){//TODO? handle spares Matrices
+        if(o instanceof NumericValue){
+            return new Matrix(new NumericValue[][]{{(NumericValue) o}});
+        }else if(o instanceof Matrix){
+            return (Matrix) o;
+        }else if(o instanceof FiniteSet){
+            NumericValue[][] rows=new NumericValue[((FiniteSet) o).size()][];
+            int i=0,maxSize=0;
+            for(MathObject row:(FiniteSet)o){
+                rows[i]=rowFrom(row);
+                maxSize=Math.max(maxSize,rows[i++].length);
+            }
+            return fromRows(rows,maxSize);
+        }else if(o instanceof Tuple){
+            NumericValue[][] rows=new NumericValue[((Tuple) o).size()][];
+            int maxSize=0;
+            for(int i=0;i<((Tuple) o).size();i++){
+                rows[i]=rowFrom(((Tuple) o).get(i));
+                maxSize=Math.max(maxSize,rows[i].length);
+            }
+            return fromRows(rows,maxSize);
+        }else if(o instanceof FiniteMap){
+            ArrayList<NumericValue[]> rows = new ArrayList<>(((FiniteMap) o).size());
+            Real lastKey=null;
+            int maxSize=0;
+            for (Iterator<Pair> it = ((FiniteMap) o).mapIterator(); it.hasNext(); ) {
+                Pair e = it.next();
+                if(lastKey!=null){
+                    Real key = e.a.numericValue().realPart();
+                    Real delta=Real.subtract(key,lastKey);
+                    int intDelta=delta.abs().round(FLOOR).num().intValueExact();
+                    while(intDelta>0){//fill empty entries with zeros
+                        rows.add(new NumericValue[0]);
+                        intDelta--;
+                    }
+                    lastKey=key;
+                }else{
+                    lastKey=e.a.numericValue().realPart();
+                }
+                rows.add(rowFrom(e.b));
+                maxSize=Math.max(maxSize,rows.get(rows.size()-1).length);
+            }
+            return fromRows(rows.toArray(new NumericValue[0][]),maxSize);
+        }else{
+            throw new RuntimeException("Unexpected MathObject class:"+o.getClass());
+        }
+    }
+    /**creates a Matrix from the given rows, all rows are cut/extended to have exactly rowSize elements */
+    private static Matrix fromRows(NumericValue[][] rows,int rowSize) {
+        for(int i=0;i<rows.length;i++){//adjust size of rows
+            NumericValue[] copy=new NumericValue[rowSize];
+            System.arraycopy(rows[i],0,copy,0,Math.min(rows[i].length,rowSize));
+            if(rows[i].length<rowSize) {
+                Arrays.fill(copy, rows[i].length, rowSize, Int.ZERO);
+            }
+            rows[i]=copy;
+        }
+        return new Matrix(rows);
+    }
+    private static NumericValue[] rowFrom(MathObject row) {
+        if(row instanceof NumericValue){
+            return new NumericValue[]{(NumericValue) row};
+        }else if(row instanceof Matrix){
+            ArrayList<NumericValue> values = new ArrayList<>(((Matrix) row).size());
+            for(NumericValue nv:(Matrix)row){
+                values.add(nv);
+            }
+            return values.toArray(new NumericValue[0]);
+        }else if(row instanceof FiniteSet){
+            ArrayList<NumericValue> values = new ArrayList<>();
+            for(MathObject o:(FiniteSet)row){
+                values.addAll(Arrays.asList(rowFrom(o)));
+            }
+            return values.toArray(new NumericValue[0]);
+        }else if(row instanceof Tuple){
+            ArrayList<NumericValue> values = new ArrayList<>();
+            for(MathObject o:(Tuple)row){
+                values.addAll(Arrays.asList(rowFrom(o)));
+            }
+            return values.toArray(new NumericValue[0]);
+        }else if(row instanceof FiniteMap){
+            ArrayList<NumericValue> values = new ArrayList<>();
+            Real lastKey=null;
+            for (Iterator<Pair> it = ((FiniteMap) row).mapIterator(); it.hasNext(); ) {
+                Pair e = it.next();
+                if(lastKey!=null){
+                    Real key = e.a.numericValue().realPart();
+                    Real delta=Real.subtract(key,lastKey);
+                    int intDelta=delta.abs().round(FLOOR).num().intValueExact();
+                    while(intDelta>0){//fill empty entries with zeros
+                        values.add(Int.ZERO);
+                        intDelta--;
+                    }
+                    lastKey=key;
+                }else{
+                    lastKey=e.a.numericValue().realPart();
+                }
+                values.addAll(Arrays.asList(rowFrom(e.b)));
+            }
+            return values.toArray(new NumericValue[0]);
+        }else{
+            throw new RuntimeException("Unexpected MathObject class:"+row.getClass());
+        }
+    }
+
+
+    private Matrix(NumericValue[][] matrix) {
         this.matrix = matrix;
-        //TODO check bounds
     }
 
     public NumericValue numericValue() {
-        return entryAt(0);//TODO? better Implementation
+        return matrix[0][0];
     }
 
     public FiniteMap asMap(){
-        HashMap<MathObject,MathObject> mapData=new HashMap<>(size());
+        Tuple[] rows=new Tuple[matrix.length];
         for(int i=0;i<matrix.length;i++){
-            for(int j=0;j<matrix.length;j++){
-                mapData.put(new Pair(Real.from(i),Real.from(j)),matrix[i][j]==null? Int.ZERO:matrix[i][j]);
-            }
+            rows[i]=Tuple.create(matrix[i]);
         }
-        return FiniteMap.from(mapData,2);
+        return Tuple.create(rows);
     }
 
     public NumericValue entryAt(int i, int j){
@@ -61,23 +165,6 @@ public final class Matrix implements MathObject,Iterable<NumericValue>{
 
     public NumericValue entryAt(int index){
         return entryAt(index% matrix.length,index/ matrix.length);
-    }
-
-    public Matrix fromRange(int i0,int i1){
-        NumericValue[][] data=new NumericValue[i1-i0+1][1];
-        for(int i=i0;i<=i1;i++){
-            data[i][0]=entryAt(i);
-        }
-        return new Matrix(data);
-    }
-    public Matrix fromRange(int x0,int y0,int x1,int y1){
-        //TODO rangeCheck
-        NumericValue[][] data=new NumericValue[x1-x0+1][y1-y0+1];
-        for(int i=x0;i<=x1;i++){
-            if (y1 + 1 - y0 >= 0)
-                System.arraycopy(matrix[i], y0, data[i], y0, y1 + 1 - y0);
-        }
-        return new Matrix(data);
     }
 
     public Matrix setEntry(int x, int y, NumericValue v){

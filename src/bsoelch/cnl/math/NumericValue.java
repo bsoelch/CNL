@@ -263,6 +263,28 @@ public abstract class NumericValue implements MathObject,Comparable<NumericValue
             throw new IllegalArgumentException("Unexpected Scalar-class:"+a.getClass());
         }
     }
+    public static Real.Int deepStrConcat(NumericValue a, NumericValue b) {
+        if(a instanceof Real){
+            if(b instanceof Real){
+                return Real.concat((Real)a,(Real)b);
+            }else if(b instanceof Complex){
+                return Real.concat(Real.concat((Real) a,b.realPart()),b.imaginaryPart());
+            }else{
+                throw new IllegalArgumentException("Unexpected Scalar-class:"+b.getClass());
+            }
+        }else if(a instanceof Complex){
+            if(b instanceof Real){
+                return Real.concat(Real.concat(a.realPart(),a.imaginaryPart()),(Real)b);
+            }else if(b instanceof Complex){
+                return Real.concat(Real.concat(a.realPart(),a.imaginaryPart()),
+                        Real.concat(b.realPart(),b.imaginaryPart()));
+            }else{
+                throw new IllegalArgumentException("Unexpected Scalar-class:"+b.getClass());
+            }
+        }else{
+            throw new IllegalArgumentException("Unexpected Scalar-class:"+a.getClass());
+        }
+    }
 
     public static NumericValue min(NumericValue a, NumericValue b) {
         return a.compareTo(b)<=0?a:b;

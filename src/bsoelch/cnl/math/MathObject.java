@@ -64,8 +64,6 @@ public interface MathObject {
             throw new IllegalArgumentException("Unexpected MathObject:"+o.getClass());
         }
     }
-    //TODO convert ... to Matrix
-
     static MathObject elementWise(MathObject l, MathObject r,
                                   BinaryOperator<NumericValue> scalarOperation){
         if(l instanceof NumericValue){
@@ -946,7 +944,7 @@ public interface MathObject {
                                         parts.set(i - 1, new ValueNode(new Pair(l, r)));
                                     }else{
                                         parts.set(i - 1, new ValueNode(FiniteMap
-                                                .from(Collections.singletonMap(l, r),1)));
+                                                .from(Collections.singletonMap(l, r))));
                                     }
                                     i--;//update position
                                 } else {
@@ -955,7 +953,7 @@ public interface MathObject {
                                             new ValueNode(new Pair(FiniteSet.EMPTY_SET, r)));
                                     }else{
                                         parts.set(i,new ValueNode(FiniteMap
-                                                .from(Collections.singletonMap(FiniteSet.EMPTY_SET, r),1)));
+                                                .from(Collections.singletonMap(FiniteSet.EMPTY_SET, r))));
 
                                     }
                                 }

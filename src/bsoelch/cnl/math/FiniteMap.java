@@ -73,63 +73,9 @@ public interface FiniteMap extends MathObject {
 
     int size();
 
-    interface MultiMap extends FiniteMap{
-        boolean hasKeyStartingWith(MathObject o);
-        int argCount();
-        MathObject evaluateAt(MathObject[] ars);
-    }
-    static MathObject[] splitArgument(MathObject a, int maxCount) {
-        if(maxCount>1){
-            if(a instanceof Pair){//split pairs
-                return new MathObject[]{((Pair) a).a,((Pair) a).b};
-            }else if(a instanceof Tuple){//split tuples
-                if(((Tuple) a).size()<maxCount){
-                    MathObject[] values=new MathObject[((Tuple) a).size()];
-                    for(int i=0;i<((Tuple) a).size();i++) {
-                        values[i]=((Tuple) a).get(i);
-                    }
-                    return values;
-                }
-            }else if(a instanceof FiniteMap){//detect mapArrays
-                FiniteSet domain=((FiniteMap) a).domain();
-                if(domain.size()<=maxCount){
-                    boolean validArray=true;
-                    MathObject[] values=new MathObject[domain.size()];
-                    for(MathObject key:domain){
-                        if(key instanceof Real.Int&&((Real.Int) key).compareTo(Real.Int.ZERO)>=0){
-                            BigInteger intValue=((Real.Int) key).num();
-                            if(intValue.compareTo(BigInteger.valueOf(maxCount))>0){
-                                validArray=false;
-                                break;
-                            }else{
-                                int keyInt = intValue.intValueExact();
-                                if(values.length<=keyInt){
-                                    values= Arrays.copyOf(values,keyInt+1);
-                                }
-                                values[keyInt]=((FiniteMap)a).evaluateAt(key);
-                            }
-                        }else{
-                            validArray=false;
-                            break;
-                        }
-                    }
-                    if(validArray){
-                        for(int i=0;i<values.length;i++){
-                            if(values[i]==null)
-                                values[i]=Real.Int.ZERO;
-                        }
-                        return values;
-                    }
-                }
-            }
-        }
-        //a is no header of a key in this Map
-        return new MathObject[]{a};
-    }
-
     FiniteMap forEach(Function<MathObject, MathObject> f);
 
-    static FiniteMap from(Map<MathObject,MathObject> map, int minLen){
+    static FiniteMap from(Map<MathObject,MathObject> map){
         if(map.isEmpty()){
             return FiniteMap.EMPTY_MAP;
         }else{
@@ -147,20 +93,14 @@ public interface FiniteMap extends MathObject {
                 }
                 return Tuple.create(tupleData);
             }else {
-                return new FiniteMultiMap(map, minLen);
+                return new FiniteMapImpl(map);
             }
         }
     }
     static FiniteMap forEach(FiniteMap m1, FiniteMap m2, BiFunction<MathObject, MathObject, MathObject> f) {
         TreeMap<MathObject,MathObject> entries=new TreeMap<>(MathObject::compare);
-        int minLen=-1;
         for (Iterator<Pair> it = m1.mapIterator(); it.hasNext(); ) {
             Pair p = it.next();
-            if(p.a instanceof Tuple){
-                minLen=Math.min(minLen,((Tuple) p.a).size());
-            }else{
-                minLen=1;
-            }
             if(m2.isKey(p.a)){
                 entries.put(p.a,f.apply(p.b,m2.evaluateAt(p.a)));
             }else{
@@ -169,16 +109,11 @@ public interface FiniteMap extends MathObject {
         }
         for (Iterator<Pair> it = m1.mapIterator(); it.hasNext(); ) {
             Pair p = it.next();
-            if(p.a instanceof Tuple){
-                minLen=Math.min(minLen,((Tuple) p.a).size());
-            }else{
-                minLen=1;
-            }
             if(!m1.isKey(p.a)){
                 entries.put(p.a,f.apply(Real.Int.ZERO,p.b));
             }
         }
-        return from(entries,minLen);
+        return from(entries);
     }
 
     static FiniteMap indicatorMap(FiniteSet s) {

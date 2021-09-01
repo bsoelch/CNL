@@ -1,7 +1,6 @@
 package bsoelch.cnl.interpreter;
 
 import bsoelch.cnl.BitRandomAccessStream;
-import bsoelch.cnl.Constants;
 import bsoelch.cnl.math.Real;
 
 import java.io.IOException;
@@ -114,7 +113,7 @@ class Output implements Action {
         }
         int type2=isNumber?(useSmallBase?0:OUT_BIG_BASE_START)+baseId*OUT_NUMBER_BLOCK_LENGTH+type:type;
 
-        Constants.writeOutId(target,type2);
+        Translator.writeOutId(target,type2);
     }
 
     @Override
