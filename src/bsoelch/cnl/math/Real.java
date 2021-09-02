@@ -44,7 +44,7 @@ public abstract class Real extends NumericValue {
 
     public static Real from(BigInteger a, BigInteger b) {
         if (b.signum() == 0)
-            return Int.ZERO;//best value for x/0
+            throw new ArithmeticException("Division by zero");//best value for x/0 //TODO? Throw CNL runtime
         if (b.signum() < 0) {
             a = a.negate();
             b = b.negate();

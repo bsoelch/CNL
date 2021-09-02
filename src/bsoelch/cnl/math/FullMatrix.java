@@ -125,7 +125,6 @@ public final class FullMatrix extends Matrix {
 
     @Override
     public Matrix invert(){
-        //TODO consistent handling of division errors
         if(matrix.length!=matrix[0].length)
             throw new ArithmeticException("tried to invert non square matrix");
         int s=matrix.length;

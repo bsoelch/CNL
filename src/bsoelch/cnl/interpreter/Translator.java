@@ -553,7 +553,6 @@ public class Translator {
                 id=Operators.idByName(name.toUpperCase(Locale.ROOT));
                 if(id!=-1){//Operators
                     if(counts.length>1){
-                        //TODO 2D Nary
                         throw new UnsupportedOperationException("Multidimensional N-ary not yet supported");
                     }else{
                         int flags = Operators.flags((int) id);
@@ -799,7 +798,7 @@ public class Translator {
 
     //TODO? symbolic names in scripts (i.e &name) for varIds/fktIds
     // pre-compiling that replaces symbolic names with varIds (by frequency)
-    public static void compile(Reader source,File targetFile) throws IOException, SyntaxError {
+    public static void compile(Reader source,File targetFile) throws IOException, SyntaxError, CNL_RuntimeException {
         if (!(targetFile.exists() || targetFile.createNewFile()))
             throw new IOException("target-file does not exists");
         FileHeader header = readScriptFileHeader(source);
@@ -827,6 +826,8 @@ public class Translator {
                         a = nextAction(source, null, test.programEnvironment(), test.executionEnvironment(), test.isTopLayer());
                     }catch (IllegalArgumentException|UnsupportedOperationException e){
                         throw new SyntaxError(test,e);
+                    }catch (ArithmeticException e){
+                        throw new CNL_RuntimeException(test,e);
                     }
                     test.stepInternal(a, false);//flat run code to detect syntax errors
                     if (a == EOF) {
@@ -842,7 +843,7 @@ public class Translator {
         }
     }
 
-    public static void decompile(File sourceFile,Writer target) throws IOException, SyntaxError {
+    public static void decompile(File sourceFile,Writer target) throws IOException, SyntaxError, CNL_RuntimeException {
         try(BitRandomAccessStream source=new BitRandomAccessFile(sourceFile,"rw")) {
             FileHeader header = readCodeFileHeader(source);
             if (header.type == FILE_TYPE_INVALID)

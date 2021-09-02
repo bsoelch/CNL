@@ -157,14 +157,14 @@ public class Interpreter implements Closeable {
         };
     }
 
-    public MathObject run() throws IOException, SyntaxError {
+    public MathObject run() throws IOException, SyntaxError, CNL_RuntimeException {
         return run(true);
     }
-    public void test() throws IOException, SyntaxError {
+    public void test() throws IOException, SyntaxError, CNL_RuntimeException {
         run(false);
     }
 
-    MathObject run(boolean doBranching) throws IOException, SyntaxError {
+    MathObject run(boolean doBranching) throws IOException, SyntaxError, CNL_RuntimeException {
         long count=0;
         while (doStep(doBranching)) {
             count++;
@@ -173,11 +173,11 @@ public class Interpreter implements Closeable {
         return envStack.getLast().getRes();
     }
 
-    void flatStep() throws IOException, SyntaxError {
+    void flatStep() throws IOException, SyntaxError, CNL_RuntimeException {
         doStep(false);
     }
 
-    private boolean doStep(boolean doBranching) throws IOException, SyntaxError {
+    private boolean doStep(boolean doBranching) throws IOException, SyntaxError, CNL_RuntimeException {
         Action a;
         if(isScript){
             a= Translator.nextAction(code.reader(),code, programEnvironment(), executionEnvironment(), isTopLayer());
@@ -186,8 +186,10 @@ public class Interpreter implements Closeable {
         }
         try {
             return stepInternal(a, doBranching);
-        }catch (IllegalArgumentException|IllegalStateException|ArithmeticException e){//TODO? CNL_RuntimeException, try,catch?
+        }catch (IllegalArgumentException|IllegalStateException e){
             throw new SyntaxError(this,e);
+        }catch (ArithmeticException e){
+            throw new CNL_RuntimeException(this,e);
         }
     }
 

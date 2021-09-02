@@ -1,6 +1,5 @@
 package bsoelch.cnl.math;
 
-import bsoelch.cnl.Constants;
 
 import java.math.BigInteger;
 

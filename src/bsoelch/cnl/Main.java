@@ -1,8 +1,6 @@
 package bsoelch.cnl;
 
-import bsoelch.cnl.interpreter.Interpreter;
-import bsoelch.cnl.interpreter.SyntaxError;
-import bsoelch.cnl.interpreter.Translator;
+import bsoelch.cnl.interpreter.*;
 import bsoelch.cnl.math.MathObject;
 import bsoelch.cnl.math.Tuple;
 import org.jetbrains.annotations.NotNull;
@@ -56,24 +54,23 @@ public class Main {
     }
 
 
-    public static void test(File testFile) throws IOException, SyntaxError {
+    public static void test(File testFile) throws IOException, SyntaxError, CNL_RuntimeException {
         Interpreter ip=new Interpreter(testFile,null, true);
         ip.test();
     }
-    public static void compile(Reader source, File target) throws IOException, SyntaxError {
+    public static void compile(Reader source, File target) throws IOException, SyntaxError, CNL_RuntimeException {
         Translator.compile(source,target);
     }
-    public static void decompile(File source, Writer target) throws IOException, SyntaxError {
+    public static void decompile(File source, Writer target) throws IOException, SyntaxError, CNL_RuntimeException {
         Translator.decompile(source,target);
     }
-    public static MathObject execute(File code,MathObject[] args,boolean forceRunLibs) throws IOException, SyntaxError {
+    public static MathObject execute(File code,MathObject[] args,boolean forceRunLibs) throws IOException, SyntaxError, CNL_RuntimeException {
         Interpreter ip=new Interpreter(code,args, forceRunLibs);
         System.out.println();//space to separate code output from rest of console
         return ip.run();
     }
 
     //TODO customizable IO-console, getFileByUrl, ...
-
 
     private static char nextChar() {
         try {
@@ -264,7 +261,7 @@ public class Main {
                     System.out.println("IOException while execution Test:");
                     System.out.println(io.getMessage());
                     return;//end program on error
-                }catch (SyntaxError se){
+                }catch (CNL_Exception se){
                     System.out.println("Test failed:");
                     System.out.println(se.getMessage());
                     printStack(se);
@@ -292,7 +289,7 @@ public class Main {
                     System.out.println("IOException during Compiling:");
                     System.out.println(io.getMessage());
                     return;//end program on error
-                }catch (SyntaxError se){
+                }catch (CNL_Exception se){
                     System.out.println("Compiling failed:");
                     System.out.println(se.getMessage());
                     printStack(se);
@@ -318,7 +315,7 @@ public class Main {
                     System.out.println("IOException during Decompiling:");
                     System.out.println(io.getMessage());
                     return;//end program on error
-                }catch (SyntaxError se){
+                }catch (CNL_Exception se){
                     System.out.println("Decompiling failed:");
                     System.out.println(se.getMessage());
                     printStack(se);
@@ -341,12 +338,16 @@ public class Main {
                     System.out.println("Execution failed:");
                     System.out.println(se.getMessage());
                     printStack(se);
+                }catch (CNL_RuntimeException se){
+                    System.out.println("Uncaught Execution:");
+                    System.out.println(se.getMessage());
+                    printStack(se);
                 }
             }//no else
         }
     }
 
-    private static void printStack(SyntaxError se) {
+    private static void printStack(CNL_Exception se) {
         boolean first=true;
         for(String line: se.getStack()){
             if(first){

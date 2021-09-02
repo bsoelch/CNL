@@ -101,12 +101,10 @@ public abstract class MathObject {
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
         }else if(l instanceof FiniteSet){
-            if(r instanceof NumericValue||r instanceof Matrix){
+            if(r instanceof NumericValue||r instanceof Matrix||r instanceof FiniteMap){
                 return FiniteSet.forEach((FiniteSet) l, o->elementWise(o,r,scalarOperation));
             }else if(r instanceof FiniteSet){
                 return FiniteSet.forEachPair((FiniteSet) l,(FiniteSet) r, (a,b)->elementWise(a,b,scalarOperation));
-            }else if(r instanceof FiniteMap){
-                return FiniteMap.forEach(FiniteMap.indicatorMap((FiniteSet) l),(FiniteMap) r, (a,b)->elementWise(a,b,scalarOperation));
             }else{
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
@@ -114,7 +112,7 @@ public abstract class MathObject {
             if(r instanceof NumericValue||r instanceof Matrix){
                 return ((FiniteMap) l).forEach(o->elementWise(o,r,scalarOperation));
             }else if(r instanceof FiniteSet){
-                return FiniteMap.forEach((FiniteMap) l, FiniteMap.indicatorMap((FiniteSet) r), (a,b)->elementWise(a,b,scalarOperation));
+                return FiniteSet.forEach((FiniteSet) r, o->elementWise(l,o,scalarOperation));
             }else if(r instanceof FiniteMap){
                 return FiniteMap.forEach((FiniteMap) l,(FiniteMap) r, (a,b)->elementWise(a,b,scalarOperation));
             }else{
@@ -926,7 +924,15 @@ public abstract class MathObject {
                             } else {
                                 throw new IllegalArgumentException("Missing 1st argument for A/B");
                             }
-                            parts.set(i - 1, new ValueNode(divide(l, r)));
+                            try {
+                                parts.set(i - 1, new ValueNode(divide(l, r)));
+                            }catch (ArithmeticException div0){
+                                if(safeMode){//TODO? safeDivide
+                                    parts.set(i - 1, new ValueNode(Real.Int.ZERO));
+                                }else{
+                                    throw div0;
+                                }
+                            }
                             i--;//Positon anpassen
 
                             break;
