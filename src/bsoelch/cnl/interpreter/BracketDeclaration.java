@@ -13,9 +13,9 @@ class BracketDeclaration implements Action {
 
     Interpreter.CodePosition declarationStart;
 
-    final ProgramEnvironment declarationEnvironment;
+    final Context declarationEnvironment;
 
-    BracketDeclaration(ProgramEnvironment decEnv, int type, Interpreter.CodePosition declarationStart) {
+    BracketDeclaration(Context decEnv, int type, Interpreter.CodePosition declarationStart) {
         this.declarationEnvironment=decEnv;
         this.type = type;
         switch (type){

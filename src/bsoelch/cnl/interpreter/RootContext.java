@@ -9,23 +9,23 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.HashMap;
 
-class GlobalEnvironment implements ProgramEnvironment {
-    private final HashMap<BigInteger, ProgramEnvironment> children = new HashMap<>();
+class RootContext implements Context {
+    private final HashMap<BigInteger, Context> children = new HashMap<>();
     private final HashMap<MathObject, MathObject> vars = new HashMap<>();
     private final HashMap<BigInteger, Function> functions = new HashMap<>();
 
     private final ArgumentData fData;
 
-    public GlobalEnvironment(@NotNull ProgramEnvironment.ArgumentData fData){
+    public RootContext(@NotNull Context.ArgumentData fData){
         this.fData=fData;
     }
 
     @Override
     @NotNull
-    public ProgramEnvironment getChild(BigInteger id) {
-        ProgramEnvironment child = children.get(id);
+    public Context getChild(BigInteger id) {
+        Context child = children.get(id);
         if (child == null) {
-            children.put(id, child = new GlobalEnvironment(fData));
+            children.put(id, child = new RootContext(fData));
         }
         return child;
     }

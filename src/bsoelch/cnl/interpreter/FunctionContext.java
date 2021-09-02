@@ -7,33 +7,33 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.ArrayDeque;
 import java.util.HashMap;
 
-class FunctionEnvironment extends BracketEnvironment implements ProgramEnvironment {
+public class FunctionContext implements Context{
+    final Context parent;
 
-    ArrayDeque<Action> prevStack;
-
-
-    final HashMap<BigInteger,FunctionEnvironment> children=new HashMap<>();
+    final HashMap<BigInteger,FunctionContext> children=new HashMap<>();
     final HashMap<MathObject,MathObject> vars=new HashMap<>();
-    ProgramEnvironment.ArgumentData fData;
-    final String currentLine;
 
+    private Context.ArgumentData args;
 
-    FunctionEnvironment(ProgramEnvironment localRoot, Interpreter.CodePosition prevPos, ArrayDeque<Action> prevStack, ArgumentData args, String currentLine) {
-        super(localRoot,prevPos);
-        this.fData=args;
-        this.prevStack = prevStack;
-        this.currentLine = currentLine;
+    public FunctionContext(Context parent, ArgumentData fData) {
+        this.parent = parent;
+        this.args = fData;
     }
 
+    public void reset(ArgumentData args) {
+        this.args=args;
+        //TODO? allow persistent variables between function calls
+        vars.clear();
+        children.clear();
+    }
 
     @Override
-    public @NotNull ProgramEnvironment getChild(BigInteger id) {
-        FunctionEnvironment child = children.get(id);
+    public @NotNull FunctionContext getChild(BigInteger id) {
+        FunctionContext child = children.get(id);
         if (child == null) {
-            children.put(id, child = new FunctionEnvironment(localRoot.getChild(id), bracketStart,prevStack,fData, currentLine));
+            children.put(id, child = new FunctionContext(parent.getChild(id),args));
         }
         return child;
     }
@@ -43,7 +43,7 @@ class FunctionEnvironment extends BracketEnvironment implements ProgramEnvironme
         id=id.numericValue();
         MathObject value = vars.get(id);
         if (value == null)
-            return localRoot.getVar(id);//read values from parent layer if not assigned
+            return parent.getVar(id);//read values from parent layer if not assigned
         return value;
     }
 
@@ -61,7 +61,7 @@ class FunctionEnvironment extends BracketEnvironment implements ProgramEnvironme
 
     @Override
     public @NotNull Function getFunction(BigInteger id) {
-        return localRoot.getFunction(id);
+        return parent.getFunction(id);
     }
 
     @Override
@@ -71,27 +71,22 @@ class FunctionEnvironment extends BracketEnvironment implements ProgramEnvironme
 
     @Override
     public MathObject getRes() {
-        return fData.getRes();
+        return args.getRes();
     }
 
     @Override
     public void setRes(MathObject o) {
-        fData.setRes(o);
+        args.setRes(o);
     }
 
     @Override
     public Real.Int argCount() {
-        return fData.argCount();
+        return args.argCount();
     }
 
     @Override
     public ValuePointer getArg(BigInteger id) {
-        return fData.getArg(id);
-    }
-
-    @Override
-    public ProgramEnvironment getLocalRoot() {
-        return this;
+        return args.getArg(id);
     }
 
 

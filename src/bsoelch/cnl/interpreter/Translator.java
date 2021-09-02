@@ -63,7 +63,7 @@ public class Translator {
     static final ValuePointer ONE=new ValuePointerImpl(Real.Int.ONE);
     static final ValuePointer I=new ValuePointerImpl(Complex.I);
     static final ValuePointer EMPTY_SET=new ValuePointerImpl(FiniteSet.EMPTY_SET);
-    static final ValuePointer EMPTY_MAP=new ValuePointerImpl(FiniteMap.EMPTY_MAP);
+    static final ValuePointer EMPTY_MAP=new ValuePointerImpl(Tuple.EMPTY_MAP);
 
     static ValuePointer wrap(MathObject toWrap){
         if(toWrap==null||toWrap.equals(Real.Int.ZERO))
@@ -167,7 +167,7 @@ public class Translator {
         return (int)tmp[0];
     }
 
-    public static Action nextAction(BitRandomAccessStream code, ProgramEnvironment programEnvironment,
+    public static Action nextAction(BitRandomAccessStream code, Context context,
                                     ExecutionEnvironment executionEnvironment, boolean isTopLayer) throws IOException {
         Interpreter.CodePosition prevPos=new Interpreter.CodePosition(code, false);
         int header= readHeader(code);
@@ -182,10 +182,10 @@ public class Translator {
                 if((flags& Operators.FLAG_DYNAMIC)!=0){
                     String name=Operators.nameById(intID);
                     if (name.equals(Operators.DYNAMIC_VAR)) {
-                        return new VarPointer(programEnvironment, null);
+                        return new VarPointer(context, null);
                     } else if (name.equals(Operators.CALL_FUNCTION)) {
                         BigInteger fId=code.readBigInt(FUNCTION_ID_INT_HEADER,FUNCTION_ID_INT_BLOCK,FUNCTION_ID_INT_BIG_BLOCK);
-                        return new CallFunction(programEnvironment,fId);
+                        return new CallFunction(context,fId);
                     } else{
                         throw new IllegalArgumentException("Unknown Dynamic Operator: "+name);
                     }
@@ -198,15 +198,15 @@ public class Translator {
             }
             case HEADER_VAR:{
                 BigInteger id = code.readBigInt(VAR_INT_HEADER, VAR_INT_BLOCK, VAR_INT_BIG_BLOCK);
-                return new VarPointer(programEnvironment, Real.from(id));//TODO? caching
+                return new VarPointer(context, Real.from(id));//TODO? caching
             }
             case HEADER_INT:{
                 BigInteger value = code.readBigInt(INT_HEADER, INT_BLOCK, INT_BIG_BLOCK);
                 return wrap(Real.from(value));
             }
-            case HEADER_FRACTION:{//TODO? encoding with less redundancy
-                BigInteger a = code.readBigInt(INT_HEADER, INT_BLOCK, INT_BIG_BLOCK);
-                BigInteger b = code.readBigInt(INT_HEADER, INT_BLOCK, INT_BIG_BLOCK).add(BigInteger.ONE);//b=0 no necessary
+            case HEADER_FRACTION:{
+                BigInteger a = code.readBigInt(INT_HEADER, INT_BLOCK, INT_BIG_BLOCK).add(BigInteger.ONE);//a always >=1
+                BigInteger b = code.readBigInt(INT_HEADER, INT_BLOCK, INT_BIG_BLOCK).add(BIG_INT_TWO);//b always >=2
                 return wrap(Real.from(a,b));
             }
             case HEADER_BRACKET:{
@@ -223,17 +223,17 @@ public class Translator {
                     case BRACKET_FLAG_ELIF_NE:
                     case BRACKET_FLAG_END:
                     case BRACKET_FLAG_BREAK:
-                        return new BracketDeclaration(programEnvironment, id, prevPos);
+                        return new BracketDeclaration(context, id, prevPos);
                     case BRACKET_FLAG_DO:
-                        return new BracketDeclaration(programEnvironment, id, new Interpreter.CodePosition(code, false));
+                        return new BracketDeclaration(context, id, new Interpreter.CodePosition(code, false));
 
                 }
             }
             case HEADER_CONSTANTS:{
                 BigInteger id= code.readBigInt(CONSTANTS_INT_HEADER,CONSTANTS_INT_BLOCK,CONSTANTS_INT_BIG_BLOCK);
                 switch (id.intValueExact()){
-                    case CONSTANT_RES:return new ArgPointer(programEnvironment,true);
-                    case CONSTANT_ARG_COUNT:return new ArgPointer(programEnvironment,false);
+                    case CONSTANT_RES:return new ArgPointer(context,true);
+                    case CONSTANT_ARG_COUNT:return new ArgPointer(context,false);
                     case CONSTANT_I:return I;
                     case CONSTANT_EXIT:return EXIT;
                     case CONSTANT_EMPTY_SET:return EMPTY_SET;
@@ -242,14 +242,14 @@ public class Translator {
             }
             case HEADER_FUNCTION_ARG:{
                 BigInteger id= code.readBigInt(FUNCTION_ARG_INT_HEADER, FUNCTION_ARG_INT_BLOCK, FUNCTION_ARG_INT_BIG_BLOCK);
-                return new ArgPointer(programEnvironment,id);
+                return new ArgPointer(context,id);
             }
             case HEADER_FUNCTION_DECLARATION:{
                 if(!isTopLayer)
                     throw new IllegalStateException("Function Declarations in Brackets are not allowed");
                 BigInteger argCount = code.readBigInt(FUNCTION_ARG_INT_HEADER, FUNCTION_ARG_INT_BLOCK, FUNCTION_ARG_INT_BIG_BLOCK);
                 BigInteger id = code.readBigInt(FUNCTION_ID_INT_HEADER, FUNCTION_ID_INT_BLOCK, FUNCTION_ID_INT_BIG_BLOCK);
-                return new FunctionDeclaration(id,new Function(programEnvironment,new Interpreter.CodePosition(code, false)
+                return new FunctionDeclaration(id,new Function(context,new Interpreter.CodePosition(code, false)
                         ,argCount.intValueExact()));
             }
             case HEADER_ENVIRONMENT:{
@@ -264,7 +264,7 @@ public class Translator {
                 if(!isTopLayer)
                     throw new IllegalStateException("Imports in Brackets are not allowed");
                 BigInteger id= code.readBigInt(ENVIRONMENTS_INT_HEADER,ENVIRONMENTS_INT_BLOCK,ENVIRONMENTS_INT_BIG_BLOCK);
-                return new Import(programEnvironment,id);
+                return new Import(context,id);
             }
             case HEADER_IN:{
                 long[] tmp=new long[1];
@@ -415,7 +415,7 @@ public class Translator {
         }
     }
 
-    static Action nextAction(Reader code, @Nullable BitRandomAccessStream bitCode, ProgramEnvironment programEnvironment,
+    static Action nextAction(Reader code, @Nullable BitRandomAccessStream bitCode, Context context,
                              ExecutionEnvironment executionEnvironment, boolean isTopLayer) throws IOException {
         String str;
         Interpreter.CodePosition prevPos=bitCode==null?NO_POS:new Interpreter.CodePosition(bitCode, true);
@@ -500,12 +500,12 @@ public class Translator {
             BigInteger id = new BigInteger(str.substring(3));
             if(id.signum()==-1)
                 throw new IllegalArgumentException("Negative Id");
-            return new VarPointer(programEnvironment,Real.from(id));
+            return new VarPointer(context,Real.from(id));
         }else if(str.length()>3&&str.toUpperCase(Locale.ROOT).startsWith("ARG")){//Function Argument
             BigInteger id = new BigInteger(str.substring(3));
             if(id.signum()==-1)
                 throw new IllegalArgumentException("Negative Id");
-            return new ArgPointer(programEnvironment,id);
+            return new ArgPointer(context,id);
         }else if(str.toUpperCase(Locale.ROOT).startsWith("NEW_FUNC:")&&str.endsWith("[")){//Function declaration
             if(!isTopLayer)
                 throw new IllegalStateException("Function declarations in Brackets are not allowed");
@@ -514,7 +514,7 @@ public class Translator {
             BigInteger id=new BigInteger(params.substring(params.indexOf(',')+1));
             if(args.signum()==-1)
                 throw new IllegalArgumentException("Negative Id");
-            return new FunctionDeclaration(id,new Function(programEnvironment,bitCode==null?NO_POS:new Interpreter.CodePosition(bitCode, true),args.intValueExact()));
+            return new FunctionDeclaration(id,new Function(context,bitCode==null?NO_POS:new Interpreter.CodePosition(bitCode, true),args.intValueExact()));
         }else if(str.toUpperCase(Locale.ROOT).startsWith("RUN_IN:")){//Environment
             BigInteger id=new BigInteger(str.substring(7));
             if(id.signum()==-1)
@@ -527,7 +527,7 @@ public class Translator {
             BigInteger id=new BigInteger(str.substring(10));
             if(id.signum()==-1)
                 throw new IllegalArgumentException("Negative Id");
-            return new Import(programEnvironment,id);
+            return new Import(context,id);
         }else if(str.toUpperCase(Locale.ROOT).startsWith("IN_")){//Input
             if(str.startsWith("IN_BASE")){
                 BigInteger base=new BigInteger(str.substring(7));
@@ -559,7 +559,7 @@ public class Translator {
                         int flags = Operators.flags((int) id);
                         if((flags & Operators.FLAG_DYNAMIC)!=0){
                             if(Operators.nameById((int)id).equals(Operators.CALL_FUNCTION)){
-                                return new CallFunction(programEnvironment,new BigInteger(counts[0]));
+                                return new CallFunction(context,new BigInteger(counts[0]));
                             }else{
                                 throw new IllegalArgumentException("N-ary arguments for non N-ary operator");
                             }
@@ -593,47 +593,47 @@ public class Translator {
             switch (str.toUpperCase(Locale.ROOT)){
                 //Brackets
                 case "[?": {
-                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_IF_NE,prevPos);
+                    return new BracketDeclaration(context,BRACKET_FLAG_IF_NE,prevPos);
                 }
                 case "[!":{
-                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_IF_EQ,prevPos);
+                    return new BracketDeclaration(context,BRACKET_FLAG_IF_EQ,prevPos);
                 }
                 case "[.?":{
-                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_WHILE_NE,prevPos);
+                    return new BracketDeclaration(context,BRACKET_FLAG_WHILE_NE,prevPos);
                 }
                 case "[.!":{
-                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_WHILE_EQ,prevPos);
+                    return new BracketDeclaration(context,BRACKET_FLAG_WHILE_EQ,prevPos);
                 }
                 case "[":{
-                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_DO,bitCode==null?NO_POS:new Interpreter.CodePosition(bitCode, true));
+                    return new BracketDeclaration(context,BRACKET_FLAG_DO,bitCode==null?NO_POS:new Interpreter.CodePosition(bitCode, true));
                 }
                 case "|":{
-                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_ELSE,prevPos);
+                    return new BracketDeclaration(context,BRACKET_FLAG_ELSE,prevPos);
                 }
                 case "|!":{
-                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_ELIF_EQ,prevPos);
+                    return new BracketDeclaration(context,BRACKET_FLAG_ELIF_EQ,prevPos);
                 }
                 case "|?":{
-                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_ELIF_NE,prevPos);
+                    return new BracketDeclaration(context,BRACKET_FLAG_ELIF_NE,prevPos);
                 }
                 case "]":{
-                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_END,prevPos);
+                    return new BracketDeclaration(context,BRACKET_FLAG_END,prevPos);
                 }
                 case "]!":{
-                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_END_WHILE_EQ,prevPos);
+                    return new BracketDeclaration(context,BRACKET_FLAG_END_WHILE_EQ,prevPos);
                 }
                 case "]?":{
-                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_END_WHILE_NE,prevPos);
+                    return new BracketDeclaration(context,BRACKET_FLAG_END_WHILE_NE,prevPos);
                 }
                 case "BREAK":{
-                    return new BracketDeclaration(programEnvironment,BRACKET_FLAG_BREAK,prevPos);
+                    return new BracketDeclaration(context,BRACKET_FLAG_BREAK,prevPos);
                 }
 
                 //Constants
                 case "RES":
-                    return new ArgPointer(programEnvironment,true);
+                    return new ArgPointer(context,true);
                 case "ARG_COUNT":
-                    return new ArgPointer(programEnvironment,false);
+                    return new ArgPointer(context,false);
                 case "I":
                     return I;
                 case "EXIT":
@@ -674,20 +674,20 @@ public class Translator {
                     writeValue(target, o);
                 }
             }
-        }else if(value instanceof Tuple){
-            int size=((Tuple) value).size();
-            if(size==0){
+        }else if(value instanceof Tuple&&((Tuple) value).isFullTuple()){
+            int length=((Tuple) value).length();
+            if(length==0){
                 target.write(new long[]{Constants.HEADER_CONSTANTS},0,Constants.HEADER_CONSTANTS_LENGTH);
                 target.writeBigInt(BigInteger.valueOf(CONSTANT_EMPTY_MAP),Constants.CONSTANTS_INT_HEADER
                         ,Constants.CONSTANTS_INT_BLOCK,Constants.CONSTANTS_INT_BIG_BLOCK);
             }else{
-                long replace=Operators.nAryReplacementId(Operators.NEW_TUPLE,size);
+                long replace=Operators.nAryReplacementId(Operators.NEW_TUPLE,length);
                 target.write(new long[]{HEADER_OPERATOR}, 0, HEADER_OPERATOR_LENGTH);
                 if(replace==-1) {
                     long id = Operators.idByName(Operators.NEW_TUPLE);
                     target.writeBigInt(BigInteger.valueOf(id), OPERATOR_INT_HEADER
                             , OPERATOR_INT_BLOCK, OPERATOR_INT_BIG_BLOCK);
-                    target.writeBigInt(BigInteger.valueOf(size - Operators.argCountById((int)id)), NARY_INT_HEADER
+                    target.writeBigInt(BigInteger.valueOf(length - Operators.argCountById((int)id)), NARY_INT_HEADER
                             , NARY_INT_BLOCK, NARY_INT_BIG_BLOCK);
                 }else{
                     target.writeBigInt(BigInteger.valueOf(replace), OPERATOR_INT_HEADER
@@ -776,17 +776,10 @@ public class Translator {
         if(value.isInt()){
             target.write(new long[]{HEADER_INT},0,HEADER_INT_LENGTH);
             target.writeBigInt(value.num(),INT_HEADER,INT_BLOCK,INT_BIG_BLOCK);
-        }else{
-            if(value.num().equals(BigInteger.ONE)){
-                target.write(new long[]{HEADER_OPERATOR}, 0, HEADER_OPERATOR_LENGTH);
-                target.writeBigInt(BigInteger.valueOf(Operators.idByName(Operators.INVERT)), OPERATOR_INT_HEADER, OPERATOR_INT_BLOCK, OPERATOR_INT_BIG_BLOCK);
-                target.write(new long[]{HEADER_INT},0,HEADER_INT_LENGTH);
-                target.writeBigInt(value.den(),INT_HEADER,INT_BLOCK,INT_BIG_BLOCK);
-            }else {
-                target.write(new long[]{HEADER_FRACTION},0,HEADER_FRACTION_LENGTH);
-                target.writeBigInt(value.num(),INT_HEADER,INT_BLOCK,INT_BIG_BLOCK);
-                target.writeBigInt(value.den().subtract(BigInteger.ONE),INT_HEADER,INT_BLOCK,INT_BIG_BLOCK);
-            }
+        }else{//invert int. -> 11bits   fraction[1]. -> 10 bits
+            target.write(new long[]{HEADER_FRACTION},0,HEADER_FRACTION_LENGTH);
+            target.writeBigInt(value.num().subtract(BigInteger.ONE),INT_HEADER,INT_BLOCK,INT_BIG_BLOCK);
+            target.writeBigInt(value.den().subtract(BIG_INT_TWO),INT_HEADER,INT_BLOCK,INT_BIG_BLOCK);
         }
     }
 

@@ -8,7 +8,7 @@ import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public final class FiniteSet implements MathObject,Iterable<MathObject>{
+public final class FiniteSet extends MathObject implements Iterable<MathObject>{
     final static public FiniteSet EMPTY_SET =new FiniteSet(Collections.emptySet());
     final static public FiniteSet PAIR_KEY = new FiniteSet(new HashSet<>(Arrays.asList(Real.Int.ZERO,Real.Int.ONE)));
 
@@ -126,8 +126,6 @@ public final class FiniteSet implements MathObject,Iterable<MathObject>{
     final TreeSet<MathObject> contents;
 
     FiniteSet(Set<MathObject> contents) {
-        if(contents.contains(null))
-            throw new NullPointerException("null cannot be an element of a MathSet");
         this.contents = new TreeSet<>(MathObject::compare);
         this.contents.addAll(contents);
     }
@@ -149,29 +147,34 @@ public final class FiniteSet implements MathObject,Iterable<MathObject>{
     public NumericValue numericValue() {
         return contents.isEmpty()?Real.Int.ZERO: contents.last().numericValue();
     }
-    public MathObject asMapIfPossible(){
-        TreeMap<MathObject,MathObject> objects=new TreeMap<>(MathObject::compare);
+
+    public  FiniteMap asMap(){
+        TreeMap<MathObject,TreeSet<MathObject>> entries=new TreeMap<>(MathObject::compare);
         for(MathObject e:contents){
-            if (!(e instanceof Tuple) || ((Tuple) e).size() != 2 ||
-                    objects.put(((Tuple) e).get(0), ((Tuple) e).get(1)) != null) {
-                        return this;
+            if (e instanceof Tuple&&((Tuple) e).length()>0) {
+                TreeSet<MathObject> prev=entries.get(((Tuple)e).get(0));
+                if(prev==null){
+                    prev=new TreeSet<>(MathObject::compare);
+                }
+                if(((Tuple) e).length()>2) {
+                    MathObject[] subTuple = new MathObject[((Tuple) e).length() - 1];
+                    for (int i = 0; i < subTuple.length; i++) {
+                        subTuple[i] = ((Tuple) e).get(i + 1);
+                    }
+                    prev.add(Tuple.create(subTuple));
+                }else{
+                    prev.add(((Tuple) e).get(1));
+                }
+                entries.put(((Tuple)e).get(0),prev);
             }
         }
-        return FiniteMap.from(objects);
-    }
-    public  FiniteMap asMap(){
+        //unwrap values
         TreeMap<MathObject,MathObject> objects=new TreeMap<>(MathObject::compare);
-        for(MathObject e:contents){
-            if (e instanceof Tuple) {
-                if(((Tuple) e).size()>2){
-                    MathObject[] keys=new MathObject[((Tuple) e).size()-1];
-                    int i=0;
-                    for(;i<keys.length;i++)
-                        keys[i]=((Tuple) e).get(i);
-                    objects.put(Tuple.create(keys),((Tuple) e).get(i));//TODO better handling of multiKeys
-                }else{
-                    objects.put(((Tuple) e).get(0),((Tuple) e).get(1));
-                }
+        for(Map.Entry<MathObject, TreeSet<MathObject>> e:entries.entrySet()){
+            if(e.getValue().size()==1){//unwrap single Element values
+                objects.put(e.getKey(),e.getValue().iterator().next());
+            }else{
+                objects.put(e.getKey(),FiniteSet.from(e.getValue()));
             }
         }
         return FiniteMap.from(objects);
@@ -192,14 +195,19 @@ public final class FiniteSet implements MathObject,Iterable<MathObject>{
 
 
     @Override
+    public String asString() {
+        StringBuilder sb=new StringBuilder();
+        for (MathObject e:this) {
+            sb.append(e.asString());
+        }
+        return sb.toString();
+    }
+
+    @Override
     public String intsAsString() {
         return toString(MathObject::intsAsString);
     }
 
-    @Override
-    public String toString() {
-        return toString(Constants.DEFAULT_BASE,true);
-    }
     @Override
     public String toString(BigInteger base, boolean useSmallBase) {
         return toString(o->o.toString(base,useSmallBase));

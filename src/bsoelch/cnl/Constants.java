@@ -318,11 +318,11 @@ public class Constants {
                 //3bit Operators
                 declareOperator(NEGATE,
                         new ExecutionInfo.Unary(MODIFY_ARG0_ROOT, MathObject::negate));
-                declareOperator(INVERT,
-                        new ExecutionInfo.Unary(MODIFY_ARG0_ROOT, MathObject::invert));
-                //7bit operators
                 declareOperator(NOT,
                         new ExecutionInfo.Unary(MODIFY_ARG0_ROOT, MathObject::not));
+                //7bit operators
+                declareOperator(INVERT,
+                        new ExecutionInfo.Unary(MODIFY_ARG0_ROOT, MathObject::invert));
                 declareOperator(EQUAL,
                         new ExecutionInfo.Binary(MODIFY_ARG0_NEVER,
                         (a,b)-> a.equals(b)? Real.Int.ONE:Real.Int.ZERO));
@@ -465,7 +465,7 @@ public class Constants {
                     declareOperator("AS_MATRIX",
                             new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
                                     Matrix::asMatrix));
-                    //Type Checking //TODO? smarter Type checking
+                    //Type Checking
                     declareOperator("IS_INTEGER",
                             new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
                                     o-> (o instanceof Real.Int?Real.Int.ONE:Real.Int.ZERO)));
@@ -475,15 +475,16 @@ public class Constants {
                     declareOperator("IS_SET",
                             new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
                                             o-> (o instanceof FiniteSet?Real.Int.ONE:Real.Int.ZERO)));
-                    declareOperator("IS_TUPLE",
-                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
-                                    o-> (o instanceof Tuple?Real.Int.ONE:Real.Int.ZERO)));
                     declareOperator("IS_MAP",
                             new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
                                     o-> (o instanceof FiniteMap?Real.Int.ONE:Real.Int.ZERO)));
+                    declareOperator("IS_TUPLE",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    o-> ((o instanceof FiniteMap&&((FiniteMap) o).isTuple())?Real.Int.ONE:Real.Int.ZERO)));
                     declareOperator("IS_MATRIX",
                             new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
-                                    o-> (o instanceof Matrix?Real.Int.ONE:Real.Int.ZERO)));
+                                    o-> ((o instanceof FullMatrix ||(o instanceof FiniteMap&&((FiniteMap) o).isMatrix()))
+                                            ?Real.Int.ONE:Real.Int.ZERO)));
                     //TODO size operator
                     //simple creators (nary creators in Nary section)
                     declareOperator(WRAP_IN_TUPLE,
@@ -500,10 +501,14 @@ public class Constants {
                             new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, (k,v)->FiniteMap.from(Collections.singletonMap(k,v))));
                     declareOperator("IDENTITY_MATRIX",
                             new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
-                                    (l)->Matrix.identityMatrix(l.numericValue().realPart().num().intValueExact())));
+                                    (l)-> Matrix.identityMatrix(l.numericValue().realPart().num().intValueExact())));
                     declareOperator("DIAGONAL_MATRIX",
                             new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
-                                    (l,v)->Matrix.diagonalMatrix(l.numericValue().realPart().num().intValueExact(),v.numericValue())));
+                                    (l,v)-> Matrix.diagonalMatrix(l.numericValue().realPart().num().intValueExact(),v.numericValue())));
+                    declareOperator("INT_RANGE",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    (l,u)->FiniteSet.range(l.numericValue().realPart().round(MathObject.FLOOR),
+                                            u.numericValue().realPart().round(MathObject.FLOOR))));
                     //TO_DIAGONAL_MATRIX    MathObject -> "row" -> diagonal
 
                     declareOperator(CUT,
@@ -535,6 +540,7 @@ public class Constants {
                     //CONTAINS
                     //CONTAINS_KEY
                 }
+                //TODO Matrix Operations
                 //Nary Operations
                 {
                     declareOperator("SUM",
@@ -600,7 +606,7 @@ public class Constants {
                                     FiniteSet::from, c -> c==1?WRAP_IN_SET:c==2?WRAP2_IN_SET:null, FiniteSet.EMPTY_SET));
                     declareOperator(NEW_TUPLE,
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3,
-                                    Tuple::create, c -> c==1?WRAP_IN_TUPLE:c == 2 ? NEW_PAIR : null, FiniteMap.EMPTY_MAP));
+                                    Tuple::create, c -> c==1?WRAP_IN_TUPLE:c == 2 ? NEW_PAIR : null, Tuple.EMPTY_MAP));
                     declareOperator(NEW_MAP,
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 4,
                                     (args)->{
@@ -613,7 +619,7 @@ public class Constants {
                                             }
                                         }
                                         return FiniteMap.from(map);
-                                    }, c -> c==2?SINGLETON_MAP:null, FiniteMap.EMPTY_MAP));
+                                    }, c -> c==2?SINGLETON_MAP:null, Tuple.EMPTY_MAP));
                     //NEW_MATRIX (Bi-Nary)
 
                     declareOperator("NARY_TIMES",
@@ -828,12 +834,24 @@ public class Constants {
                             }));
                     //FILE_WRITE_BIG_INT <path> <value> <header> <block> <bigBlock>
                     //FILE_TRUNCATE <path>
-                    declareOperator("FILE_TRUNCATE",
+                    declareOperator("FILE_0TRUNCATE",
                             new ExecutionInfo.Unary(MODIFY_ARG0_NEVER, (env, file) -> {
                                 try {
                                     String path = file.asString();
                                     BitRandomAccessStream file1 = env.fileAt(path);
-                                    file1.truncateToSize(true);//TODO fillMode
+                                    file1.truncateToSize(false);
+                                    return Real.from(file1.byteLength());
+                                } catch (IOException io) {
+                                    System.err.println('\n' + io.toString());
+                                    return Real.Int.NEGATIVE_ONE;
+                                }
+                            }));
+                    declareOperator("FILE_1TRUNCATE",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_NEVER, (env, file) -> {
+                                try {
+                                    String path = file.asString();
+                                    BitRandomAccessStream file1 = env.fileAt(path);
+                                    file1.truncateToSize(true);
                                     return Real.from(file1.byteLength());
                                 } catch (IOException io) {
                                     System.err.println('\n' + io.toString());

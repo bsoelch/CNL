@@ -1,103 +1,57 @@
 package bsoelch.cnl.math;
 
-import bsoelch.cnl.Constants;
-
 import java.math.BigInteger;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public interface FiniteMap extends MathObject {
-    Tuple EMPTY_MAP=new Tuple() {
-        @Override
-        public int size() {
-            return 0;
-        }
-        @Override
-        public MathObject get(int i) {
-            return Real.Int.ZERO;
-        }
-        @Override
-        public boolean isKey(MathObject key) {
-            return false;
-        }
-        @Override
-        public FiniteMap forEach(Function<MathObject, MathObject> f) {
-            return this;
-        }
-        @Override
-        public FiniteSet domain() {
-            return FiniteSet.EMPTY_SET;
-        }
-        @Override
-        public FiniteSet values() {
-            return FiniteSet.EMPTY_SET;
-        }
-        @Override
-        public MathObject evaluateAt(MathObject a) {
-            return Real.Int.ZERO;
-        }
-        @Override
-        public NumericValue numericValue() {
-            return Real.Int.ZERO;
-        }
-        @Override
-        public FiniteSet asSet() {
-            return FiniteSet.EMPTY_SET;
-        }
-        @Override
-        public boolean equals(Object obj) {
-            return obj instanceof FiniteMap&&((FiniteMap) obj).domain().size()==0;
-        }
-        @Override
-        public int hashCode() {
-            return 0;
-        }
-        @Override
-        public String toString() {
-            return "[]";
-        }
-        @Override
-        public String toString(BigInteger base, boolean useSmallBase) {
-            return toString();
-        }
-        @Override
-        public String toStringFixedPoint(BigInteger base, Real precision, boolean useSmallBase) {
-            return toString();
-        }
-        @Override
-        public String toStringFloat(BigInteger base, Real precision, boolean useSmallBase) {
-            return toString();
-        }
-    };
-
-    int size();
-
-    FiniteMap forEach(Function<MathObject, MathObject> f);
-
-    static FiniteMap from(Map<MathObject,MathObject> map){
+public abstract class FiniteMap extends MathObject {
+    FiniteMap(){}//package private constructor
+    public static FiniteMap from(Map<MathObject,MathObject> mapData){
+        //copy data to TreeMap
+        TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
+        map.putAll(mapData);
+        //remove zero-entries as all nonexistent entries are mapped to 0 by default
+        map.entrySet().removeIf(e->e.getValue().equals(Real.Int.ZERO));
+        //TODO adjust Tuple sizes respecting elements with value zero
         if(map.isEmpty()){
-            return FiniteMap.EMPTY_MAP;
+            return Tuple.EMPTY_MAP;
         }else{
             boolean isTuple=true;
-            for(int i = 0; i<map.size(); i++){
-                if(!map.containsKey(Real.from(i))){
+            BigInteger length=null;
+            for(MathObject k:map.keySet()){
+                if(k instanceof Real.Int&&((Real.Int) k).num().signum()>=0){
+                    length=length==null?((Real.Int) k).num():length.max(((Real.Int) k).num());
+                }else{
                     isTuple=false;
                     break;
                 }
             }
             if(isTuple){//tuple detection
-                MathObject[] tupleData=new MathObject[map.size()];
-                for(int i = 0; i<map.size(); i++){
-                    tupleData[i]=map.get(Real.from(i));
-                }
-                return Tuple.create(tupleData);
+                return createTuple(map, length==null?BigInteger.ZERO:length.add(BigInteger.ONE));
             }else {
                 return new FiniteMapImpl(map);
             }
         }
     }
-    static FiniteMap forEach(FiniteMap m1, FiniteMap m2, BiFunction<MathObject, MathObject, MathObject> f) {
+
+    /**creates a Tuple of the given length from the supplied map<br>
+     * !!! this method does not preform any checks on the data in the map!!! */
+    static Tuple createTuple(Map<MathObject, MathObject> map, BigInteger length) {
+        if(length.compareTo(BigInteger.valueOf(Tuple.SPARSE_FACTOR* map.size()))<0){
+            MathObject[] tupleData=new MathObject[length.intValueExact()];
+            for(int i = 0; i< tupleData.length; i++){
+                tupleData[i]= map.get(Real.from(i));
+                if(tupleData[i]==null)
+                    tupleData[i]=Real.Int.ZERO;
+            }
+            return Tuple.create(tupleData);
+        }else{//sparse Tuples
+            return new Tuple.SparseTuple(new FiniteMapImpl(map),length);
+        }
+    }
+
+    public static FiniteMap forEach(FiniteMap m1, FiniteMap m2, BiFunction<MathObject, MathObject, MathObject> f) {
         TreeMap<MathObject,MathObject> entries=new TreeMap<>(MathObject::compare);
         for (Iterator<Pair> it = m1.mapIterator(); it.hasNext(); ) {
             Pair p = it.next();
@@ -116,14 +70,14 @@ public interface FiniteMap extends MathObject {
         return from(entries);
     }
 
-    static FiniteMap indicatorMap(FiniteSet s) {
+    public static FiniteMap indicatorMap(FiniteSet s) {
         return constantMap(s,Real.Int.ONE);
     }
-    static FiniteMap constantMap(FiniteSet keys, MathObject o) {
-        return new FiniteMap() {
+    public static FiniteMap constantMap(FiniteSet keys, MathObject value) {
+        return value.equals(Real.Int.ZERO)?Tuple.EMPTY_MAP:new FiniteMap() {
             @Override
             public FiniteMap forEach(Function<MathObject, MathObject> f) {
-                return constantMap(keys,f.apply(o));
+                return constantMap(keys,f.apply(value));
             }
 
             @Override
@@ -137,23 +91,35 @@ public interface FiniteMap extends MathObject {
             }
             @Override
             public FiniteSet values() {
-                return FiniteSet.from(o);
+                return FiniteSet.from(value);
             }
             @Override
             public MathObject evaluateAt(MathObject a) {
                 if(keys.contains(a))
-                    return o;
+                    return value;
                 else
                     return Real.Int.ZERO;
             }
             @Override
             public NumericValue numericValue() {
-                return o.numericValue();
+                return value.numericValue();
             }
 
             @Override
-            public String toString() {
-                return toString(Constants.DEFAULT_BASE,true);
+            public boolean isTuple() {
+                for(MathObject o:keys){
+                    if(!(o instanceof Real.Int&&((Real.Int) o).num().signum()>=0))
+                        return false;
+                }
+                return true;
+            }
+            @Override
+            public boolean isMatrix() {
+                return isTuple()&&value instanceof FiniteMap&&((FiniteMap) value).isNumericTuple();
+            }
+            @Override
+            public boolean isNumericTuple() {
+                return isTuple()&&value instanceof NumericValue;
             }
 
             @Override
@@ -178,14 +144,54 @@ public interface FiniteMap extends MathObject {
                 return sb.append('}').toString();
             }
 
+            @Override
+            public int hashCode() {
+                int hash=0;
+                for (MathObject k:keys) {
+                    hash+=Objects.hash(k,value);
+                }
+                return hash;
+            }
         };
     }
 
-    FiniteSet domain();
+    @Override
+    public String asString() {
+        StringBuilder sb=new StringBuilder();
+        for (Iterator<MathObject> it = valueIterator(); it.hasNext(); ) {
+            MathObject e = it.next();
+            sb.append(e.asString());
+        }
+        return sb.toString();
+    }
 
-    FiniteSet values();
+    @Override
+    public boolean equals(Object o) {
+        if(o==this)
+            return true;
+        if(o instanceof FiniteMap){
+            Iterator<Pair> itr1= mapIterator();
+            Iterator<Pair> itr2= ((FiniteMap) o).mapIterator();
+            while(itr1.hasNext()&&itr2.hasNext()){
+                if(!itr1.next().equals(itr2.next()))
+                    return false;
+            }
+            return !(itr1.hasNext()||itr2.hasNext());
+        }else{
+            return false;
+        }
+    }
 
-    default FiniteSet asSet() {
+    /**Number of (non-zero) values in this map*/
+    public abstract int size();
+
+    public abstract FiniteMap forEach(Function<MathObject, MathObject> f);
+
+    public abstract FiniteSet domain();
+
+    public abstract FiniteSet values();
+
+    public FiniteSet asSet() {
         TreeSet<MathObject> pairs=new TreeSet<>(MathObject::compare);
         for (Iterator<Pair> it = mapIterator(); it.hasNext(); ) {
             Pair p = it.next();
@@ -194,23 +200,54 @@ public interface FiniteMap extends MathObject {
         return FiniteSet.from(pairs);
     }
 
-    default Iterator<Pair> mapIterator(){
+    /**Iterator over the key-value pairs (with non-zero value) in this map*/
+    public Iterator<Pair> mapIterator(){
         return new Iterator<Pair>() {
             final Iterator<MathObject> keyItr=domain().iterator();
+            Pair nextEntry=nextEntry();
+
+            private Pair nextEntry() {
+                nextEntry=null;
+                while (nextEntry==null&&keyItr.hasNext()) {
+                    MathObject next = keyItr.next();
+                    Pair p = new Pair(next, evaluateAt(next));
+                    if(!p.b.equals(Real.Int.ZERO)){
+                        nextEntry=p;
+                        break;
+                    }
+                }
+                return nextEntry;
+            }
+
             @Override
             public boolean hasNext() {
-                return keyItr.hasNext();
+                return nextEntry!=null;
             }
             @Override
             public Pair next() {
-                MathObject next = keyItr.next();
-                return new Pair(next,evaluateAt(next));
+                Pair ret=nextEntry;
+                nextEntry=nextEntry();
+                return ret;
+            }
+        };
+    }
+    /**Iterator over the non-zero values in this map*/
+    public Iterator<MathObject> valueIterator(){
+        return new Iterator<MathObject>() {
+            final Iterator<Pair> mapItr=mapIterator();
+            @Override
+            public boolean hasNext() {
+                return mapItr.hasNext();
+            }
+            @Override
+            public MathObject next() {
+                return mapItr.next().b;
             }
         };
     }
 
     @Override
-    default String intsAsString(){
+    public String intsAsString(){
         StringBuilder sb=new StringBuilder("{");
         for (Iterator<Pair> it = mapIterator(); it.hasNext(); ) {
             Pair e = it.next();
@@ -222,10 +259,20 @@ public interface FiniteMap extends MathObject {
         return sb.append('}').toString();
     }
 
-    default boolean isKey(MathObject key) {
+    public boolean isKey(MathObject key) {
         return domain().contains(key);
     }
 
-    MathObject evaluateAt(MathObject a);
+    /**true is this Map is a (sparse) Matrix
+     * i.e all Keys are non-negative integers and all
+     * Values are mapping non-negative Integers to NumericValues*/
+    public abstract boolean isMatrix();
+    /**true is this Map is a (sparse) Tuple and all Values are NumericValues*/
+    public abstract boolean isNumericTuple();
+    /**true is this Map is a (sparse) Tuple
+     * i.e all Keys are non-negative integers*/
+    public abstract boolean isTuple();
+
+    public abstract MathObject evaluateAt(MathObject a);
 
 }

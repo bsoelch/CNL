@@ -192,8 +192,8 @@ public class Main {
                     }else {
                         MathObject value = MathObject.FromString.fromString(argString.toString(), Constants.DEFAULT_BASE);
                         if (value instanceof Tuple) {
-                            programArgs = new MathObject[((Tuple) value).size()];
-                            for(int p=0;p<((Tuple) value).size();p++){
+                            programArgs = new MathObject[((Tuple) value).length()];
+                            for(int p=0;p<((Tuple) value).length();p++){
                                 programArgs[p]=((Tuple) value).get(p);
                             }
                         } else {

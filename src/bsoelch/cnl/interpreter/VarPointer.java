@@ -13,12 +13,12 @@ import java.math.BigInteger;
 import static bsoelch.cnl.Constants.*;
 
 class VarPointer implements ValuePointer {
-    private final ProgramEnvironment myEnv;
+    private final Context myEnv;
     private MathObject varId;
     private final boolean isStatic;
     private boolean active = true;
 
-    VarPointer(ProgramEnvironment env, @Nullable MathObject id) {
+    VarPointer(Context env, @Nullable MathObject id) {
         myEnv = env;
         this.varId = id;
         isStatic = (id != null);

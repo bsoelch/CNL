@@ -1,15 +1,14 @@
 package bsoelch.cnl.math;
 
-import bsoelch.cnl.Constants;
-
 import java.math.BigInteger;
 import java.util.*;
 import java.util.function.Function;
 
-public class FiniteMapImpl implements FiniteMap {
+public final class FiniteMapImpl extends FiniteMap {
     final TreeMap<MathObject, MathObject> map;
 
-    protected FiniteMapImpl(Map<MathObject, MathObject> map) {
+    /**constructor of FiniteMapImpl, this method should only be called from {@link FiniteMap#from(Map)}*/
+    FiniteMapImpl(Map<MathObject, MathObject> map) {
         this.map=new TreeMap<>(map);
     }
 
@@ -36,14 +35,29 @@ public class FiniteMapImpl implements FiniteMap {
     public Iterator<Pair> mapIterator() {
         return new Iterator<Pair>() {
             final Iterator<Map.Entry<MathObject, MathObject>> mapItr=map.entrySet().iterator();
+            Pair nextEntry=nextEntry();
+            private Pair nextEntry() {
+                nextEntry=null;
+                while (nextEntry==null&&mapItr.hasNext()) {
+                    Map.Entry<MathObject, MathObject> next = mapItr.next();
+                    Pair p = new Pair(next.getKey(),next.getValue());
+                    if(!p.b.equals(Real.Int.ZERO)){
+                        nextEntry=p;
+                        break;
+                    }
+                }
+                return nextEntry;
+            }
+
             @Override
             public boolean hasNext() {
-                return mapItr.hasNext();
+                return nextEntry!=null;
             }
             @Override
             public Pair next() {
-                Map.Entry<MathObject, MathObject> e=mapItr.next();
-                return new Pair(e.getKey(),e.getValue());
+                Pair ret=nextEntry;
+                nextEntry=nextEntry();
+                return ret;
             }
         };
     }
@@ -55,10 +69,40 @@ public class FiniteMapImpl implements FiniteMap {
         return map.firstEntry().getValue().numericValue();
     }
 
+    @Override
+    public boolean isTuple() {
+        for(Map.Entry<MathObject, MathObject> e:map.entrySet()){
+            if(!(e.getKey() instanceof Real.Int&&((Real.Int) e.getKey()).num().signum()>=0))
+                return false;
+        }
+        return true;
+    }
+    @Override
+    public boolean isNumericTuple() {
+        for(Map.Entry<MathObject, MathObject> e:map.entrySet()){
+            if(!(e.getKey() instanceof Real.Int&&((Real.Int) e.getKey()).num().signum()>=0))
+                return false;
+            if(!(e.getValue() instanceof NumericValue))
+                return false;
+        }
+        return true;
+    }
+    @Override
+    public boolean isMatrix() {
+        for(Map.Entry<MathObject, MathObject> e:map.entrySet()){
+            if(!(e.getKey() instanceof Real.Int&&((Real.Int) e.getKey()).num().signum()>=0))
+                return false;
+            if(!(e.getValue() instanceof FiniteMap&&((FiniteMap) e.getValue()).isNumericTuple()))
+                return false;
+        }
+        return true;
+    }
+
 
     @Override
-    public final MathObject evaluateAt(MathObject a) {
-        return map.get(a);
+    public MathObject evaluateAt(MathObject a) {
+        MathObject o=map.get(a);
+        return o==null?Real.Int.ZERO:o;
     }
 
     @Override
@@ -78,13 +122,7 @@ public class FiniteMapImpl implements FiniteMap {
             FiniteMapImpl that = (FiniteMapImpl) o;
             return Objects.equals(map, that.map);
         }else{
-            Iterator<Pair> itr1= mapIterator();
-            Iterator<Pair> itr2= ((FiniteMap) o).mapIterator();
-            while(itr1.hasNext()&&itr2.hasNext()){
-                if(!itr1.next().equals(itr2.next()))
-                    return false;
-            }
-            return !(itr1.hasNext()||itr2.hasNext());
+            return super.equals(o);
         }
     }
 
@@ -97,11 +135,6 @@ public class FiniteMapImpl implements FiniteMap {
         return hash;
     }
 
-
-    @Override
-    public String toString() {
-        return toString(Constants.DEFAULT_BASE,true);
-    }
     @Override
     public String toString(BigInteger base, boolean useSmallBase) {
         return toString(o->o.toString(base,useSmallBase));

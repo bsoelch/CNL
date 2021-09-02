@@ -12,8 +12,7 @@ import static bsoelch.cnl.Constants.*;
 /**Real number, ist {@link Int} oder {@link Fraction}*/
 public abstract class Real extends NumericValue {
 
-    Real() {
-    }//package private Constructor
+    Real() {}//package private Constructor
 
 
     static final String DIGITS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" +
@@ -251,7 +250,7 @@ public abstract class Real extends NumericValue {
 
     public abstract Real invert();
 
-    abstract public Real round(int mode);
+    abstract public Int round(int mode);
 
     public abstract Real approx(Real precision);
 
@@ -412,7 +411,7 @@ public abstract class Real extends NumericValue {
         }
 
         public boolean isInt() {
-            return b.equals(BigInteger.ONE);
+            return a.signum()==0||b.equals(BigInteger.ONE);
         }
 
         @Override

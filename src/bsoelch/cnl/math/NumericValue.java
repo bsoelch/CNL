@@ -5,7 +5,7 @@ import bsoelch.cnl.Constants;
 import java.math.BigInteger;
 
 /**{@link MathObject} representing a number has to be either a {@link Real} or a {@link Complex}*/
-public abstract class NumericValue implements MathObject,Comparable<NumericValue> {
+public abstract class NumericValue extends MathObject implements Comparable<NumericValue> {
     NumericValue(){}//package private constructor
 
     /**@return true iff all Real's in this Scalar are Integers*/
@@ -36,14 +36,7 @@ public abstract class NumericValue implements MathObject,Comparable<NumericValue
     /**simplified approximation of this NumbericValue with an error of at most precision*/
     public abstract NumericValue approx(Real precision);
 
-    @Override
-    public String toString() {
-        return toString(Constants.DEFAULT_BASE, true);
-    }
-
-
-
-    static public NumericValue add(NumericValue a, NumericValue b){
+    public static NumericValue add(NumericValue a, NumericValue b){
         if(a instanceof Real){
             if(b instanceof Real){
                 return Real.add((Real)a,(Real)b);
@@ -65,7 +58,7 @@ public abstract class NumericValue implements MathObject,Comparable<NumericValue
         }
     }
 
-    static public NumericValue subtract(NumericValue a, NumericValue b){
+    public static NumericValue subtract(NumericValue a, NumericValue b){
         if(a instanceof Real){
             if(b instanceof Real){
                 return Real.subtract((Real)a,(Real)b);
@@ -87,7 +80,7 @@ public abstract class NumericValue implements MathObject,Comparable<NumericValue
         }
     }
 
-    static public NumericValue multiply(NumericValue a, NumericValue b){
+    public static NumericValue multiply(NumericValue a, NumericValue b){
         if(a instanceof Real){
             if(b instanceof Real){
                 return Real.multiply((Real)a,(Real)b);
@@ -110,7 +103,7 @@ public abstract class NumericValue implements MathObject,Comparable<NumericValue
         }
     }
 
-    static public NumericValue divide(NumericValue a, NumericValue b){
+    public static NumericValue divide(NumericValue a, NumericValue b){
         if(a instanceof Real){
             if(b instanceof Real){
                 return Real.divide((Real)a,(Real)b);

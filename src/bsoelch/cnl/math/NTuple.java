@@ -1,17 +1,23 @@
 package bsoelch.cnl.math;
 
-import bsoelch.cnl.Constants;
 
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.Function;
 
-final class NTuple implements Tuple{
+final class NTuple extends Tuple{
     final MathObject[] objects;
+    final int nonZeros;
 
     NTuple(MathObject[] objects) {
         this.objects = objects;
+        int nz=0;
+        for(MathObject o:objects) {
+            if (!o.equals(Real.Int.ZERO))
+                nz++;
+        }
+        nonZeros=nz;
     }
 
     @Override
@@ -19,13 +25,17 @@ final class NTuple implements Tuple{
         return objects.length>0?objects[0].numericValue():Real.Int.ZERO;
     }
 
-    public int size(){
+    @Override
+    public int size() {
+        return nonZeros;
+    }
+    public int length(){
         return objects.length;
     }
 
     public MathObject get(int i){
         if(i<0||i>=objects.length)
-            throw new IndexOutOfBoundsException("Index out of Bounds:"+i+" size:"+objects.length);
+            return Real.Int.ZERO;
         return objects[i];
     }
 
@@ -64,34 +74,18 @@ final class NTuple implements Tuple{
                 return objects[value.intValueExact()];
             }
         }
-        throw new IndexOutOfBoundsException(a+" is no Element of the Domain of this Function");
+        return Real.Int.ZERO;
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof FiniteMap)) return false;
-        if(o instanceof Tuple) {
-            if (size() != ((Tuple) o).size())
-                return false;
-            if (o instanceof NTuple) {
-                NTuple nTuple = (NTuple) o;
-                return Arrays.equals(objects, nTuple.objects);
-            } else {
-                for (int i = 0; i < objects.length; i++) {
-                    if (!objects[i].equals(((Tuple) o).get(i)))
-                        return false;
-                }
-                return true;
-            }
-        }else if(((FiniteMap) o).domain().equals(domain())){
-            for (int i = 0; i < objects.length; i++) {
-                if (!objects[i].equals(((FiniteMap) o).evaluateAt(Real.from(i))))
-                    return false;
-            }
-            return true;
+        if(o instanceof NTuple&&((NTuple) o).length()==length()) {
+            NTuple nTuple = (NTuple) o;
+            return Arrays.equals(objects, nTuple.objects);
         }else {
-            return false;
+            return super.equals(o);
         }
     }
 
@@ -99,15 +93,13 @@ final class NTuple implements Tuple{
     public int hashCode() {
         int hash=0;
         for (int i=0;i<objects.length;i++ ) {
-            hash+= Objects.hash(Real.from(i),objects[i]);
+            if(!objects[i].equals(Real.Int.ZERO)) {
+                hash += Objects.hash(Real.from(i), objects[i]);
+            }
         }
         return hash;
     }
 
-    @Override
-    public String toString() {
-        return toString(Constants.DEFAULT_BASE,true);
-    }
     @Override
     public String toString(BigInteger base, boolean useSmallBase) {
         return toString(o->o.toString(base,useSmallBase));

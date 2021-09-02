@@ -10,10 +10,10 @@ import java.math.BigInteger;
 
 /**Code action the either points to an Function/Program Argument or to RES or ARG_COUNT*/
 public class ArgPointer implements ValuePointer {
-    private final ProgramEnvironment env;
+    private final Context env;
     private final BigInteger id;
 
-    public ArgPointer(ProgramEnvironment env, BigInteger id) {
+    public ArgPointer(Context env, BigInteger id) {
         this.env = env;
         this.id = id;
         if(id.compareTo(BigInteger.ZERO)<0||id.compareTo(env.argCount().num())>=0){
@@ -21,7 +21,7 @@ public class ArgPointer implements ValuePointer {
         }
     }
     /**ArgPointer to ARG_COUNT and RES*/
-    public ArgPointer(ProgramEnvironment env, boolean res) {
+    public ArgPointer(Context env, boolean res) {
         this.env = env;
         this.id = res?BigInteger.valueOf(-2): Constants.BIG_INT_NEG_ONE;
     }

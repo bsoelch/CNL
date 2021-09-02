@@ -1,12 +1,10 @@
 package bsoelch.cnl.math;
 
-import bsoelch.cnl.Constants;
-
 import java.math.BigInteger;
 import java.util.Objects;
 import java.util.function.Function;
 
-public final class Pair implements Tuple{
+public final class Pair extends Tuple{
     public final MathObject a,b;
 
     public Pair(MathObject a, MathObject b) {
@@ -41,11 +39,16 @@ public final class Pair implements Tuple{
             return this.a;
         if(a.equals(Real.Int.ONE))
             return this.b;
-        throw new IllegalArgumentException(a+" is not an Element of the domain of this Function");
+        return Real.Int.ZERO;
     }
 
     @Override
     public int size() {
+        return (a.equals(Real.Int.ZERO)?0:1)+(b.equals(Real.Int.ZERO)?0:1);
+    }
+
+    @Override
+    public int length() {
         return 2;
     }
 
@@ -55,7 +58,7 @@ public final class Pair implements Tuple{
             return this.a;
         if(i==1)
             return this.b;
-        throw new IndexOutOfBoundsException("Index out of Bounds: "+i+" size: 2");
+        return Real.Int.ZERO;
     }
 
     @Override
@@ -70,19 +73,17 @@ public final class Pair implements Tuple{
         if(o instanceof Pair){
             Pair pair = (Pair) o;
             return Objects.equals(a, pair.a) && Objects.equals(b, pair.b);
-        }else if(o instanceof Tuple){
-            return ((Tuple) o).size()==2&&Objects.equals(a, ((Tuple) o).get(0)) && Objects.equals(b,((Tuple) o).get(1));
-        }else{
-            FiniteMap f=(FiniteMap) o;
-            if(!f.domain().equals(FiniteSet.PAIR_KEY))
-                return false;
-            return a.equals(f.evaluateAt(Real.Int.ZERO))&&b.equals(f.evaluateAt(Real.Int.ONE));
+        }else if(o instanceof Tuple&&((Tuple) o).length()==2){
+            return Objects.equals(a, ((Tuple) o).get(0)) && Objects.equals(b,((Tuple) o).get(1));
+        }else {
+            return super.equals(o);
         }
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(Real.Int.ZERO,a)+Objects.hash(Real.Int.ONE,b);
+        return (a.equals(Real.Int.ZERO)?0:Objects.hash(Real.Int.ZERO,a))+
+                (b.equals(Real.Int.ZERO)?0:Objects.hash(Real.Int.ONE,b));
     }
 
     @Override
@@ -98,10 +99,5 @@ public final class Pair implements Tuple{
     public String toStringFloat(BigInteger base, Real precision, boolean useSmallBase) {
         return "["+a.toStringFloat(base,precision, useSmallBase)+", "+
                 b.toStringFloat(base,precision, useSmallBase)+"]";
-    }
-
-    @Override
-    public String toString() {
-        return toString(Constants.DEFAULT_BASE,true);
     }
 }

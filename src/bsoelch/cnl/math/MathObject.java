@@ -9,36 +9,46 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 
 /**Root of all MathObjects*/
-public interface MathObject {
-    int FLOOR = -1;
-    int ROUND = 0;
-    int CIEL = 1;
+public abstract class MathObject {
+    MathObject(){}//package private constructor
 
-    NumericValue numericValue();
+    public static int FLOOR = -1;
+    public static int ROUND = 0;
+    public static int CIEL = 1;
 
-    String toString(BigInteger base, boolean useSmallBase);
-    String toStringFixedPoint(BigInteger base, Real precision, boolean useSmallBase);
-    String toStringFloat(BigInteger base, Real precision, boolean useSmallBase);
+    public abstract NumericValue numericValue();
+
+    public abstract String toString(BigInteger base, boolean useSmallBase);
+    public abstract String toStringFixedPoint(BigInteger base, Real precision, boolean useSmallBase);
+    public abstract String toStringFloat(BigInteger base, Real precision, boolean useSmallBase);
 
     /**String representing this Object*/
-    default String asString(){//TODO? better implementation (concat partial strings)
-        return numericValue().asString();
+    public abstract String asString();
+    /**String representation of this if all ints are replaced with their String-value*/
+    public abstract String intsAsString();
+
+    @Override
+    public String toString() {
+        return toString(Constants.DEFAULT_BASE,true);
     }
-    String intsAsString();
+    //all MathObject have to Override equals and hashCOde
+    /**{@inheritDoc}*/
+    abstract public boolean equals(Object o);
+    /**{@inheritDoc}*/
+    abstract public int hashCode();
 
-
-    static MathObject not(MathObject o) {//TODO? elementwise not
+    public static MathObject not(MathObject o) {//TODO? elementwise not
         return isTrue(o)?Real.Int.ZERO:Real.Int.ONE;
     }
 
     /**@return the boolean value of the supplied MathObject,
      * the only objects resulting in false are 0, empty sets and empty maps/tuples */
-    static boolean isTrue(MathObject arg) {
+    public static boolean isTrue(MathObject arg) {
         return !(arg.equals(Real.Int.ZERO)||arg.equals(FiniteSet.EMPTY_SET)
-                ||arg.equals(FiniteMap.EMPTY_MAP));
+                ||arg.equals(Tuple.EMPTY_MAP));
     }
 
-    static FiniteSet asSet(MathObject o){
+    public static FiniteSet asSet(MathObject o){
         if(o instanceof NumericValue){
             return FiniteSet.from(o);
         }else if(o instanceof Matrix){
@@ -51,7 +61,7 @@ public interface MathObject {
             throw new IllegalArgumentException("Unexpected MathObject:"+o.getClass());
         }
     }
-    static FiniteMap asMap(MathObject o){
+    public static FiniteMap asMap(MathObject o){
         if(o instanceof NumericValue){
             return Tuple.create(new MathObject[]{o});
         }else if(o instanceof Matrix){
@@ -82,7 +92,7 @@ public interface MathObject {
             if(r instanceof NumericValue){
                 return ((Matrix) l).applyToAll(e->scalarOperation.apply(e,(NumericValue)r));
             }else if(r instanceof Matrix){
-                return ((Matrix) l).forEach((Matrix) r,scalarOperation);
+                return Matrix.forEach((Matrix) l,(Matrix) r,scalarOperation);
             }else if(r instanceof FiniteSet){
                 return FiniteSet.forEach((FiniteSet) r, o->elementWise(l,o,scalarOperation));
             }else if(r instanceof FiniteMap){
@@ -127,7 +137,7 @@ public interface MathObject {
             throw new IllegalArgumentException("Unexpected MathObject:"+o.getClass());
         }
     }
-    static MathObject nAryReduce(MathObject[] objects, MathObject nilaryValue, BinaryOperator<MathObject> reduce){
+    public static MathObject nAryReduce(MathObject[] objects, MathObject nilaryValue, BinaryOperator<MathObject> reduce){
         if(objects.length==0) {
             return nilaryValue;
         }else if(objects.length==1) {
@@ -140,7 +150,7 @@ public interface MathObject {
             return ret;
         }
     }
-    static NumericValue deepNAryReduce(MathObject[] objects, NumericValue nilaryValue, BinaryOperator<NumericValue> reduce){
+    public static NumericValue deepNAryReduce(MathObject[] objects, NumericValue nilaryValue, BinaryOperator<NumericValue> reduce){
         if(objects.length==0) {
             return nilaryValue;
         }else if(objects.length==1) {
@@ -148,7 +158,8 @@ public interface MathObject {
                 return (NumericValue)objects[0];
             }else if(objects[0] instanceof Matrix){
                 NumericValue tmp=null;
-                for(NumericValue o:((Matrix) objects[0])){
+                for (Iterator<NumericValue> it = ((Matrix) objects[0]).sparseIterator(); it.hasNext();) {
+                    NumericValue o = it.next();
                     if(tmp==null){
                         tmp=o;
                     }else{
@@ -195,35 +206,36 @@ public interface MathObject {
         }
     }
 
-    static MathObject add(MathObject l, MathObject r) {
+    public static MathObject add(MathObject l, MathObject r) {
         return elementWise(l,r, NumericValue::add);
     }
-    static MathObject subtract(MathObject l, MathObject r) {
+    public static MathObject subtract(MathObject l, MathObject r) {
         return elementWise(l,r, NumericValue::subtract);
     }
-    static MathObject negate(MathObject o) {
-        return elementWise(o, NumericValue::negate);
+    public static MathObject negate(MathObject o) {
+        return elementWise(o, e->e.negate());
     }
-    static MathObject realPart(MathObject o) {
-        return elementWise(o, NumericValue::realPart);
+    public static MathObject realPart(MathObject o) {
+        return elementWise(o, e->e.realPart());
     }
-    static MathObject imaginaryPart(MathObject o) {
-        return elementWise(o, NumericValue::imaginaryPart);
+    public static MathObject imaginaryPart(MathObject o) {
+        return elementWise(o, e->e.imaginaryPart());
     }
-    static MathObject conjugate(MathObject o) {
-        return elementWise(o, NumericValue::conjugate);
+    public static MathObject conjugate(MathObject o) {
+        return elementWise(o, e->e.conjugate());
     }
 
-    static MathObject multiply(MathObject l, MathObject r) {
+    public static MathObject multiply(MathObject l, MathObject r) {
         return elementWise(l,r, NumericValue::multiply);
     }
 
-    static Real sqAbs(MathObject o) {
+    public static Real sqAbs(MathObject o) {
         if(o instanceof NumericValue){
             return ((NumericValue) o).sqAbs();
         }else if(o instanceof Matrix){
             Real sqAbs=Real.Int.ZERO;
-            for(NumericValue e:(Matrix)o){
+            for (Iterator<NumericValue> it = ((Matrix) o).sparseIterator(); it.hasNext();) {
+                NumericValue e = it.next();
                 sqAbs=Real.add(sqAbs,e.sqAbs());
             }
             return sqAbs;
@@ -235,7 +247,7 @@ public interface MathObject {
             return sqAbs;
         }else if(o instanceof FiniteMap){
             Real sqAbs=Real.Int.ZERO;
-            for (Iterator<Pair> it = ((FiniteMap) o).mapIterator(); it.hasNext(); ) {
+            for (Iterator<MathObject> it = ((FiniteMap) o).valueIterator(); it.hasNext(); ) {
                 MathObject e = it.next();
                 sqAbs=Real.add(sqAbs,sqAbs(e));
             }
@@ -245,37 +257,37 @@ public interface MathObject {
         }
     }
 
-    static MathObject invert(MathObject o) {
-        return elementWise(o, NumericValue::invert);
+    public static MathObject invert(MathObject o) {
+        return elementWise(o, e->e.invert());
     }
 
-    static MathObject divide(MathObject l, MathObject r) {
+    public static MathObject divide(MathObject l, MathObject r) {
         return elementWise(l,r, NumericValue::divide);
     }
 
-    static MathObject mod(MathObject l, MathObject r) {
+    public static MathObject mod(MathObject l, MathObject r) {
         return elementWise(l,r, NumericValue::mod);
     }
-    static MathObject pow(MathObject l, MathObject r) {
+    public static MathObject pow(MathObject l, MathObject r) {
         return elementWise(l,r, NumericValue::pow);
     }
-    static MathObject round(MathObject o, int mode) {
+    public static MathObject round(MathObject o, int mode) {
         return elementWise(o,e->e.round(mode));
     }
-    static MathObject approximate(MathObject o, Real precision) {
+    public static MathObject approximate(MathObject o, Real precision) {
         return elementWise(o,e->e.approx(precision));
     }
 
-    static MathObject floorAnd(MathObject l, MathObject r) {
+    public static MathObject floorAnd(MathObject l, MathObject r) {
         return elementWise(l,r, NumericValue::floorAnd);
     }
-    static MathObject floorOr(MathObject l, MathObject r) {
+    public static MathObject floorOr(MathObject l, MathObject r) {
         return elementWise(l,r, NumericValue::floorOr);
     }
-    static MathObject floorXor(MathObject l, MathObject r) {
+    public static MathObject floorXor(MathObject l, MathObject r) {
         return elementWise(l,r, NumericValue::floorXor);
     }
-    static MathObject floorAndNot(MathObject l, MathObject r) {
+    public static MathObject floorAndNot(MathObject l, MathObject r) {
         return elementWise(l,r, NumericValue::floorAndNot);
     }
 
@@ -283,44 +295,44 @@ public interface MathObject {
      * @param r right operand (maps will be converted to their set representation)
      * @param setOp operation that is aplied to sets
      * @param atomicOperation operation that is applied to Matrices and NumericValues
-     * @param rewrapMaps if this value if true the program tries
+     * @param unwrapMaps if this value if true the program tries
      *                    to convert the result to a map if one of the arguments was a map
      * */
     static MathObject setOperation(MathObject l, MathObject r,
                                    BinaryOperator<FiniteSet> setOp,
-                                   BinaryOperator<MathObject> atomicOperation, boolean rewrapMaps){
-        if(l instanceof NumericValue||l instanceof Matrix){
-            if(r instanceof NumericValue||r instanceof Matrix){
+                                   BinaryOperator<MathObject> atomicOperation, boolean unwrapMaps){
+        if(l instanceof NumericValue||l instanceof Matrix||((!unwrapMaps)&&(l instanceof FiniteMap))){
+            if(r instanceof NumericValue||r instanceof Matrix||((!unwrapMaps)&&(r instanceof FiniteMap))){
                 return atomicOperation.apply(l,r);
             }else if(r instanceof FiniteSet){
                 return setOp.apply(FiniteSet.from(l),(FiniteSet) r);
             }else if(r instanceof FiniteMap){
-                FiniteSet set = setOp.apply(FiniteSet.from(l), ((FiniteMap) r).asSet());
-                return rewrapMaps?set.asMapIfPossible():set;
+                FiniteSet set = setOp.apply(FiniteMap.indicatorMap(FiniteSet.from(l)).asSet(), ((FiniteMap) r).asSet());
+                return set.asMap();
             }else{
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
         }else if(l instanceof FiniteSet){
-            if(r instanceof NumericValue||r instanceof Matrix){
+            if(r instanceof NumericValue||r instanceof Matrix||((!unwrapMaps)&&(r instanceof FiniteMap))){
                 return setOp.apply((FiniteSet) l, FiniteSet.from(r));
             }else if(r instanceof FiniteSet){
                 return setOp.apply((FiniteSet) l,(FiniteSet) r);
             }else if(r instanceof FiniteMap){
-                FiniteSet set = setOp.apply((FiniteSet) l, ((FiniteMap) r).asSet());
-                return rewrapMaps?set.asMapIfPossible():set;
+                FiniteSet set = setOp.apply(FiniteMap.indicatorMap((FiniteSet) l).asSet(), ((FiniteMap) r).asSet());
+                return set.asMap();
             }else{
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
         }else if(l instanceof FiniteMap){
-            if(r instanceof NumericValue||r instanceof Matrix){
-                FiniteSet set = setOp.apply(((FiniteMap) l).asSet(), FiniteSet.from(r));
-                return rewrapMaps?set.asMapIfPossible():set;
+            if(r instanceof NumericValue || r instanceof Matrix){
+                FiniteSet set = setOp.apply(((FiniteMap) l).asSet(), FiniteMap.indicatorMap(FiniteSet.from(r)).asSet());
+                return set.asMap();
             }else if(r instanceof FiniteSet){
-                FiniteSet set = setOp.apply(((FiniteMap) l).asSet(), (FiniteSet) r);
-                return rewrapMaps?set.asMapIfPossible():set;
+                FiniteSet set = setOp.apply(((FiniteMap) l).asSet(), FiniteMap.indicatorMap((FiniteSet) r).asSet());
+                return set.asMap();
             }else if(r instanceof FiniteMap){
                 FiniteSet set = setOp.apply(((FiniteMap) l).asSet(), ((FiniteMap) r).asSet());
-                return rewrapMaps?set.asMapIfPossible():set;
+                return set.asMap();
             }else{
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
@@ -329,29 +341,29 @@ public interface MathObject {
         }
     }
 
-    static MathObject intersect(MathObject l, MathObject r) {
+    public static MathObject intersect(MathObject l, MathObject r) {
         return setOperation(l,r,FiniteSet::intersect,
                 (a,b)->a.equals(b)?FiniteSet.from(a):FiniteSet.EMPTY_SET, true);
     }
-    static MathObject unite(MathObject l, MathObject r) {
+    public static MathObject unite(MathObject l, MathObject r) {
         return setOperation(l,r,FiniteSet::unite,FiniteSet::from, true);
     }
-    static MathObject symmetricDifference(MathObject l, MathObject r) {
+    public static MathObject symmetricDifference(MathObject l, MathObject r) {
         return setOperation(l,r,FiniteSet::symmetricDifference,
                 (a,b)->a.equals(b)?FiniteSet.EMPTY_SET:FiniteSet.from(a,b), true);
     }
-    static MathObject difference(MathObject l, MathObject r) {
+    public static MathObject difference(MathObject l, MathObject r) {
         return setOperation(l,r,FiniteSet::difference,
                 (a,b)->a.equals(b)?FiniteSet.EMPTY_SET:FiniteSet.from(a), true);
     }
 
-    static MathObject times(MathObject l, MathObject r) {
+    public static MathObject times(MathObject l, MathObject r) {
         return setOperation(l,r,FiniteSet::product,Pair::new, false);
     }
     /**calculates the n-ary cartesian product of the objects in the given set
      * @param objects operands of the n-ary product, maps are converted to sets,
      *                Matrices and NumericValues are wrapped in sets */
-    static MathObject nAryTimes(MathObject[] objects){
+    public static MathObject nAryTimes(MathObject[] objects){
         //direct implementation, since result is different from repeated binary times
         FiniteSet[] sets=new FiniteSet[objects.length];
         for (int i=0;i<objects.length;i++) {
@@ -368,53 +380,83 @@ public interface MathObject {
         }
         return FiniteSet.product(sets);
     }
-    static MathObject fAdd(MathObject l, MathObject r) {
+    public static MathObject fAdd(MathObject l, MathObject r) {
         return elementWise(l,r, NumericValue::fAdd);
     }
-    static MathObject strConcat(MathObject l, MathObject r) {
+    public static MathObject strConcat(MathObject l, MathObject r) {
         return elementWise(l,r, NumericValue::strConcat);
     }
 
-    static MathObject min(MathObject l, MathObject r) {
+    public static MathObject min(MathObject l, MathObject r) {
         return compare(l,r)<0?l:r;
     }
-    static MathObject max(MathObject l, MathObject r) {
+    public static MathObject max(MathObject l, MathObject r) {
         return compare(l,r)>0?l:r;
     }
 
-    static Tuple tupleConcat(MathObject a,MathObject b) {
-        int l;
+    public static Tuple tupleConcat(MathObject a,MathObject b) {
+        int l,s;
         if(a instanceof Tuple){
-            l=((Tuple) a).size();
+            l=((Tuple) a).length();
+            s=((Tuple) a).size();
         }else{
             l=1;
+            s=1;
         }
         if(b instanceof Tuple){
-            l+=((Tuple) b).size();
+            l+=((Tuple) b).length();
+            s+=((Tuple) b).size();
         }else{
             l+=1;
+            s+=1;
         }
-        MathObject[] objects=new MathObject[l];
-        if(a instanceof Tuple){
-            for(l=0;l<((Tuple) a).size();l++){
-                objects[l]=((Tuple) a).get(l);
+        if(l>Tuple.SPARSE_FACTOR*s){
+            MathObject[] objects=new MathObject[l];
+            if(a instanceof Tuple){
+                for(l=0;l<((Tuple) a).length();l++){
+                    objects[l]=((Tuple) a).get(l);
+                }
+            }else{
+                objects[0]=a;
+                l=1;
             }
-        }else{
-            objects[0]=a;
-            l=1;
-        }
-        if(b instanceof Tuple){
-            for(int t=0;t<((Tuple) b).size();t++,l++){
-                objects[l]=((Tuple) b).get(t);
+            if(b instanceof Tuple){
+                for(int t=0;t<((Tuple) b).length();t++,l++){
+                    objects[l]=((Tuple) b).get(t);
+                }
+            }else{
+                objects[l]=b;
             }
+            return Tuple.create(objects);
         }else{
-            objects[l]=b;
+            TreeMap<MathObject,MathObject> mapData=new TreeMap<>(MathObject::compare);
+            Real.Int offset,next;
+            if(a instanceof Tuple){
+                for (Iterator<Pair> it = ((Tuple) a).mapIterator(); it.hasNext(); ) {
+                    Pair e = it.next();
+                    next=e.a.numericValue().realPart().round(ROUND);
+                    mapData.put(next,e.b);
+                }
+                offset=Real.from(((Tuple) a).length());
+            }else{
+                mapData.put(Real.Int.ZERO,a);
+                offset=Real.Int.ONE;
+            }
+            if(b instanceof Tuple){
+                for (Iterator<Pair> it = ((Tuple) b).mapIterator(); it.hasNext(); ) {
+                    Pair e = it.next();
+                    next=e.a.numericValue().realPart().round(ROUND);
+                    mapData.put(Real.add(offset,next),e.b);
+                }
+            }else{
+                mapData.put(offset,a);
+            }
+            return FiniteMap.createTuple(mapData,BigInteger.valueOf(l));
         }
-        return Tuple.create(objects);
     }
 
 
-    static int compare(MathObject a, MathObject b){
+    public static int compare(MathObject a, MathObject b){
         if(a instanceof NumericValue){
             if(b instanceof NumericValue){
                 return ((NumericValue) a).compareTo((NumericValue) b);
@@ -439,10 +481,10 @@ public interface MathObject {
                     return -1;// a < {a}
                 }
             }else if(b instanceof FiniteMap){
-                Iterator<Pair> itr=((FiniteMap)b).mapIterator();
+                Iterator<MathObject> itr=((FiniteMap)b).valueIterator();
                 int c;
                 while(itr.hasNext()){
-                    c=compare(a,itr.next().b);
+                    c=compare(a,itr.next());
                     if(c!=0)
                         return c;
                 }
@@ -521,7 +563,7 @@ public interface MathObject {
 
 
 
-    class FromString{
+    static public class FromString{
         static private final int STATE_NUMBER=0,STATE_TUPLE=1,STATE_STRING=2,STATE_VALUE=3,STATE_SET=4;
         static private final int MODE_SET=1, MODE_VALUE =0,MODE_TUPLE=-1;
 
@@ -565,7 +607,7 @@ public interface MathObject {
         private static MathObject fromString(String input, BigInteger base, int mode, boolean safeMode) {
             if(input.isEmpty())
                 switch (mode){
-                    case MODE_TUPLE:return FiniteMap.EMPTY_MAP;
+                    case MODE_TUPLE:return Tuple.EMPTY_MAP;
                     case MODE_VALUE:return Real.Int.ZERO;
                     case MODE_SET:return FiniteSet.EMPTY_SET;
                     default:throw new IllegalArgumentException("Unknown mode:"+mode);
@@ -928,7 +970,7 @@ public interface MathObject {
             }
             boolean isMap=false,topLevel=true;
             //5. ->
-            for(int i=0;i<parts.size();i++){
+            for(int i=parts.size()-1;i>=0;i--){//TODO? detect Multimaps: {1->2->3,1->3->4} -> {1->{2->3,3->4}}
                 if(parts.get(i) instanceof OperatorNode){
                     switch (((OperatorNode) parts.get(i)).value) {
                         case "->":
@@ -1025,7 +1067,7 @@ public interface MathObject {
                 if (part instanceof ValueNode){
                     MathObject returnValue=((ValueNode) parts.get(0)).value;
                     if (topLevel){
-                        if(mode==MODE_SET) {
+                        if(mode==MODE_SET||(safeMode&&isMap)) {
                             returnValue=FiniteSet.from(returnValue);
                         }else if(mode==MODE_TUPLE) {
                             returnValue=Tuple.create(new MathObject[]{returnValue});
@@ -1033,20 +1075,9 @@ public interface MathObject {
                     }
                     if(isMap){
                         if(returnValue instanceof FiniteSet){
-                            MathObject map= ((FiniteSet) returnValue).asMapIfPossible();
-                            if(safeMode||map instanceof FiniteMap) {
-                                return map;
-                            }else{
-                                throw new IllegalArgumentException("Unable to resolve Map:"+part);
-                            }
-                        }else if(returnValue instanceof Tuple){
-                            MathObject map= (topLevel?FiniteSet.from(returnValue)
-                                    :((Tuple) returnValue).values()).asMapIfPossible();
-                            if(map instanceof FiniteMap) {
-                                return map;
-                            }else {
-                                return returnValue;
-                            }
+                            return ((FiniteSet) returnValue).asMap();
+                        }else{
+                            throw new RuntimeException("isMap is true, expected value:false");
                         }
                     }
                     return returnValue;

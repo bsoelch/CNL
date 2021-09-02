@@ -1,395 +1,300 @@
 package bsoelch.cnl.math;
 
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import static bsoelch.cnl.math.Real.Int;
+public abstract class Matrix extends MathObject implements Iterable<NumericValue> {
+    Matrix(){}//packagePrivate constructor
 
-public final class Matrix implements MathObject,Iterable<NumericValue>{
-    private final NumericValue[][] matrix;
+    /**value of totalSize/elements above which SparseMatrices are used*/
+    static private final int SPARSE_FACTOR =5;
 
-    static public Matrix identityMatrix(int n){
-        return diagonalMatrix(n,Int.ONE);
+    public static Matrix identityMatrix(int n){
+        return diagonalMatrix(n, Real.Int.ONE);
     }
-    static public Matrix diagonalMatrix(int n, NumericValue value) {
+
+    //TODO? use sparseVariant for large sizes
+    public static Matrix diagonalMatrix(int n, NumericValue value) {
         if(n <=0)throw new IllegalArgumentException("n has to be >0");
         NumericValue[][] data=new NumericValue[n][n];
         for(int i = 0; i< n; i++)
             data[i][i]= value;
-        return new Matrix(data);
+        return new FullMatrix(data);
     }
 
     /**Converts the given MathObject to a Matrix*/
-    static public Matrix asMatrix(MathObject o){//TODO? handle spares Matrices
+    public static Matrix asMatrix(MathObject o){
         if(o instanceof NumericValue){
-            return new Matrix(new NumericValue[][]{{(NumericValue) o}});
-        }else if(o instanceof Matrix){
+            return new FullMatrix(new NumericValue[][]{{(NumericValue) o}});
+        }else if(o instanceof FullMatrix){
             return (Matrix) o;
         }else if(o instanceof FiniteSet){
-            NumericValue[][] rows=new NumericValue[((FiniteSet) o).size()][];
-            int i=0,maxSize=0;
+            Tuple[] rows=new Tuple[((FiniteSet) o).size()];
+            int i=0,maxLength=0;
+            long size=0;
             for(MathObject row:(FiniteSet)o){
-                rows[i]=rowFrom(row);
-                maxSize=Math.max(maxSize,rows[i++].length);
+                rows[i]= rowFrom(row);
+                maxLength=Math.max(maxLength,rows[i++].length());
+                size+=rows[i].size();
             }
-            return fromRows(rows,maxSize);
-        }else if(o instanceof Tuple){
-            NumericValue[][] rows=new NumericValue[((Tuple) o).size()][];
-            int maxSize=0;
-            for(int i=0;i<((Tuple) o).size();i++){
-                rows[i]=rowFrom(((Tuple) o).get(i));
-                maxSize=Math.max(maxSize,rows[i].length);
+            if(((long)rows.length)*maxLength>SPARSE_FACTOR*size){
+                return new SparseMatrix(Tuple.create(rows));
+            }else{
+                return new FullMatrix(fullData(rows,maxLength));
             }
-            return fromRows(rows,maxSize);
+        }else if(o instanceof Tuple&&((Tuple) o).isFullTuple()){
+            Tuple[] rows=new Tuple[((Tuple) o).length()];
+            int maxLength=0;
+            long size=0;
+            for(int i=0;i<((Tuple) o).length();i++){
+                rows[i]= rowFrom(((Tuple) o).get(i));
+                maxLength=Math.max(maxLength,rows[i].length());
+                size+=rows[i].size();
+            }
+            if(((long)rows.length)*maxLength>SPARSE_FACTOR*size){
+                return new SparseMatrix(Tuple.create(rows));
+            }else{
+                return new FullMatrix(fullData(rows,maxLength));
+            }
         }else if(o instanceof FiniteMap){
-            ArrayList<NumericValue[]> rows = new ArrayList<>(((FiniteMap) o).size());
-            Real lastKey=null;
-            int maxSize=0;
+            TreeMap<MathObject,MathObject> rows = new TreeMap<>(MathObject::compare);
+            int maxLength=0;
+            long size=0;
+            Real.Int maxRow=Real.Int.ZERO;
             for (Iterator<Pair> it = ((FiniteMap) o).mapIterator(); it.hasNext(); ) {
                 Pair e = it.next();
-                if(lastKey!=null){
-                    Real key = e.a.numericValue().realPart();
-                    Real delta=Real.subtract(key,lastKey);
-                    int intDelta=delta.abs().round(FLOOR).num().intValueExact();
-                    while(intDelta>0){//fill empty entries with zeros
-                        rows.add(new NumericValue[0]);
-                        intDelta--;
-                    }
-                    lastKey=key;
-                }else{
-                    lastKey=e.a.numericValue().realPart();
-                }
-                rows.add(rowFrom(e.b));
-                maxSize=Math.max(maxSize,rows.get(rows.size()-1).length);
+                Tuple row = rowFrom(e.b);
+                Real.Int rowNumber = e.a.numericValue().realPart().round(ROUND);
+                maxRow=(Real.Int)Real.max(maxRow,rowNumber);
+                rows.put(rowNumber, row);
+                maxLength=Math.max(maxLength,row.length());
+                size+=row.size();
             }
-            return fromRows(rows.toArray(new NumericValue[0][]),maxSize);
+            return toMatrix(rows, maxLength, size, maxRow);
         }else{
             throw new RuntimeException("Unexpected MathObject class:"+o.getClass());
         }
     }
+
+    @NotNull
+    private static Matrix toMatrix(TreeMap<MathObject, MathObject> rows, int maxLength, long size, Real.Int maxRow) {
+        if(Real.multiply(maxRow,Real.from(maxLength)).compareTo(Real.from(SPARSE_FACTOR* size))>0){
+            return new SparseMatrix(FiniteMap.from(rows));
+        }else{
+            NumericValue[][] arrayData=new NumericValue[maxRow.num().intValueExact()+1][maxLength];
+            return new FullMatrix(arrayData);
+        }
+    }
+
+    //TODO? use Real.Int instead of BigInt
+    static Matrix asMatrix(TreeMap<BigInteger, TreeMap<BigInteger, NumericValue>> data,BigInteger rowLength) {
+        TreeMap<MathObject,MathObject> rows=new TreeMap<>(MathObject::compare);
+        TreeMap<BigInteger,NumericValue> row;
+        for(Map.Entry<BigInteger, TreeMap<BigInteger, NumericValue>> e:data.entrySet()){
+            row=e.getValue();
+            if(row.size()<3L*rowLength.intValueExact()){
+                MathObject[] fullData=new MathObject[rowLength.intValueExact()];
+                for(int i=0;i<fullData.length;i++){
+                    fullData[i]=row.get(BigInteger.valueOf(i));
+                    if(fullData[i]==null)
+                        fullData[i]=Real.Int.ZERO;
+                }
+                rows.put(Real.from(e.getKey()),Tuple.create(fullData));
+            }else{
+                TreeMap<MathObject,MathObject> mapData=new TreeMap<>(MathObject::compare);
+                for(Map.Entry<BigInteger, NumericValue> p:row.entrySet()){
+                    mapData.put(Real.from(p.getKey()),p.getValue());
+                }
+                rows.put(Real.from(e.getKey()),FiniteMap.from(mapData));
+            }
+        }
+        return new SparseMatrix(FiniteMap.from(rows));
+    }
+
     /**creates a Matrix from the given rows, all rows are cut/extended to have exactly rowSize elements */
-    private static Matrix fromRows(NumericValue[][] rows,int rowSize) {
+    static NumericValue[][] fullData(Tuple[] rows, int rowSize) {
+        NumericValue[][] data=new NumericValue[rows.length][];
         for(int i=0;i<rows.length;i++){//adjust size of rows
             NumericValue[] copy=new NumericValue[rowSize];
-            System.arraycopy(rows[i],0,copy,0,Math.min(rows[i].length,rowSize));
-            if(rows[i].length<rowSize) {
-                Arrays.fill(copy, rows[i].length, rowSize, Int.ZERO);
+            for(int j=0;j<rows[i].length();j++){
+                copy[j]=rows[i].get(j).numericValue();
             }
-            rows[i]=copy;
+            if(rows[i].length()<rowSize) {
+                Arrays.fill(copy, rows[i].length(), rowSize, Real.Int.ZERO);
+            }
+            data[i]=copy;
         }
-        return new Matrix(rows);
+        return data;
     }
-    private static NumericValue[] rowFrom(MathObject row) {
+    static Tuple rowFrom(MathObject row) {
         if(row instanceof NumericValue){
-            return new NumericValue[]{(NumericValue) row};
-        }else if(row instanceof Matrix){
+            return Tuple.create(new NumericValue[]{(NumericValue) row});
+        }else if(row instanceof FullMatrix){
             ArrayList<NumericValue> values = new ArrayList<>(((Matrix) row).size());
             for(NumericValue nv:(Matrix)row){
                 values.add(nv);
             }
-            return values.toArray(new NumericValue[0]);
+            return Tuple.create(values.toArray(new NumericValue[0]));
         }else if(row instanceof FiniteSet){
-            ArrayList<NumericValue> values = new ArrayList<>();
+            Tuple values= Tuple.EMPTY_MAP;
             for(MathObject o:(FiniteSet)row){
-                values.addAll(Arrays.asList(rowFrom(o)));
+                values=MathObject.tupleConcat(values,rowFrom(o));
             }
-            return values.toArray(new NumericValue[0]);
+            return values;
         }else if(row instanceof Tuple){
-            ArrayList<NumericValue> values = new ArrayList<>();
+            Tuple values= Tuple.EMPTY_MAP;
             for(MathObject o:(Tuple)row){
-                values.addAll(Arrays.asList(rowFrom(o)));
+                values=MathObject.tupleConcat(values,rowFrom(o));
             }
-            return values.toArray(new NumericValue[0]);
+            return values;
         }else if(row instanceof FiniteMap){
-            ArrayList<NumericValue> values = new ArrayList<>();
-            Real lastKey=null;
+            TreeMap<MathObject,MathObject> values=new TreeMap<>(MathObject::compare);
+            Real.Int offset=Real.Int.ZERO,lastKey=Real.Int.ZERO;
             for (Iterator<Pair> it = ((FiniteMap) row).mapIterator(); it.hasNext(); ) {
                 Pair e = it.next();
-                if(lastKey!=null){
-                    Real key = e.a.numericValue().realPart();
-                    Real delta=Real.subtract(key,lastKey);
-                    int intDelta=delta.abs().round(FLOOR).num().intValueExact();
-                    while(intDelta>0){//fill empty entries with zeros
-                        values.add(Int.ZERO);
-                        intDelta--;
+                if(!(e.b instanceof NumericValue)){
+                    Tuple insert=rowFrom(e.b);
+                    for (Iterator<Pair> iter = insert.mapIterator(); iter.hasNext(); ) {
+                        Pair p = iter.next();
+                        lastKey =(Real.Int)Real.add(offset, p.a.numericValue().realPart().round(ROUND));
                     }
-                    lastKey=key;
-                }else{
-                    lastKey=e.a.numericValue().realPart();
+                    offset= (Real.Int)Real.add(offset,Real.from(insert.length()-1));
+                    lastKey=(Real.Int)Real.add(lastKey,Real.from(insert.length()));
+                }else {
+                    lastKey=(Real.Int)Real.add(offset, e.a.numericValue().realPart().round(ROUND));
+                    values.put(lastKey, e.b.numericValue());
                 }
-                values.addAll(Arrays.asList(rowFrom(e.b)));
             }
-            return values.toArray(new NumericValue[0]);
+            return FiniteMap.createTuple(values,lastKey.num());
         }else{
             throw new RuntimeException("Unexpected MathObject class:"+row.getClass());
         }
     }
 
 
-    private Matrix(NumericValue[][] matrix) {
-        this.matrix = matrix;
-    }
-
-    public NumericValue numericValue() {
-        return matrix[0][0];
-    }
-
-    public FiniteMap asMap(){
-        Tuple[] rows=new Tuple[matrix.length];
-        for(int i=0;i<matrix.length;i++){
-            rows[i]=Tuple.create(matrix[i]);
-        }
-        return Tuple.create(rows);
-    }
-
-    public NumericValue entryAt(int i, int j){
-        return entryAtInternal(i, j,true);
-    }
-
-    NumericValue entryAtInternal(int i, int j, boolean throwException) {
-        if (i >= 0 && i < matrix.length && j >= 0 && j < matrix[i].length) {
-            return matrix[i][j] == null ? Int.ZERO : matrix[i][j];
-        }else if(throwException){
-            throw new IndexOutOfBoundsException("("+i+","+j+") out of Bounds, size:"+matrix.length+" x "+matrix[0].length);
-        }else{
-            return Int.ZERO;
-        }
-    }
-
-    public NumericValue entryAt(int index){
-        return entryAt(index% matrix.length,index/ matrix.length);
-    }
-
-    public Matrix setEntry(int x, int y, NumericValue v){
-        NumericValue[][] data=new NumericValue[Math.max(x+1,matrix.length)][Math.max(y+1,matrix[0].length)];
-        data[x][y]=v;
-        for(int i=0;i<matrix.length;i++){
-            System.arraycopy(matrix[i], 0, data[i], 0, matrix.length);
-        }
-        return new Matrix(data);
-    }
-    public Matrix setEntry(int index, NumericValue v){
-        return setEntry(index% matrix.length,index/ matrix.length,v);
-    }
-
-    /**Number of Entries in Matrix*/
-    public int size(){
-        return matrix.length*matrix[0].length;
-    }
-    /**size of this Matrix as int[]*/
-    public int[] dimensions(){
-        return new int[]{matrix.length, matrix[0].length};
-    }
-
-    public Matrix forEach(Matrix m2, BiFunction<NumericValue, NumericValue, NumericValue> f){
-        NumericValue[][] ret=new NumericValue[Math.max(matrix.length,m2.matrix.length)][Math.max(matrix[0].length,m2.matrix[0].length)];
-        for(int i=0;i<ret.length;i++){
-            for(int j=0;j<ret.length;j++){
-                ret[i][j]=f.apply(entryAtInternal(i,j,false),m2.entryAtInternal(i,j,false));
-            }
-        }
-        return new Matrix(ret);
-    }
-
-    public Matrix multiply(Matrix m2){
-        NumericValue[][] ret=new NumericValue[matrix.length][m2.matrix[0].length];
-        int s=Math.min(matrix[0].length,m2.matrix.length);
-        NumericValue v;
-        for(int i=0;i<ret.length;i++){
-            for(int j=0;j<ret[i].length;j++){
-                v= Int.ZERO;
-                for(int k=0;k< s;k++){
-                    v= NumericValue.add(v, NumericValue.multiply(matrix[i][k],m2.matrix[k][j]));
+    public static Matrix forEach(Matrix a,Matrix b, BiFunction<NumericValue, NumericValue, NumericValue> f){
+        if(a instanceof FullMatrix&&b instanceof FullMatrix){
+            return ((FullMatrix) a).forEach((FullMatrix)b,f);
+        }else if(f.apply(Real.Int.ZERO,Real.Int.ZERO).equals(Real.Int.ZERO)){
+            Iterator<SparseMatrix.MatrixEntry> itrA=a.matrixIterator();
+            Iterator<SparseMatrix.MatrixEntry> itrB=b.matrixIterator();
+            TreeMap<MathObject,MathObject> rows=new TreeMap<>(MathObject::compare);
+            TreeMap<MathObject,MathObject> column=new TreeMap<>(MathObject::compare);
+            if(!itrA.hasNext())
+                return b;
+            if(!itrB.hasNext())
+                return a;
+            SparseMatrix.MatrixEntry nextA=itrA.next(),nextB= itrB.next();
+            BigInteger columnId=nextA.x.min(nextB.x);
+            while(nextA!=null||nextB!=null){
+                if(nextA!=null&&(nextB==null||nextA.x.compareTo(nextB.x)<0)){
+                    column.put(Real.from(nextA.y), f.apply(nextA.value,Real.Int.ZERO));
+                    nextA=itrA.hasNext()?itrA.next():null;
+                }else if(nextA == null || nextB.x.compareTo(nextA.x) < 0){
+                    column.put(Real.from(nextB.y), f.apply(Real.Int.ZERO,nextB.value));
+                    nextB=itrB.hasNext()?itrB.next():null;
+                }else{
+                    int cp=nextA.y.compareTo(nextB.y);
+                    if(cp<0){
+                        column.put(Real.from(nextA.y), f.apply(nextA.value,Real.Int.ZERO));
+                        nextA=itrA.hasNext()?itrA.next():null;
+                    }else if(cp>0){
+                        column.put(Real.from(nextB.y), f.apply(Real.Int.ZERO,nextB.value));
+                        nextB=itrB.hasNext()?itrB.next():null;
+                    }else{
+                        column.put(Real.from(nextA.y), f.apply(nextA.value,nextB.value));
+                        nextA=itrA.hasNext()?itrA.next():null;
+                        nextB=itrB.hasNext()?itrB.next():null;
+                    }
                 }
-                ret[i][j]=v;
+                if((nextA==null||nextA.x.compareTo(columnId)>0)){
+                    if((nextB==null||nextB.x.compareTo(columnId)>0)){
+                        rows.put(Real.from(columnId),FiniteMap.from(column));
+                        column=new TreeMap<>(MathObject::compare);
+                        columnId=nextA==null?nextB==null?null:nextB.x:
+                                nextB==null?nextA.x:nextA.x.min(nextB.x);
+                    }
+                }
             }
+            return asMatrix(FiniteMap.from(rows));
+        }else{
+            int[] dimA=a.dimensions(),dimB=b.dimensions();
+            NumericValue[][] data=new NumericValue[Math.max(dimA[0],dimB[0])][Math.max(dimA[1],dimB[1])];
+            for(int i=0;i<data.length;i++){
+                for(int j=0;j<data[i].length;j++){
+                    NumericValue e=f.apply(a.entryAt(i,j),b.entryAt(i,j));
+                    data[i][j]=e;
+                }
+            }
+            return new FullMatrix(data);
         }
-        return new Matrix(ret);
     }
 
-    public Matrix transpose(){
-        NumericValue[][] data=new NumericValue[matrix[0].length][matrix.length];
-        for(int i=0;i<matrix.length;i++){
-            for(int j=0;j<matrix[i].length;j++){
-                data[j][i]=matrix[i][j];
-            }
-        }
-        return new Matrix(data);
-    }
 
-    public NumericValue determinant(){
-        if(matrix.length!=matrix[0].length)
-            throw new ArithmeticException("Determinant of non square matrix");
-        NumericValue[][] data=new NumericValue[matrix.length][matrix.length];
-        for(int i=0;i<matrix.length;i++) {
-            data[i]=matrix[i].clone();
-        }
-        gaussianAlgorithm(data,null,false);
-        NumericValue det= Int.ONE;
-        for(int i=0;i<matrix.length;i++) {
-            if(data[i][i]==null||data[i][i].equals(Int.ZERO)){
-                return Int.ZERO;
-            }else{
-                det= NumericValue.multiply(det,data[i][i]);
-            }
-        }
-        return det;
-    }
+    public abstract NumericValue numericValue();
 
-    public Matrix invert(){
-        if(matrix.length!=matrix[0].length)
-            throw new ArithmeticException("Inversion of non square matrix");
-        int s=matrix.length;
-        NumericValue[][] data=new NumericValue[s][s],ret=new NumericValue[s][s];
-        for(int i=0;i<s;i++) {
-            ret[i][i] = Int.ONE;
-            data[i]=matrix[i].clone();
-        }
-        gaussianAlgorithm(data,ret,true);
-        for(int i=0;i<s;i++) {
-            for(int j=0;j<ret.length;j++){
-                ret[j][i]=ret[j][i]==null? Int.ZERO: NumericValue.divide(ret[j][i],data[i][i]);
-            }
-        }
-        return new Matrix(ret);
-    }
+    public abstract FiniteMap asMap();
 
-    public Matrix applyToAll(Function<NumericValue, NumericValue> operation){
-        NumericValue[][] data=new NumericValue[matrix.length][matrix[0].length];
-        for(int i=0;i<matrix.length;i++){
-            for(int j=0;j<matrix[i].length;j++){
-                data[i][j]=operation.apply(matrix[i][j]);
-            }
-        }
-        return new Matrix(data);
-    }
+    //TODO? BigInt keys/size/dimensions
 
-    /**@return Iterator that goes through the elements of this matrix*/
+    public abstract NumericValue entryAt(int i, int j);
+    public abstract Matrix setEntry(int x, int y, NumericValue v);
+
+    public abstract int size();
+    public abstract int[] dimensions();
+
+    public abstract Matrix transpose();
+    public abstract NumericValue determinant();
+    public abstract Matrix invert();
+    public abstract Matrix applyToAll(Function<NumericValue, NumericValue> operation);
+
     @NotNull
     @Override
-    public Iterator<NumericValue> iterator() {
+    public abstract Iterator<NumericValue> iterator();
+    /**Iterator over the Values in this Matrix values  that skips elements with the value zero*/
+    @NotNull
+    public Iterator<NumericValue> sparseIterator() {
         return new Iterator<NumericValue>() {
-            int r=0,c=0;
+            final Iterator<SparseMatrix.MatrixEntry> entries=matrixIterator();
             @Override
             public boolean hasNext() {
-                return r<matrix.length;
+                return entries.hasNext();
             }
-
             @Override
             public NumericValue next() {
-                if(c>=matrix[r].length) {
-                    c = 0;
-                    r++;
-                }
-                return matrix[r][c++];
+                return entries.next().value;
             }
         };
     }
+    /**Iterator over the Entries of this Matrix that skips elements with the value zero*/
+    @NotNull
+    public abstract Iterator<SparseMatrix.MatrixEntry> matrixIterator();
 
-    public String toString(BigInteger base, boolean useSmallBase) {
-        return toString(s->s.toString(base, useSmallBase));
-    }
-
-    public String toStringFixedPoint(BigInteger base, Real precision, boolean useSmallBase) {
-        return toString(s->s.toStringFixedPoint(base,precision, useSmallBase));
-    }
-
-    public String toStringFloat(BigInteger base, Real precision, boolean useSmallBase) {
-        return toString(s->s.toStringFloat(base,precision, useSmallBase));
-    }
     @Override
-    public String intsAsString() {
-        return toString(MathObject::intsAsString);
-    }
+    public abstract String toString(BigInteger base, boolean useSmallBase);
+    @Override
+    public abstract String toStringFixedPoint(BigInteger base, Real precision, boolean useSmallBase);
+    @Override
+    public abstract String toStringFloat(BigInteger base, Real precision, boolean useSmallBase);
+    @Override
+    public abstract String intsAsString();
     @Override
     public String asString() {
-        return numericValue().asString();
+        StringBuilder sb=new StringBuilder();
+        for (Iterator<NumericValue> it = sparseIterator(); it.hasNext(); ) {
+            NumericValue e = it.next();
+            sb.append(e.asString());
+        }
+        return sb.toString();
     }
 
-    private String toString(Function<NumericValue,String> entryToString){
-        StringBuilder str=new StringBuilder("[");
-        boolean firstRow=true,firstColumn;
-        for(NumericValue[] row:matrix){
-            if(firstRow){
-                firstRow=false;
-            }else{
-                str.append(", ");
-            }
-            str.append("[");
-            firstColumn=true;
-            for(NumericValue s:row){
-                if (firstColumn) {
-                    firstColumn=false;
-                } else {
-                    str.append(", ");
-                }
-                str.append(entryToString.apply(s));
-            }
-            str.append("]");
-        }
-        return str.append("]").toString();
-    }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Matrix)) return false;
-        Matrix matrix1 = (Matrix) o;
-        return Arrays.deepEquals(matrix, matrix1.matrix);
-    }
+    public abstract boolean equals(Object o);
     @Override
-    public int hashCode() {
-        return Arrays.deepHashCode(matrix);
-    }
-
-    static void gaussianAlgorithm(NumericValue[][] target, @Nullable NumericValue[][] applicant, boolean total) {
-        int y=0,k0;
-        for (NumericValue[] numericValues : target) {
-            k0 = -1;
-            for (int k = y; k < target.length; k++) {
-                if (numericValues[k]!=null&&!Int.ZERO.equals(numericValues[k])) {
-                    k0 = k;
-                }
-            }
-            if (k0 != -1) {
-                if (k0 != y)
-                    addLine(target, applicant, k0, numericValues[k0].invert(), y);
-                for (int k = y+1; k < target.length; k++) {
-                    if (!Int.ZERO.equals(numericValues[k])) {
-                        addLine(target, applicant, y, NumericValue.divide(numericValues[k], numericValues[y]).negate(), k);
-                    }
-                }
-                if (total) {
-                    for (int k = 0; k < y; k++) {
-                        if (!Int.ZERO.equals(numericValues[k])) {
-                            addLine(target, applicant, y, NumericValue.divide(numericValues[k], numericValues[y]).negate(), k);
-                        }
-                    }
-                }
-                y++;
-            }
-        }
-    }
-
-    /**adds f times line a to line b*/
-    private static void addLine(NumericValue[][] target, @Nullable NumericValue[][] applicant, int a, NumericValue f, int b) {
-        for(int i=0;i<target.length;i++){
-            target[i][b]= NumericValue.add(target[i][a]==null? Int.ZERO: NumericValue.multiply(target[i][a],f),
-                    target[i][b]==null? Int.ZERO:target[i][b]);
-        }
-        if(applicant!=null){
-            for(int i=0;i<applicant.length;i++){
-                applicant[i][b]= NumericValue.add(applicant[i][a]==null? Int.ZERO: NumericValue.multiply(applicant[i][a],f),
-                        applicant[i][b]==null? Int.ZERO:applicant[i][b]);
-            }
-        }
-    }
-
+    public abstract int hashCode();
 }

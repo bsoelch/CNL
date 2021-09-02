@@ -55,9 +55,9 @@ public class Interpreter implements Closeable {
     static class ImportReturnPosition{
         final CodePosition codePos;
         final File codeFile;
-        final ProgramEnvironment prevEnv;
+        final Context prevEnv;
 
-        ImportReturnPosition(File codeFile, CodePosition codePos, ProgramEnvironment prevEnv) {
+        ImportReturnPosition(File codeFile, CodePosition codePos, Context prevEnv) {
             this.codePos = codePos;
             this.codeFile = codeFile;
             this.prevEnv = prevEnv;
@@ -69,19 +69,19 @@ public class Interpreter implements Closeable {
     private BitRandomAccessStream code;
     private boolean isScript;
 
-    final private ProgramEnvironment root;
+    final private Context root;
 
-    private final ArrayDeque<ProgramEnvironment> envStack=new ArrayDeque<>();
+    private final ArrayDeque<Context> envStack=new ArrayDeque<>();
 
     /**stack containing all open BracketEnvironments, including running loops/if's and function calls*/
-    final private ArrayDeque<BracketEnvironment> brackets=new ArrayDeque<>();
+    final private ArrayDeque<BracketInfo> brackets=new ArrayDeque<>();
     /**stack containing all current function calls*/
-    final private ArrayDeque<FunctionEnvironment> callStack=new ArrayDeque<>();
+    final private ArrayDeque<FunctionInfo> callStack=new ArrayDeque<>();
     /**stack for the return positions of all open imports*/
     private final ArrayDeque<ImportReturnPosition> importReturnStack=new ArrayDeque<>();
 
     private final HashSet<String> importDejaVu=new HashSet<>();
-    private final HashSet<ProgramEnvironment> importEnvironments=new HashSet<>();
+    private final HashSet<Context> importEnvironments=new HashSet<>();
 
     private ArrayDeque<Action> actionStack=new ArrayDeque<>();
     private StringBuilder currentLine=new StringBuilder();
@@ -110,13 +110,13 @@ public class Interpreter implements Closeable {
                 args=new MathObject[0];
             }
         }
-        root=new GlobalEnvironment(new ProgramEnvironment.ArgumentData(args));
+        root=new RootContext(new Context.ArgumentData(args));
         envStack.add(root);
         importDejaVu.add(codeFile.getPath());
         exEnv =new ExecutionEnvironment(codeDir);
     }
 
-    ProgramEnvironment programEnvironment() {
+    Context programEnvironment() {
         return envStack.getLast();
     }
 
@@ -138,7 +138,7 @@ public class Interpreter implements Closeable {
 
     Iterator<String> lines(){
         return new Iterator<String>() {
-            final Iterator<FunctionEnvironment> itr=callStack.descendingIterator();
+            final Iterator<FunctionInfo> itr=callStack.descendingIterator();
             boolean first=true;
             @Override
             public boolean hasNext() {
@@ -198,27 +198,27 @@ public class Interpreter implements Closeable {
             return exit(doBranching);
         }else if(a instanceof RunIn){//Unwrap RunIn
             a =((RunIn) a).childId==null?brackets.isEmpty()?root:brackets.getLast().getLocalRoot():envStack.getLast().getChild(((RunIn) a).childId);
-            envStack.add((ProgramEnvironment) a);
+            envStack.add((Context) a);
         }else if(a instanceof BracketDeclaration){//bracket operations
             ensureRoot();//brackets only on rootLevel
             switch (((BracketDeclaration) a).type) {
                 case BRACKET_FLAG_ELIF_EQ:
                 case BRACKET_FLAG_ELIF_NE:
                 case BRACKET_FLAG_ELSE: {//else reached in step -> end of if-branch
-                        BracketEnvironment top = brackets.peekLast();
-                        if (top instanceof LoopEnvironment) {
-                            switch (((LoopEnvironment) top).state) {
+                        BracketInfo top = brackets.peekLast();
+                        if (top instanceof LoopInfo) {
+                            switch (((LoopInfo) top).state) {
                                 case BRACKET_FLAG_IF_EQ:
                                 case BRACKET_FLAG_IF_NE:
                                 case BRACKET_FLAG_ELIF_EQ:
                                 case BRACKET_FLAG_ELIF_NE: {
-                                    ((LoopEnvironment) top).state = BRACKET_FLAG_ELSE;
+                                    ((LoopInfo) top).state = BRACKET_FLAG_ELSE;
                                     if(doBranching) {
                                         skipTo(SKIP_END_IF, 1);
                                         removeBracket();
                                         return true;
                                     }else if(((BracketDeclaration) a).type==BRACKET_FLAG_ELSE){
-                                        ((LoopEnvironment) top).state=BRACKET_FLAG_ELSE;
+                                        ((LoopInfo) top).state=BRACKET_FLAG_ELSE;
                                         return true;
                                     }else{
                                         break;//elif will be added to stack
@@ -233,10 +233,10 @@ public class Interpreter implements Closeable {
                     }
                     break;
                 case BRACKET_FLAG_END: {
-                        BracketEnvironment top = brackets.peekLast();
-                        if (top instanceof LoopEnvironment) {
+                        BracketInfo top = brackets.peekLast();
+                        if (top instanceof LoopInfo) {
                             if(doBranching) {
-                                switch (((LoopEnvironment) top).state) {
+                                switch (((LoopInfo) top).state) {
                                     case BRACKET_FLAG_WHILE_EQ:
                                     case BRACKET_FLAG_WHILE_NE: //jump to start of loop
                                         goTo(top.bracketStart);
@@ -247,7 +247,7 @@ public class Interpreter implements Closeable {
                             }else{
                                 removeBracket();
                             }
-                        } else if (top instanceof FunctionEnvironment) {//exit Function
+                        } else if (top instanceof FunctionInfo) {//exit Function
                             exitFunction(callStack.removeLast(),doBranching);
                         } else {
                             if(top==null){
@@ -259,8 +259,8 @@ public class Interpreter implements Closeable {
                     }
                     return true;
                 case BRACKET_FLAG_BREAK: {
-                        BracketEnvironment top;
-                        ArrayDeque<BracketEnvironment> reconstruct=new ArrayDeque<>(brackets.size());
+                        BracketInfo top;
+                        ArrayDeque<BracketInfo> reconstruct=new ArrayDeque<>(brackets.size());
                         int count=0;
                         do {//calculate number of open non breakable brackets
                             if(brackets.isEmpty())
@@ -268,8 +268,8 @@ public class Interpreter implements Closeable {
                             top = brackets.removeLast();//get next bracket
                             reconstruct.addFirst(top);//addFirst to keep order of brackets
                             count++;
-                        }while (!(top instanceof LoopEnvironment&&((((LoopEnvironment) top).state==BRACKET_FLAG_WHILE_EQ)
-                                ||(((LoopEnvironment) top).state==BRACKET_FLAG_WHILE_NE)||(((LoopEnvironment) top).state==BRACKET_FLAG_DO))));
+                        }while (!(top instanceof LoopInfo &&((((LoopInfo) top).state==BRACKET_FLAG_WHILE_EQ)
+                                ||(((LoopInfo) top).state==BRACKET_FLAG_WHILE_NE)||(((LoopInfo) top).state==BRACKET_FLAG_DO))));
                         if(doBranching){
                             brackets.add(top);//re-add loop-environment that is ended by break
                             skipTo(SKIP_LOOP,count);
@@ -279,7 +279,7 @@ public class Interpreter implements Closeable {
                     }
                     return true;
                 case BRACKET_FLAG_DO:
-                    addBracket(new LoopEnvironment(((BracketDeclaration) a).declarationEnvironment
+                    addBracket(new LoopInfo(((BracketDeclaration) a).declarationEnvironment
                             ,((BracketDeclaration) a).declarationStart, BRACKET_FLAG_DO));
                     return true;
             }
@@ -317,10 +317,10 @@ public class Interpreter implements Closeable {
                         if(stepType==SKIP_IF){
                             evaluateStack(true,true);
                             if(((BracketDeclaration) a).type!= BRACKET_FLAG_ELSE){
-                                BracketEnvironment bracket = brackets.peekLast();
-                                if(!(bracket instanceof LoopEnvironment))
+                                BracketInfo bracket = brackets.peekLast();
+                                if(!(bracket instanceof LoopInfo))
                                     throw new SyntaxError(this,"Unexpected ELSE-statement");
-                                switch (((LoopEnvironment) bracket).state){
+                                switch (((LoopInfo) bracket).state){
                                     case BRACKET_FLAG_IF_EQ:
                                     case BRACKET_FLAG_IF_NE:
                                     case BRACKET_FLAG_ELIF_EQ:
@@ -364,8 +364,8 @@ public class Interpreter implements Closeable {
         }
     }
 
-    private void exitFunction(FunctionEnvironment function,boolean doBranching) throws IOException, SyntaxError {
-        BracketEnvironment env = removeBracket();
+    private void exitFunction(FunctionInfo function, boolean doBranching) throws IOException, SyntaxError {
+        BracketInfo env = removeBracket();
         if (env != function) {//close all brackets
             throw new RuntimeException("brackets and callStack out of sync");
         }
@@ -460,8 +460,8 @@ public class Interpreter implements Closeable {
             }else if(last instanceof CallFunction){
                 if(forceEvaluate)
                     throw new SyntaxError(this,"Waiting for Function call");
-                FunctionEnvironment call = new FunctionEnvironment(((CallFunction) last).getDeclarationEnvironment(),
-                        new CodePosition(code, isScript), actionStack,new ProgramEnvironment.ArgumentData(((CallFunction) last).getArgs()), currentLine.toString());
+                FunctionInfo call = new FunctionInfo(((CallFunction) last).getDeclarationEnvironment(),
+                        new CodePosition(code, isScript), actionStack,new Context.ArgumentData(((CallFunction) last).getArgs()), currentLine.toString());
                 if(doBranching) {
                     addBracket(call);//add function call to brackets to allow easy management of open structures
                     callStack.addLast(call);
@@ -477,7 +477,7 @@ public class Interpreter implements Closeable {
                     case BRACKET_FLAG_IF_EQ:
                     case BRACKET_FLAG_ELIF_EQ:
                         if(((BracketDeclaration) last).type ==BRACKET_FLAG_IF_EQ) {
-                            addBracket(new LoopEnvironment(((BracketDeclaration) last).declarationEnvironment,
+                            addBracket(new LoopInfo(((BracketDeclaration) last).declarationEnvironment,
                                     new CodePosition(code, isScript),BRACKET_FLAG_IF_EQ));
                         }else{//update state
                             updateIfState(BRACKET_FLAG_ELIF_EQ);
@@ -490,7 +490,7 @@ public class Interpreter implements Closeable {
                     case BRACKET_FLAG_IF_NE:
                     case BRACKET_FLAG_ELIF_NE:
                         if(((BracketDeclaration) last).type ==BRACKET_FLAG_IF_NE) {
-                            addBracket(new LoopEnvironment(((BracketDeclaration) last).declarationEnvironment,
+                            addBracket(new LoopInfo(((BracketDeclaration) last).declarationEnvironment,
                                     new CodePosition(code, isScript),BRACKET_FLAG_IF_NE));
                         }else{//update state
                             updateIfState(BRACKET_FLAG_ELIF_NE);
@@ -504,7 +504,7 @@ public class Interpreter implements Closeable {
                         //ensure there is exactly one while-loop bracket
                         if(brackets.size()==0||!(brackets.peekLast().bracketStart
                                 .isEqual(((BracketDeclaration) last).declarationStart))){
-                            addBracket(new LoopEnvironment(((BracketDeclaration) last).declarationEnvironment,
+                            addBracket(new LoopInfo(((BracketDeclaration) last).declarationEnvironment,
                                     ((BracketDeclaration) last).declarationStart, BRACKET_FLAG_WHILE_EQ));
                         }
                         if ((doBranching) && !((BracketDeclaration) last).param.equals(Real.Int.ZERO)) {
@@ -516,7 +516,7 @@ public class Interpreter implements Closeable {
                         //ensure there is exactly one while-loop bracket
                         if(brackets.size()==0||!(brackets.peekLast().bracketStart
                                 .isEqual(((BracketDeclaration) last).declarationStart))){
-                            addBracket(new LoopEnvironment(((BracketDeclaration) last).declarationEnvironment,
+                            addBracket(new LoopInfo(((BracketDeclaration) last).declarationEnvironment,
                                     ((BracketDeclaration) last).declarationStart, BRACKET_FLAG_WHILE_NE));
                         }
                         if ((doBranching) && ((BracketDeclaration) last).param.equals(Real.Int.ZERO)) {
@@ -526,24 +526,24 @@ public class Interpreter implements Closeable {
                         break;
                     case BRACKET_FLAG_END_WHILE_EQ:
                         if(doBranching&&((BracketDeclaration) last).param.equals(Real.Int.ZERO)){
-                            BracketEnvironment loop=brackets.peekLast();
-                            if(!(loop instanceof LoopEnvironment)||((LoopEnvironment)loop).state!= BRACKET_FLAG_DO)
+                            BracketInfo loop=brackets.peekLast();
+                            if(!(loop instanceof LoopInfo)||((LoopInfo)loop).state!= BRACKET_FLAG_DO)
                                 throw new SyntaxError(this,"Unexpected end of DO-WHILE loop");
                             goTo(loop.bracketStart);
                         }else{
-                            BracketEnvironment closed= removeBracket();
-                            if(!(closed instanceof LoopEnvironment)||((LoopEnvironment)closed).state!= BRACKET_FLAG_DO)
+                            BracketInfo closed= removeBracket();
+                            if(!(closed instanceof LoopInfo)||((LoopInfo)closed).state!= BRACKET_FLAG_DO)
                                 throw new SyntaxError(this,"Unexpected end of DO-WHILE loop");
                         }break;
                     case BRACKET_FLAG_END_WHILE_NE:
                         if(doBranching&&!((BracketDeclaration) last).param.equals(Real.Int.ZERO)){
-                            BracketEnvironment loop=brackets.peekLast();
-                            if(!(loop instanceof LoopEnvironment)||((LoopEnvironment)loop).state!= BRACKET_FLAG_DO)
+                            BracketInfo loop=brackets.peekLast();
+                            if(!(loop instanceof LoopInfo)||((LoopInfo)loop).state!= BRACKET_FLAG_DO)
                                 throw new SyntaxError(this,"Unexpected end of DO-WHILE loop");
                             goTo(loop.bracketStart);
                         }else{
-                            BracketEnvironment closed= Interpreter.this.removeBracket();
-                            if(!(closed instanceof LoopEnvironment)||((LoopEnvironment)closed).state!= BRACKET_FLAG_DO)
+                            BracketInfo closed= Interpreter.this.removeBracket();
+                            if(!(closed instanceof LoopInfo)||((LoopInfo)closed).state!= BRACKET_FLAG_DO)
                                 throw new SyntaxError(this,"Unexpected end of DO-WHILE loop");
                         }break;
                     default:throw new SyntaxError(this,"Unexpected state of Bracket");
@@ -559,8 +559,8 @@ public class Interpreter implements Closeable {
                 }else{
                     ValuePointer[] args=new ValuePointer[((FunctionDeclaration) last).function.argCount];
                     Arrays.fill(args,Translator.ZERO);//Default Value
-                    FunctionEnvironment call = new FunctionEnvironment(((FunctionDeclaration) last).function.declarationEnvironment,
-                            new CodePosition(code, isScript), actionStack,new ProgramEnvironment.ArgumentData(args), currentLine.toString());
+                    FunctionInfo call = new FunctionInfo(((FunctionDeclaration) last).function.declarationEnvironment,
+                            new CodePosition(code, isScript), actionStack,new Context.ArgumentData(args), currentLine.toString());
                     addBracket(call);//add function call to brackets to allow easy management of open structures
                     callStack.addLast(call);
                     actionStack = new ArrayDeque<>();
@@ -588,13 +588,13 @@ public class Interpreter implements Closeable {
                 }
                 ensureRoot();
                 return;
-            }else if(last instanceof ProgramEnvironment){
+            }else if(last instanceof Context){
                 throw new SyntaxError(this,"Unfinished Expression");
             }else{
                 throw new RuntimeException("Unexpected type of Action:"+last.getClass());
             }
             //close open Environments
-            while (actionStack.size()>0&&actionStack.getLast() instanceof ProgramEnvironment){
+            while (actionStack.size()>0&&actionStack.getLast() instanceof Context){
                 actionStack.removeLast();
                 envStack.removeLast();
             }
@@ -610,22 +610,22 @@ public class Interpreter implements Closeable {
 
 
     @NotNull
-    private BracketEnvironment removeBracket() {
-        ProgramEnvironment env=envStack.removeLast();//remove Bracket Root
-        BracketEnvironment bracket = brackets.removeLast();
+    private BracketInfo removeBracket() {
+        Context env=envStack.removeLast();//remove Bracket Root
+        BracketInfo bracket = brackets.removeLast();
         if(env!=bracket.getLocalRoot())
             throw new RuntimeException("envStack out of sync with bracketStack");
         return bracket;
     }
 
-    private void addBracket(BracketEnvironment env) {
+    private void addBracket(BracketInfo env) {
         envStack.add(env.getLocalRoot());//add Bracket Root
         brackets.addLast(env);
     }
 
     private void ensureRoot() throws SyntaxError {
         while (actionStack.size()>0){
-            if(actionStack.removeLast() instanceof ProgramEnvironment){
+            if(actionStack.removeLast() instanceof Context){
                 envStack.removeLast();//synchronize envStack and actionStack
             }else{
                 throw new SyntaxError(this,"Bracket declaration on non-root Level");
@@ -634,14 +634,14 @@ public class Interpreter implements Closeable {
     }
 
     private void updateIfState(int newState) throws SyntaxError {
-        BracketEnvironment env = brackets.peekLast();
-        if (env instanceof LoopEnvironment) {
-            switch (((LoopEnvironment) env).state) {
+        BracketInfo env = brackets.peekLast();
+        if (env instanceof LoopInfo) {
+            switch (((LoopInfo) env).state) {
                 case BRACKET_FLAG_IF_EQ:
                 case BRACKET_FLAG_IF_NE:
                 case BRACKET_FLAG_ELIF_EQ:
                 case BRACKET_FLAG_ELIF_NE:
-                    ((LoopEnvironment) env).state = newState;
+                    ((LoopInfo) env).state = newState;
                     break;
                 default:
                     throw new SyntaxError(this,"unexpected elif-statement");
@@ -655,7 +655,7 @@ public class Interpreter implements Closeable {
         int flags= FLAG_ROOT,prev= FLAG_ROOT;//TODO better flag-management
         for(Action a:actionStack){//iterate through elements of actionStack
             prev=flags;
-            if (!(a instanceof ProgramEnvironment)) {//No change for program environments
+            if (!(a instanceof Context)) {//No change for program environments
                 if(a instanceof VarPointer){
                     flags&=FLAG_VAR_DECLARATION_CHAIN;
                     if(flags==0)

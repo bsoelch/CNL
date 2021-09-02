@@ -9,16 +9,16 @@ import java.math.BigInteger;
 
 public class Import implements Action {
 
-    final private ProgramEnvironment parent;
+    final private Context parent;
     final private BigInteger childId;
     private String source;
 
-    public Import(ProgramEnvironment parent, BigInteger childId) {
+    public Import(Context parent, BigInteger childId) {
         this.parent =parent;
         this.childId=childId;
     }
 
-    public ProgramEnvironment getTarget() {
+    public Context getTarget() {
         return parent.getChild(childId);
     }
 

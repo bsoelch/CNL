@@ -8,12 +8,12 @@ import java.io.IOException;
 import java.math.BigInteger;
 
 class CallFunction implements Action {
-    private final ProgramEnvironment env;
+    private final Context env;
     private final BigInteger fktId;
 
     private final ValuePointer[] args;
 
-    CallFunction(ProgramEnvironment env, BigInteger fktId) {
+    CallFunction(Context env, BigInteger fktId) {
         this.env=env;
         this.fktId=fktId;
 
@@ -45,7 +45,7 @@ class CallFunction implements Action {
         throw new IllegalStateException("No Argument required");
     }
 
-    public ProgramEnvironment getDeclarationEnvironment() {
+    public FunctionContext getDeclarationEnvironment() {
         return env.getFunction(fktId).declarationEnvironment;
     }
     public Interpreter.CodePosition getFunctionStart() {
