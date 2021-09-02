@@ -186,7 +186,7 @@ public class Interpreter implements Closeable {
         }
         try {
             return stepInternal(a, doBranching);
-        }catch (IllegalArgumentException|IllegalStateException e){
+        }catch (IllegalArgumentException|IllegalStateException|ArithmeticException e){//TODO? CNL_RuntimeException, try,catch?
             throw new SyntaxError(this,e);
         }
     }

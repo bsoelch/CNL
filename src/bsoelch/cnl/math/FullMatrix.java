@@ -4,7 +4,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.math.BigInteger;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.function.BiFunction;
@@ -126,8 +125,9 @@ public final class FullMatrix extends Matrix {
 
     @Override
     public Matrix invert(){
+        //TODO consistent handling of division errors
         if(matrix.length!=matrix[0].length)
-            throw new ArithmeticException("Inversion of non square matrix");
+            throw new ArithmeticException("tried to invert non square matrix");
         int s=matrix.length;
         NumericValue[][] data=new NumericValue[s][s],ret=new NumericValue[s][s];
         for(int i=0;i<s;i++) {
