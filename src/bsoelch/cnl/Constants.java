@@ -22,13 +22,15 @@ public class Constants {
     public static final BigInteger MAX_INT = BigInteger.valueOf(Integer.MAX_VALUE);
     public static final BigInteger DEFAULT_BASE = BigInteger.TEN;
 
+    /**Current version of the Binary Output, should be increased every time there are significant changes to the encoding*/
+    public static final BigInteger CODE_VERSION = BigInteger.ZERO;
 
     /**length of BigInt header for argCount in file-header*/
-    public static final int FILE_ARG_COUNT_INT_HEADER=8;
+    public static final int FILE_HEADER_INT_HEADER =8;
     /**length of BigInt header for argCount in file-header*/
-    public static final int FILE_ARG_COUNT_INT_BLOCK=8;
+    public static final int FILE_HEADER_INT_BLOCK =8;
     /**length of BigInt header for argCount in file-header*/
-    public static final int FILE_ARG_COUNT_INT_BIG_BLOCK=8;
+    public static final int FILE_HEADER_INT_BIG_BLOCK =8;
 
     private Constants(){}
 
@@ -442,6 +444,7 @@ public class Constants {
                                     (a, b) -> MathObject.FromString.safeFromString(
                                             a.asString(), MathObject.round(b, MathObject.FLOOR)
                                                     .numericValue().realPart().num())));
+                    //TODO String Methods
 
                     //STRING_STARTS_WITH <str> <start>
                     //STRING_ENDS_WITH <str> <end>
@@ -450,6 +453,12 @@ public class Constants {
                     //STRING_SUBSTRING_FROM <str> <off_index>
                     //STRING_SUBSTRING_TO <str> <to_index>
                     //STRING_SUBSTRING <str> <off_index> <to_index>
+
+                    //STRING_COMPARE <str> <str>
+                    //STRING_CHARS <str>
+                    //STRING_SPLIT <str> <regex>
+
+                    //REGEX_...
                 }
                 //sets/tuples/maps
                 {

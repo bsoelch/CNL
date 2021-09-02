@@ -100,6 +100,12 @@ public class Interpreter implements Closeable {
             if((header.type&Translator.FILE_TYPE_SCRIPT)!=0)
                 isScript=true;
             if((header.type&Translator.FILE_TYPE_EXECUTABLE)!=0){
+                int c = header.codeVersion.compareTo(CODE_VERSION);
+                if(c<0){
+                    throw new IOException(codeFile+" uses an older Version of the binary Encoding");
+                }else if(c>0){
+                    throw new IOException(codeFile+" uses a newer Version of the binary Encoding");
+                }
                 if(args==null){
                     args= Main.getArgs(header.argCount.intValueExact());
                 }else if(args.length!=header.argCount.intValueExact())
@@ -583,6 +589,16 @@ public class Interpreter implements Closeable {
                 }else if((header.type&Translator.FILE_TYPE_EXECUTABLE)!=0){
                     throw new SyntaxError(this,"Invalid import-File: "+target.getAbsolutePath()+" cannot import Executables");
                 }else{
+                    if(header.type==Translator.FILE_TYPE_CODE) {
+                        int c = header.codeVersion.compareTo(CODE_VERSION);
+                        if (c < 0) {
+                            throw new IOException("Invalid import-File: "+target.getAbsolutePath()
+                                    + " uses an older Version of the binary Encoding");
+                        } else if (c > 0) {
+                            throw new IOException("Invalid import-File: "+target.getAbsolutePath()
+                                    + " uses a newer Version of the binary Encoding");
+                        }
+                    }
                     isScript=((header.type&Translator.FILE_TYPE_SCRIPT)!=0);
                 }
                 if(!importDejaVu.add(code.getSourceId())) {//check if codeFile is already imported in this direct hierarchy
@@ -654,7 +670,7 @@ public class Interpreter implements Closeable {
     }
 
     private int stackFlags() {
-        int flags= FLAG_ROOT,prev= FLAG_ROOT;//TODO better flag-management
+        int flags= FLAG_ROOT,prev= FLAG_ROOT;//TODO? better flag-management
         for(Action a:actionStack){//iterate through elements of actionStack
             prev=flags;
             if (!(a instanceof Context)) {//No change for program environments

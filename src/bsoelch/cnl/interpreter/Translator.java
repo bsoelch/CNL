@@ -807,15 +807,17 @@ public class Translator {
         try(BitRandomAccessStream target = new BitRandomAccessFile(targetFile, "rw")) {
             MathObject[] args;
             if (header.type == FILE_TYPE_SCRIPT) {
-                writeCodeHeader(target, FILE_HEADER_LIBRARY);
+                writeCodeHeader(target, new FileHeader(FILE_TYPE_CODE,CODE_VERSION,null));
                 args = new MathObject[0];
             } else if (header.type == FILE_TYPE_EXECUTABLE_SCRIPT) {
-                writeCodeHeader(target, new FileHeader(FILE_TYPE_EXECUTABLE, header.argCount));
+                writeCodeHeader(target, new FileHeader(FILE_TYPE_EXECUTABLE, CODE_VERSION, header.argCount));
                 args = new MathObject[header.argCount.intValueExact()];
                 Arrays.fill(args, Real.Int.ZERO);
             } else {
                 throw new IOException("Invalid source-file, all cnl-scripts have to start with CNLS<whitespace> or CNLS:<argCount>");
             }
+            //position after end of header
+            long startPos=target.bitPos();
             try(Interpreter test = new Interpreter(args, false, targetFile, false)) {
                 Action a;
                 long actions = 0;
@@ -831,7 +833,7 @@ public class Translator {
                     }
                     test.stepInternal(a, false);//flat run code to detect syntax errors
                     if (a == EOF) {
-                        Main.compileFinished(actions, target.bitPos());
+                        Main.compileFinished(actions, target.bitPos()-startPos);
                         target.truncateToSize(true);
                         return;
                     } else {
@@ -853,7 +855,7 @@ public class Translator {
                 writeScriptHeader(target, FILE_HEADER_SCRIPT);
                 args = new MathObject[0];
             } else if (header.type == FILE_TYPE_EXECUTABLE) {
-                writeScriptHeader(target, new FileHeader(FILE_TYPE_EXECUTABLE_SCRIPT, header.argCount));
+                writeScriptHeader(target, new FileHeader(FILE_TYPE_EXECUTABLE_SCRIPT, null, header.argCount));
                 args = new MathObject[header.argCount.intValueExact()];
                 Arrays.fill(args, Real.Int.ZERO);
             } else {
@@ -891,15 +893,16 @@ public class Translator {
     }
 
     public static final int FILE_TYPE_INVALID =-1, FILE_TYPE_CODE =0, FILE_TYPE_EXECUTABLE =1, FILE_TYPE_SCRIPT =2, FILE_TYPE_EXECUTABLE_SCRIPT =3;
-    public static final FileHeader FILE_HEADER_INVALID =new FileHeader(FILE_TYPE_INVALID,null);
-    public static final FileHeader FILE_HEADER_LIBRARY =new FileHeader(FILE_TYPE_CODE,null);
-    public static final FileHeader FILE_HEADER_SCRIPT =new FileHeader(FILE_TYPE_SCRIPT,null);
+    public static final FileHeader FILE_HEADER_INVALID =new FileHeader(FILE_TYPE_INVALID, null, null);
+    public static final FileHeader FILE_HEADER_SCRIPT =new FileHeader(FILE_TYPE_SCRIPT, null, null);
 
     public static class FileHeader{
         public final int type;
+        public final BigInteger codeVersion;
         public final BigInteger argCount;
-        public FileHeader(int type, BigInteger argCount) {
+        public FileHeader(int type, BigInteger codeVersion, BigInteger argCount) {
             this.type=type;
+            this.codeVersion = codeVersion;
             this.argCount = argCount;
         }
     }
@@ -910,8 +913,9 @@ public class Translator {
             long[] bits=new long[1];
             bits[0]='C'|'N'<<8|'L'<<16|(header.type==FILE_TYPE_EXECUTABLE?'X':'L')<<24;
             target.write(bits,0,32);
+            target.writeBigInt(header.codeVersion, FILE_HEADER_INT_HEADER, FILE_HEADER_INT_BLOCK, FILE_HEADER_INT_BIG_BLOCK);
             if(header.type==FILE_TYPE_EXECUTABLE){
-                target.writeBigInt(header.argCount,FILE_ARG_COUNT_INT_HEADER,FILE_ARG_COUNT_INT_BLOCK,FILE_ARG_COUNT_INT_BIG_BLOCK);
+                target.writeBigInt(header.argCount, FILE_HEADER_INT_HEADER, FILE_HEADER_INT_BLOCK, FILE_HEADER_INT_BIG_BLOCK);
             }
         }else{
             throw new IllegalArgumentException("Illegal type for codeFile header only FILE_TYPE_CODE and FILE_TYPE_EXECUTABLE are allowed");
@@ -944,10 +948,14 @@ public class Translator {
         if((h&0xff)!='L')
             return FILE_HEADER_INVALID;
         h>>>=8;
-        if((h&0xff)=='L')
-            return FILE_HEADER_LIBRARY;
-        if((h&0xff)=='X')
-            return new FileHeader(FILE_TYPE_EXECUTABLE,file.readBigInt(FILE_ARG_COUNT_INT_HEADER,FILE_ARG_COUNT_INT_BLOCK,FILE_ARG_COUNT_INT_BIG_BLOCK));
+        if((h&0xff)=='L'||(h&0xff)=='X'){
+            BigInteger codeVersion=file.readBigInt(FILE_HEADER_INT_HEADER, FILE_HEADER_INT_BLOCK, FILE_HEADER_INT_BIG_BLOCK);
+            if((h&0xff)=='L')
+                return new FileHeader(FILE_TYPE_CODE,codeVersion,null);
+            if((h&0xff)=='X')
+                return new FileHeader(FILE_TYPE_EXECUTABLE, codeVersion,
+                        file.readBigInt(FILE_HEADER_INT_HEADER, FILE_HEADER_INT_BLOCK, FILE_HEADER_INT_BIG_BLOCK));
+        }
         if((h&0xff)=='S'){//scripts
             return finishScriptHeader(file.reader());
         }
@@ -979,7 +987,7 @@ public class Translator {
                 }
             }while (true);
             try{
-                return new FileHeader(FILE_TYPE_EXECUTABLE_SCRIPT,new BigInteger(arg.toString(),16));
+                return new FileHeader(FILE_TYPE_EXECUTABLE_SCRIPT, null, new BigInteger(arg.toString(),16));
             }catch (IllegalArgumentException iae){
                 return FILE_HEADER_INVALID;
             }
