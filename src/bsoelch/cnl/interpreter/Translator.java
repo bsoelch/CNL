@@ -699,6 +699,16 @@ public class Translator {
             }
         }else if(value instanceof FiniteMap){
             int size=((FiniteMap) value).size();
+            //key to he last entry of a sparseTuple, if that last entry is zero, otherwise null
+            Real last=null;
+            if(value instanceof Tuple.SparseTuple){
+                last=Real.from(((Tuple.SparseTuple) value).length()-1);
+                if(((Tuple.SparseTuple) value).evaluateAt(last).equals(Real.Int.ZERO)){
+                    size++;
+                }else{
+                    last=null;
+                }
+            }
             if(size==0){
                 target.write(new long[]{Constants.HEADER_CONSTANTS},0,Constants.HEADER_CONSTANTS_LENGTH);
                 target.writeBigInt(BigInteger.valueOf(CONSTANT_EMPTY_MAP),Constants.CONSTANTS_INT_HEADER
@@ -720,6 +730,10 @@ public class Translator {
                     Pair e = it.next();
                     writeValue(target,e.a);
                     writeValue(target,e.b);
+                }
+                if(last!=null){
+                    writeValue(target,last);
+                    writeNumeric(target,Real.Int.ZERO);
                 }
             }
         }else{

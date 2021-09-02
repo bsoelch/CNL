@@ -234,6 +234,12 @@ public abstract class Matrix extends MathObject implements Iterable<NumericValue
         }
     }
 
+    public static Matrix matrixMultiply(Matrix a, Matrix b) {
+        //TODO sparse Multiply
+        return a.toFullMatrix().multiply(b.toFullMatrix());
+    }
+
+    abstract FullMatrix toFullMatrix();
 
     public abstract NumericValue numericValue();
 
@@ -251,6 +257,7 @@ public abstract class Matrix extends MathObject implements Iterable<NumericValue
     public abstract NumericValue determinant();
     public abstract Matrix invert();
     public abstract Matrix applyToAll(Function<NumericValue, NumericValue> operation);
+
 
     @NotNull
     @Override
@@ -292,9 +299,12 @@ public abstract class Matrix extends MathObject implements Iterable<NumericValue
         return sb.toString();
     }
 
-
+    @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
     @Override
-    public abstract boolean equals(Object o);
+    public boolean equals(Object o){
+        return asMap().equals(o);
+    }
+
     @Override
     public abstract int hashCode();
 }

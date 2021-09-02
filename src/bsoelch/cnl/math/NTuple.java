@@ -80,6 +80,8 @@ final class NTuple extends Tuple{
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
+        if(o instanceof Matrix)
+            o=((Matrix) o).asMap();
         if (!(o instanceof FiniteMap)) return false;
         if(o instanceof NTuple&&((NTuple) o).length()==length()) {
             NTuple nTuple = (NTuple) o;

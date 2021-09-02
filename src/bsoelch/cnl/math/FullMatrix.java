@@ -6,6 +6,7 @@ import org.jetbrains.annotations.Nullable;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -72,7 +73,6 @@ public final class FullMatrix extends Matrix {
         return new FullMatrix(ret);
     }
 
-    //TODO move binary operations to Matrix
     public Matrix multiply(FullMatrix m2){
         NumericValue[][] ret=new NumericValue[matrix.length][m2.matrix[0].length];
         int s=Math.min(matrix[0].length,m2.matrix.length);
@@ -87,6 +87,11 @@ public final class FullMatrix extends Matrix {
             }
         }
         return new FullMatrix(ret);
+    }
+
+    @Override
+    FullMatrix toFullMatrix() {
+        return this;
     }
 
     @Override
@@ -246,18 +251,24 @@ public final class FullMatrix extends Matrix {
         return str.append("]").toString();
     }
 
-    //TODO make equals and hash compatible with SparseMatrix/FiniteMap
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof FullMatrix)) return false;
-        FullMatrix matrix1 = (FullMatrix) o;
-        return Arrays.deepEquals(matrix, matrix1.matrix);
-    }
-
     @Override
     public int hashCode() {
-        return Arrays.deepHashCode(matrix);
+        int hash=0,rowHash;
+        boolean hadNonzero;
+        for(int i=0;i<matrix.length;i++){
+            rowHash=0;
+            hadNonzero=false;
+            for(int j=0;j<matrix.length;j++){
+                if(matrix[i][j]!=null&&!matrix[i][j].equals(Int.ZERO)){
+                    rowHash+= Objects.hash(Real.from(j),matrix[i][j]);
+                    hadNonzero=true;
+                }
+            }
+            if(hadNonzero){
+                hash+=Objects.hash(Real.from(i),rowHash);
+            }
+        }
+        return hash;
     }
 
     static void gaussianAlgorithm(NumericValue[][] target, @Nullable NumericValue[][] applicant, boolean total) {

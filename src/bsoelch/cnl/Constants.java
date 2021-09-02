@@ -485,7 +485,30 @@ public class Constants {
                             new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
                                     o-> ((o instanceof FullMatrix ||(o instanceof FiniteMap&&((FiniteMap) o).isMatrix()))
                                             ?Real.Int.ONE:Real.Int.ZERO)));
-                    //TODO size operator
+
+                    declareOperator("SIZE",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    (o)-> {
+                                        if(o instanceof Matrix) {
+                                            return Real.from(((Matrix) o).size());
+                                        }else if(o instanceof FiniteSet){
+                                            return Real.from(((FiniteSet)o).size());
+                                        }else if(o instanceof FiniteMap){
+                                            return Real.from(((FiniteMap)o).size());
+                                        }
+                                        return Real.Int.ONE;
+                                    }));
+                    declareOperator("LEN",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    (o)-> {
+                                        if(o instanceof Matrix) {
+                                            return Real.from(((Matrix) o).dimensions()[0]);
+                                        }else if(o instanceof Tuple){
+                                            return Real.from(((Tuple)o).length());
+                                        }
+                                        return Real.Int.ONE;
+                                    }));
+
                     //simple creators (nary creators in Nary section)
                     declareOperator(WRAP_IN_TUPLE,
                             new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
@@ -524,6 +547,8 @@ public class Constants {
                             new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
                                     MathObject::tupleConcat));
 
+                    //TODO Set/Map/Matrix edit
+
                     //TUPLE_GET_FIRST
                     //TUPLE_GET_LAST
                     //TUPLE_GET <index>
@@ -535,12 +560,39 @@ public class Constants {
 
                     //MAP_INSERT
                     //MAP_REMOVE
-                    //MAP_REMOVE_VALUES
+                    //MAP_REMOVE_ALL
+                    //MAP_REMOVE_VALUE
+                    //MAP_REMOVE_ALL_VALUE
 
                     //CONTAINS
                     //CONTAINS_KEY
                 }
-                //TODO Matrix Operations
+                //Matrix Operations
+                {
+                    declareOperator("MAT_MULT",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    (l,r)->Matrix.matrixMultiply(Matrix.asMatrix(l),Matrix.asMatrix(r))));
+                    declareOperator("MAT_RDIV",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    (l,r)->Matrix.matrixMultiply(Matrix.asMatrix(l),Matrix.asMatrix(r).invert())));
+                    declareOperator("MAT_LDIV",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    (l,r)->Matrix.matrixMultiply(Matrix.asMatrix(l).invert(),Matrix.asMatrix(r))));
+                    declareOperator("MAT_INVERT",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    (m)->Matrix.asMatrix(m).invert()));
+                    declareOperator("MAT_DET",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    (m)->Matrix.asMatrix(m).determinant()));
+                    declareOperator("MAT_DIM",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    (m)->{
+                                int[] dim=Matrix.asMatrix(m).dimensions();
+                                return new Pair(Real.from(dim[0]),Real.from(dim[1]));
+                            }));
+                    //MAT_GET
+                    //MAT_SET
+                }
                 //Nary Operations
                 {
                     declareOperator("SUM",

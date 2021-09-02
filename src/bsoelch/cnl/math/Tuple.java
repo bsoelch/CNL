@@ -55,7 +55,7 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
         }
         @Override
         public boolean equals(Object obj) {
-            return obj instanceof FiniteMap&&((FiniteMap) obj).domain().size()==0;
+            return obj instanceof FiniteMap&&((FiniteMap) obj).size()==0;
         }
         @Override
         public int hashCode() {
@@ -173,12 +173,13 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
         return true;
     }
 
+
     /**wrapper class that wraps a FiniteMap (which is assumed to be a SparseTuple) in the Tuple interface*/
     public static final class SparseTuple extends Tuple{
         final FiniteMap map;
         final BigInteger length;
 
-        /**creates a sparse tuple of the supplied lengh, wrapping the given FiniteMap
+        /**creates a sparse tuple of the supplied length, wrapping the given FiniteMap
          * this constructor should not be directly called, use {@link FiniteMap#createTuple(Map, BigInteger)} instead*/
         SparseTuple(FiniteMap map, BigInteger length){
             if(!map.isTuple())
@@ -243,20 +244,40 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
             return evaluateAt(Real.from(i));
         }
 
-        //TODO? make size visible in toString {...,last->0}
         @Override
         public String toString(BigInteger base, boolean useSmallBase) {
-            return map.toString(base,useSmallBase);
+            return toString(o->o.toString(base,useSmallBase));
         }
-
         @Override
         public String toStringFixedPoint(BigInteger base, Real precision, boolean useSmallBase) {
-            return map.toStringFixedPoint(base,precision,useSmallBase);
+            return toString(o->o.toStringFixedPoint(base,precision,useSmallBase));
         }
-
         @Override
         public String toStringFloat(BigInteger base, Real precision, boolean useSmallBase) {
-            return map.toStringFloat(base,precision,useSmallBase);
+            return toString(o->o.toStringFloat(base,precision,useSmallBase));
+        }
+
+        private String toString(Function<MathObject,String> objectToString){
+            StringBuilder sb=new StringBuilder("{");
+            Real.Int last=Real.from(length.subtract(BigInteger.ONE));
+            for (Iterator<Pair> it = map.mapIterator(); it.hasNext(); ) {
+                Pair e = it.next();
+                if(sb.length()>1)
+                    sb.append(", ");
+                sb.append(objectToString.apply(e.a));
+                sb.append(" -> ");
+                sb.append(objectToString.apply(e.b));
+                if(e.a.equals(last))
+                    last=null;
+            }
+            if(last!=null){//always add last element in toString
+                if(sb.length()>1)
+                    sb.append(", ");
+                sb.append(objectToString.apply(last));
+                sb.append(" -> ");
+                sb.append(objectToString.apply(Real.Int.ZERO));
+            }
+            return sb.append('}').toString();
         }
 
         //handling of equals and hash in wrapped map

@@ -11,22 +11,22 @@ public abstract class FiniteMap extends MathObject {
         //copy data to TreeMap
         TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
         map.putAll(mapData);
+        //test map for Tuple structure
+        boolean isTuple=true;
+        BigInteger length=null;
+        for(MathObject k:map.keySet()){
+            if(k instanceof Real.Int&&((Real.Int) k).num().signum()>=0){
+                length=length==null?((Real.Int) k).num():length.max(((Real.Int) k).num());
+            }else{
+                isTuple=false;
+                break;
+            }
+        }
         //remove zero-entries as all nonexistent entries are mapped to 0 by default
         map.entrySet().removeIf(e->e.getValue().equals(Real.Int.ZERO));
-        //TODO adjust Tuple sizes respecting elements with value zero
         if(map.isEmpty()){
             return Tuple.EMPTY_MAP;
         }else{
-            boolean isTuple=true;
-            BigInteger length=null;
-            for(MathObject k:map.keySet()){
-                if(k instanceof Real.Int&&((Real.Int) k).num().signum()>=0){
-                    length=length==null?((Real.Int) k).num():length.max(((Real.Int) k).num());
-                }else{
-                    isTuple=false;
-                    break;
-                }
-            }
             if(isTuple){//tuple detection
                 return createTuple(map, length==null?BigInteger.ZERO:length.add(BigInteger.ONE));
             }else {
@@ -169,6 +169,8 @@ public abstract class FiniteMap extends MathObject {
     public boolean equals(Object o) {
         if(o==this)
             return true;
+        if(o instanceof Matrix)
+            o=((Matrix) o).asMap();
         if(o instanceof FiniteMap){
             Iterator<Pair> itr1= mapIterator();
             Iterator<Pair> itr2= ((FiniteMap) o).mapIterator();

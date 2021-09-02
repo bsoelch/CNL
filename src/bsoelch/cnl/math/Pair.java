@@ -69,6 +69,8 @@ public final class Pair extends Tuple{
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
+        if(o instanceof Matrix)
+            o=((Matrix) o).asMap();
         if (!(o instanceof FiniteMap)) return false;
         if(o instanceof Pair){
             Pair pair = (Pair) o;

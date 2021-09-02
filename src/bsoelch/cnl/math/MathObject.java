@@ -410,7 +410,7 @@ public abstract class MathObject {
             l+=1;
             s+=1;
         }
-        if(l>Tuple.SPARSE_FACTOR*s){
+        if(l<Tuple.SPARSE_FACTOR*s){
             MathObject[] objects=new MathObject[l];
             if(a instanceof Tuple){
                 for(l=0;l<((Tuple) a).length();l++){
@@ -457,17 +457,15 @@ public abstract class MathObject {
 
 
     public static int compare(MathObject a, MathObject b){
+        //compare Matrices as Maps
+        if(a instanceof Matrix)
+            a=((Matrix) a).asMap();
+        if(b instanceof Matrix)
+            b=((Matrix) b).asMap();
+
         if(a instanceof NumericValue){
             if(b instanceof NumericValue){
                 return ((NumericValue) a).compareTo((NumericValue) b);
-            }else if(b instanceof Matrix){
-                int c;
-                for(NumericValue e:(Matrix) b){
-                    c=((NumericValue) a).compareTo(e);
-                    if(c!=0)
-                        return c;
-                }
-                return -1;// a < {a}
             }else if(b instanceof FiniteSet){
                 if(((FiniteSet) b).size()==0){
                     return 1;
@@ -491,7 +489,7 @@ public abstract class MathObject {
                 return -1;// a < {a}
             }
         }else if(a instanceof FiniteSet){
-            if(b instanceof NumericValue||b instanceof Matrix){
+            if(b instanceof NumericValue){
                 return -compare(b,a);
             }else if(b instanceof FiniteSet){
                 Iterator<MathObject> itr1=((FiniteSet) a).iterator();
@@ -504,7 +502,7 @@ public abstract class MathObject {
                 return c==0?-1:c;
             }
         }else if(a instanceof FiniteMap){
-            if(b instanceof NumericValue||b instanceof Matrix){
+            if(b instanceof NumericValue){
                 return -compare(b,a);
             }else if(b instanceof FiniteSet){
                 Iterator<MathObject> itr1=((FiniteMap) a).domain().iterator();

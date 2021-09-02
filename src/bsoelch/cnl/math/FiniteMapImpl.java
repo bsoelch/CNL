@@ -117,6 +117,8 @@ public final class FiniteMapImpl extends FiniteMap {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
+        if(o instanceof Matrix)
+            o=((Matrix) o).asMap();
         if (!(o instanceof FiniteMap)) return false;
         if(o instanceof FiniteMapImpl){
             FiniteMapImpl that = (FiniteMapImpl) o;
