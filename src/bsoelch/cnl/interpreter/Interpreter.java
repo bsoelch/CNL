@@ -670,7 +670,7 @@ public class Interpreter implements Closeable {
     }
 
     private int stackFlags() {
-        int flags= FLAG_ROOT,prev= FLAG_ROOT;//TODO? better flag-management
+        int flags= FLAG_ROOT,prev= FLAG_ROOT;//addLater? better flag-management
         for(Action a:actionStack){//iterate through elements of actionStack
             prev=flags;
             if (!(a instanceof Context)) {//No change for program environments

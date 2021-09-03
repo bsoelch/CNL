@@ -89,7 +89,7 @@ public class Constants {
     public static final int BRACKET_FLAG_END_WHILE_EQ =0b1011;
     public static final int BRACKET_FLAG_END_WHILE_NE =0b1101;
     public static final int BRACKET_FLAG_BREAK =0b1111;
-    //TODO? TRY,CATCH,THROW,EXIT
+    //addLater? TRY,CATCH,THROW,EXIT
 
     //111000.[BigInt] -> Constants
     public static final int HEADER_CONSTANTS = 0b000111;
@@ -421,7 +421,7 @@ public class Constants {
                 declareOperator(APPROXIMATE,
                         new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
                                 (a,b)-> MathObject.approximate(a,b.numericValue().realPart())));
-                declareOperator(BIT_LENGTH,//TODO? better implementation of bitLength (? element-wise floor(log2))
+                declareOperator(BIT_LENGTH,
                         new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
                                 (a)-> Real.from(a.numericValue().realPart()
                                         .num().abs().bitLength()
@@ -490,6 +490,7 @@ public class Constants {
 
                     //STRING_CHARS <str>
                     //STRING_SPLIT <str> <regex>
+                    //STRING_FILTER
 
                     //REGEX_...
                 }

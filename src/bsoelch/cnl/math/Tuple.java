@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.function.Function;
 
 public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
@@ -89,7 +90,7 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
                 zeros++;
             }
         }
-        //TODO? convert to SparseTuples if necessary
+        //addLater convert to SparseTuples if necessary
         if(objects.length==0){
             return EMPTY_MAP;
         }else if(objects.length==2){
@@ -247,7 +248,30 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
 
         @Override
         public Iterator<Pair> mapIterator() {
-            return map.mapIterator();
+                return new Iterator<Pair>() {
+                final Iterator<Pair> mapItr=map.mapIterator();
+                final Real.Int last=Real.from(length.subtract(BigInteger.ONE));
+                boolean hasLast=true;
+                @Override
+                public boolean hasNext() {
+                    return mapItr.hasNext()||hasLast;
+                }
+
+                @Override
+                public Pair next() {
+                    if(mapItr.hasNext()){
+                        Pair p=mapItr.next();
+                        if(p.a.equals(last))
+                            hasLast=false;
+                        return p;
+                    }else if(hasLast){
+                        hasLast=false;
+                        return new Pair(last,Real.Int.ZERO);
+                    }else{
+                        throw new NoSuchElementException();
+                    }
+                }
+            };
         }
 
         @Override
@@ -255,7 +279,7 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
             return map.valueIterator();
         }
 
-        //TODO? BigIntSize/keys
+        //addLater? BigIntSize/keys
         @Override
         public int length() {
             return length.intValue();
@@ -286,32 +310,21 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
 
         private String toString(Function<MathObject,String> objectToString){
             StringBuilder sb=new StringBuilder("{");
-            Real.Int last=Real.from(length.subtract(BigInteger.ONE));
-            for (Iterator<Pair> it = map.mapIterator(); it.hasNext(); ) {
+            for (Iterator<Pair> it = mapIterator(); it.hasNext(); ) {
                 Pair e = it.next();
                 if(sb.length()>1)
                     sb.append(", ");
                 sb.append(objectToString.apply(e.a));
                 sb.append(" -> ");
                 sb.append(objectToString.apply(e.b));
-                if(e.a.equals(last))
-                    last=null;
-            }
-            if(last!=null){//always add last element in toString
-                if(sb.length()>1)
-                    sb.append(", ");
-                sb.append(objectToString.apply(last));
-                sb.append(" -> ");
-                sb.append(objectToString.apply(Real.Int.ZERO));
             }
             return sb.append('}').toString();
         }
 
         //handling of equals and hash in wrapped map
-        @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
         @Override
         public boolean equals(Object o) {
-            return map.equals(o);
+            return super.equals(o);
         }
         @Override
         public int hashCode() {

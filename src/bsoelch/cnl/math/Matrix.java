@@ -7,6 +7,7 @@ import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+//addLater merge FullMatrix and SparseMatrix classes
 public abstract class Matrix extends MathObject implements Iterable<NumericValue> {
     Matrix(){}//packagePrivate constructor
 
@@ -17,7 +18,7 @@ public abstract class Matrix extends MathObject implements Iterable<NumericValue
         return diagonalMatrix(n, Real.Int.ONE);
     }
 
-    //TODO? use sparseVariant for large sizes
+    //addLater use sparseVariant for large sizes
     public static Matrix diagonalMatrix(int n, NumericValue value) {
         if(n <=0)throw new IllegalArgumentException("n has to be >0");
         NumericValue[][] data=new NumericValue[n][n];
@@ -283,7 +284,7 @@ public abstract class Matrix extends MathObject implements Iterable<NumericValue
 
     public abstract FiniteMap asMap();
 
-    //TODO? BigInt keys/size/dimensions
+    //addLater? BigInt keys/size/dimensions
 
     public abstract NumericValue entryAt(int i, int j);
     public abstract Matrix setEntry(int x, int y, NumericValue v);

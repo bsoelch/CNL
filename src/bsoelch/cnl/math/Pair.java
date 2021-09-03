@@ -1,7 +1,12 @@
 package bsoelch.cnl.math;
 
+import com.sun.org.apache.regexp.internal.RE;
+
+import javax.swing.event.TreeSelectionEvent;
 import java.math.BigInteger;
 import java.util.Objects;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.function.Function;
 
 public final class Pair extends Tuple{
@@ -19,7 +24,12 @@ public final class Pair extends Tuple{
 
     @Override
     public FiniteSet domain() {
-        return FiniteSet.PAIR_KEY;
+        TreeSet<Real.Int> keys=new TreeSet<>();
+        if(!a.equals(Real.Int.ZERO))
+            keys.add(Real.Int.ZERO);
+        if(!b.equals(Real.Int.ZERO))
+            keys.add(Real.Int.ONE);
+        return FiniteSet.from(keys);
     }
 
     @Override

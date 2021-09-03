@@ -17,7 +17,7 @@ public abstract class Real extends NumericValue {
 
     static final String DIGITS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" +
             "αβγδεζηθικλμνξοπρςστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ" +
-            "абвгдежзиклмнопрстуфхцчшщыэюяАБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЫЭЮЯ" +//TODO remove similar characters
+            "абвгдежзиклмнопрстуфхцчшщыэюяАБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЫЭЮЯ" +//addLater remove similar characters
             "աբգդեզէըթժիլխծկհձղճմյնշոչպջռսվտրցւփքօֆևԱԲԳԴԵԶԷԸԹԺԻԼԽԾԿՀՁՂՃՄՅՆՇՈՉՊՋՌՍՎՏՐՑՒՓՔՕՖ";
     static final BigInteger MAX_BASE_I = BigInteger.valueOf(DIGITS.toLowerCase(Locale.ROOT).indexOf('i') + 1);
     static char digitSeparator = ':';
@@ -44,7 +44,11 @@ public abstract class Real extends NumericValue {
 
     public static Real from(BigInteger a, BigInteger b) {
         if (b.signum() == 0)
-            throw new ArithmeticException("Division by zero");
+            if(a.signum()==0){
+                return Int.ZERO;// 0/0=0 necessary for consistent handling of empty map entries
+            }else {
+                throw new ArithmeticException("Division by zero");
+            }
         if (b.signum() < 0) {
             a = a.negate();
             b = b.negate();
@@ -589,7 +593,7 @@ public abstract class Real extends NumericValue {
         return ret.toString();
     }
 
-    //TODO? handle negative precision
+    //addLater? handle negative precision
     private static String fractionToApproxString(BigInteger num, BigInteger den, BigInteger base, int numDigits,boolean useSmallBase) {
         StringBuilder ret = new StringBuilder(num.signum() < 0 ? "-" : "");
         num = num.abs();

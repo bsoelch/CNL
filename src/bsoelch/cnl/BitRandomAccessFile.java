@@ -186,7 +186,7 @@ public class BitRandomAccessFile implements BitRandomAccessStream {
         synchronized (ioLock){
             bytes=new byte[Math.toIntExact((len+7)/8+(bitIndex==0?0:1))];
             int i0=0;
-            if(cachedBits!=0){//TODO? write cache before read
+            if(cachedBits!=0){//addLater? write cache before read
                 ensureCached(0xff<<bitIndex);
                 bytes[i0++]=(byte)currentByte;
                 byteFile.seek(bytePos+1);

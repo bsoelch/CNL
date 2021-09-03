@@ -169,7 +169,7 @@ public final class SparseMatrix extends Matrix{
 
     @Override
     public Matrix invert() {
-        //TODO? sparse invert
+        //addLater? sparse invert
         return toFullMatrix().invert();
     }
 

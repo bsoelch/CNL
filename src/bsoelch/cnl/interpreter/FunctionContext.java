@@ -24,7 +24,7 @@ public class FunctionContext implements Context{
 
     public void reset(ArgumentData args) {
         this.args=args;
-        //TODO? allow persistent variables between function calls
+        //addLater? allow persistent variables between function calls
         vars.clear();
         children.clear();
     }

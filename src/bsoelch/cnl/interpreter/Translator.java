@@ -198,7 +198,7 @@ public class Translator {
             }
             case HEADER_VAR:{
                 BigInteger id = code.readBigInt(VAR_INT_HEADER, VAR_INT_BLOCK, VAR_INT_BIG_BLOCK);
-                return new VarPointer(context, Real.from(id));//TODO? caching
+                return new VarPointer(context, Real.from(id));//addLater caching
             }
             case HEADER_INT:{
                 BigInteger value = code.readBigInt(INT_HEADER, INT_BLOCK, INT_BIG_BLOCK);
@@ -698,14 +698,9 @@ public class Translator {
             }
         }else if(value instanceof FiniteMap){
             int size=((FiniteMap) value).size();
-            //key to he last entry of a sparseTuple, if that last entry is zero, otherwise null
-            Real last=null;
             if(value instanceof Tuple.SparseTuple){
-                last=Real.from(((Tuple.SparseTuple) value).length()-1);
-                if(((Tuple.SparseTuple) value).evaluateAt(last).equals(Real.Int.ZERO)){
-                    size++;
-                }else{
-                    last=null;
+                if(((Tuple.SparseTuple) value).evaluateAt(Real.from(((Tuple.SparseTuple) value).length()-1)).equals(Real.Int.ZERO)){
+                    size++;//save tuples with last entry zero in correct size
                 }
             }
             if(size==0){
@@ -729,10 +724,6 @@ public class Translator {
                     Pair e = it.next();
                     writeValue(target,e.a);
                     writeValue(target,e.b);
-                }
-                if(last!=null){
-                    writeValue(target,last);
-                    writeNumeric(target,Real.Int.ZERO);
                 }
             }
         }else{
@@ -796,7 +787,7 @@ public class Translator {
         }
     }
 
-    //TODO? symbolic names in scripts (i.e &name) for varIds/fktIds
+    //addLater? symbolic names in scripts (i.e &name) for varIds/fktIds
     // pre-compiling that replaces symbolic names with varIds (by frequency)
     public static void compile(Reader source,File targetFile) throws IOException, SyntaxError, CNL_RuntimeException {
         if (!(targetFile.exists() || targetFile.createNewFile()))

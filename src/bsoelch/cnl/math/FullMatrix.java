@@ -285,6 +285,7 @@ public final class FullMatrix extends Matrix {
         return hash;
     }
 
+    //addLater make gaussianAlgorithm work with Tuples of Tuples of NumericValues
     static void gaussianAlgorithm(NumericValue[][] target, @Nullable NumericValue[][] applicant, boolean total) {
         int y=0,k0;
         for (NumericValue[] numericValues : target) {

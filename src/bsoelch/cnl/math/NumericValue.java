@@ -290,11 +290,15 @@ public abstract class NumericValue extends MathObject implements Comparable<Nume
         return subtract(l, multiply(r, divide(l,r).round(FLOOR)));
     }
     public static NumericValue pow(NumericValue l, NumericValue r){
-        return powBigInt(l,r.round(-1).realPart().num());
+        if(r instanceof Real.Int){
+            return powBigInt(l,((Real.Int)r).num());
+        }else{
+            throw new ArithmeticException("non integer power:"+r);
+        }
     }
     static NumericValue powBigInt(NumericValue l, BigInteger power) {
         if(power.signum()==0){
-            return Real.Int.ONE;
+            return l.equals(Real.Int.ZERO)?Real.Int.ZERO:Real.Int.ONE;
         }else if(power.signum()<0){
             return powBigInt(l,power.negate()).invert();
         }else{

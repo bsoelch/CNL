@@ -4,6 +4,7 @@ package bsoelch.cnl.math;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.TreeSet;
 import java.util.function.Function;
 
 final class NTuple extends Tuple{
@@ -49,7 +50,12 @@ final class NTuple extends Tuple{
 
     @Override
     public FiniteSet domain() {
-        return FiniteSet.range(Real.Int.ZERO,Real.from(objects.length-1));
+        TreeSet<Real.Int> keys=new TreeSet<>();
+        for(int i=0;i<objects.length;i++){
+            if(!objects[i].equals(Real.Int.ZERO))
+                keys.add(Real.from(i));
+        }
+        return FiniteSet.from(keys);
     }
 
     @Override

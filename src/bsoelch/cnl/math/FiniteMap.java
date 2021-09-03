@@ -61,7 +61,7 @@ public abstract class FiniteMap extends MathObject {
                 entries.put(p.a,f.apply(p.b,Real.Int.ZERO));
             }
         }
-        for (Iterator<Pair> it = m1.mapIterator(); it.hasNext(); ) {
+        for (Iterator<Pair> it = m2.mapIterator(); it.hasNext(); ) {
             Pair p = it.next();
             if(!m1.isKey(p.a)){
                 entries.put(p.a,f.apply(Real.Int.ZERO,p.b));

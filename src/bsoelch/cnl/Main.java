@@ -70,7 +70,7 @@ public class Main {
         return ip.run();
     }
 
-    //TODO customizable IO-console, getFileByUrl, ...
+    //addLater customizable IO-console, getFileByUrl, ...
 
     private static char nextChar() {
         try {

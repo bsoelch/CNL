@@ -37,7 +37,7 @@ public abstract class MathObject {
     /**{@inheritDoc}*/
     abstract public int hashCode();
 
-    public static MathObject not(MathObject o) {//TODO? elementwise not
+    public static MathObject not(MathObject o) {//addLater elementwise not
         return isTrue(o)?Real.Int.ZERO:Real.Int.ONE;
     }
 
@@ -927,7 +927,7 @@ public abstract class MathObject {
                             try {
                                 parts.set(i - 1, new ValueNode(divide(l, r)));
                             }catch (ArithmeticException div0){
-                                if(safeMode){//TODO? safeDivide
+                                if(safeMode){//addLater? safeDivide
                                     parts.set(i - 1, new ValueNode(Real.Int.ZERO));
                                 }else{
                                     throw div0;
@@ -974,7 +974,7 @@ public abstract class MathObject {
             }
             boolean isMap=false,topLevel=true;
             //5. ->
-            for(int i=parts.size()-1;i>=0;i--){//TODO? detect Multimaps: {1->2->3,1->3->4} -> {1->{2->3,3->4}}
+            for(int i=parts.size()-1;i>=0;i--){//addLater? detect Multimaps: {1->2->3,1->3->4} -> {1->{2->3,3->4}}
                 if(parts.get(i) instanceof OperatorNode){
                     switch (((OperatorNode) parts.get(i)).value) {
                         case "->":
@@ -1092,7 +1092,7 @@ public abstract class MathObject {
 
 
         private static NumericValue numberFromString(BigInteger base, String str, boolean safeMode) {
-            //dynamic base: $-> bin #->hex §->doz @base: ->BaseN //TODO? dec prefix
+            //dynamic base: $-> bin #->hex §->doz @base: ->BaseN //addLater? dec prefix
             if(str.startsWith("$")){//bin
                 str=str.substring(1);
                 base= Constants.BIG_INT_TWO;

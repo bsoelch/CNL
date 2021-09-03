@@ -10,7 +10,6 @@ import java.util.function.Function;
 
 public final class FiniteSet extends MathObject implements Iterable<MathObject>{
     final static public FiniteSet EMPTY_SET =new FiniteSet(Collections.emptySet());
-    final static public FiniteSet PAIR_KEY = new FiniteSet(new HashSet<>(Arrays.asList(Real.Int.ZERO,Real.Int.ONE)));
 
 
     public static FiniteSet intersect(FiniteSet a, FiniteSet b){
@@ -97,7 +96,7 @@ public final class FiniteSet extends MathObject implements Iterable<MathObject>{
         return from(newContents);
     }
 
-    //TODO? range class
+    //addLater? range class
     public static FiniteSet range(Real.Int min, Real.Int max) {
         if(min.compareTo(max)>0)
             return EMPTY_SET;
@@ -113,11 +112,9 @@ public final class FiniteSet extends MathObject implements Iterable<MathObject>{
     public static FiniteSet from(MathObject... objects){
         return from(new HashSet<>(Arrays.asList(objects)));
     }
-    public static FiniteSet from(Set<MathObject> objects){
+    public static FiniteSet from(Set<? extends MathObject> objects){
         if(objects.isEmpty()){
             return EMPTY_SET;
-        }else if(PAIR_KEY.contents.equals(objects)){
-            return PAIR_KEY;
         }else{
             return new FiniteSet(objects);
         }
@@ -125,7 +122,7 @@ public final class FiniteSet extends MathObject implements Iterable<MathObject>{
 
     final TreeSet<MathObject> contents;
 
-    FiniteSet(Set<MathObject> contents) {
+    FiniteSet(Set<? extends MathObject> contents) {
         this.contents = new TreeSet<>(MathObject::compare);
         this.contents.addAll(contents);
     }
