@@ -119,7 +119,9 @@ final class NTuple extends Tuple{
         for(MathObject o:objects){
             if(sb.length()>1)
                 sb.append(", ");
-            sb.append(objectToString.apply(o));
+            if(!o.equals(Real.Int.ZERO)) {
+                sb.append(objectToString.apply(o));
+            }
         }
         return sb.append(']').toString();
     }

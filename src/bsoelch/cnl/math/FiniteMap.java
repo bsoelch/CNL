@@ -7,7 +7,7 @@ import java.util.function.Function;
 
 public abstract class FiniteMap extends MathObject {
     FiniteMap(){}//package private constructor
-    public static FiniteMap from(Map<MathObject,MathObject> mapData){
+    public static FiniteMap from(Map<? extends MathObject,? extends MathObject> mapData){
         //copy data to TreeMap
         TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
         map.putAll(mapData);

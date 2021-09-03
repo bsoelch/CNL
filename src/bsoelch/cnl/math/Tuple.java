@@ -80,9 +80,14 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
     };
 
     public static Tuple create(MathObject[] objects){
-        for(MathObject o:objects) {
-            if (o == null)
-                throw new NullPointerException("Elements of Tuple must not be null");
+        int zeros=0;
+        for(int i=0;i<objects.length;i++) {
+            if (objects[i] == null){
+                objects[i]=Real.Int.ZERO;
+                zeros++;
+            }else if (objects[i].equals(Real.Int.ZERO)){
+                zeros++;
+            }
         }
         //TODO? convert to SparseTuples if necessary
         if(objects.length==0){
@@ -142,12 +147,34 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
         };
     }
     public @NotNull Iterator<MathObject> sparseIterator() {
-        return iterator();
+        return new Iterator<MathObject>() {
+            final Iterator<MathObject> itr=iterator();
+            MathObject next=nextNonZero();
+
+            private MathObject nextNonZero() {
+                next=Real.Int.ZERO;
+                while(itr.hasNext()&&next.equals(Real.Int.ZERO)){
+                    next=itr.next();
+                }
+                return next;
+            }
+            @Override
+            public boolean hasNext() {
+                return !next.equals(Real.Int.ZERO);
+            }
+            @Override
+            public MathObject next() {
+                MathObject tmp=next;
+                next=nextNonZero();
+                return tmp;
+            }
+        };
     }
 
     @Override
     public boolean isMatrix() {
-        for(MathObject o:this){
+        for (@NotNull Iterator<MathObject> it = sparseIterator(); it.hasNext(); ) {
+            MathObject o = it.next();
             if(!(o instanceof FiniteMap&&((FiniteMap) o).isNumericTuple())){
                 return false;
             }

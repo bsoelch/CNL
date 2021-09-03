@@ -421,7 +421,7 @@ public class Constants {
                 declareOperator(APPROXIMATE,
                         new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
                                 (a,b)-> MathObject.approximate(a,b.numericValue().realPart())));
-                declareOperator(BIT_LENGTH,//TODO better implementation of bitLength (? element-wise floor(log2))
+                declareOperator(BIT_LENGTH,//TODO? better implementation of bitLength (? element-wise floor(log2))
                         new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
                                 (a)-> Real.from(a.numericValue().realPart()
                                         .num().abs().bitLength()

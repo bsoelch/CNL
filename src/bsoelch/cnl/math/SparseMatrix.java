@@ -24,7 +24,7 @@ public final class SparseMatrix extends Matrix{
 
     SparseMatrix(FiniteMap data){
         if(!data.isMatrix())
-            throw new IllegalArgumentException("data does not represent a Matrix");
+            throw new ArithmeticException("data does not represent a Matrix");
         this.data=data;
         BigInteger tmpR=null,tmpC=null,tmp;
         for (Iterator<Pair> it = data.mapIterator(); it.hasNext(); ) {
@@ -71,30 +71,30 @@ public final class SparseMatrix extends Matrix{
     }
     @Override
     public Matrix setEntry(int x, int y, NumericValue v) {
-        TreeMap<BigInteger,TreeMap<BigInteger,NumericValue>> newData=new TreeMap<>();
+        TreeMap<Real.Int,TreeMap<Real.Int,NumericValue>> newData=new TreeMap<>();
         boolean added=false;
         for (Iterator<Pair> it = data.mapIterator(); it.hasNext(); ) {
             Pair e = it.next();
             if(e.b instanceof FiniteMap) {
-                TreeMap<BigInteger,NumericValue> row=newData.get(e.a.numericValue().realPart().num());
+                @SuppressWarnings("SuspiciousMethodCalls") TreeMap<Real.Int,NumericValue> row=newData.get(e.a);
                 if(row==null){
                     row=new TreeMap<>();
                 }
                 for (Iterator<Pair> iter = ((FiniteMap) e.b).mapIterator(); iter.hasNext(); ) {
                     Pair p = iter.next();
-                    row.put(p.a.numericValue().realPart().num(),p.b.numericValue());
+                    row.put((Real.Int)p.a,p.b.numericValue());
                 }
                 if(e.a.equals(Real.from(x))){
-                    row.put(BigInteger.valueOf(y),v);
+                    row.put(Real.from(y),v);
                     added=true;
                 }
-                newData.put(e.a.numericValue().realPart().num(),row);
+                newData.put((Real.Int)e.a,row);
             }
         }
         if(!added){
-            TreeMap<BigInteger,NumericValue> row=new TreeMap<>();
-            row.put(BigInteger.valueOf(y),v);
-            newData.put(BigInteger.valueOf(x),row);
+            TreeMap<Real.Int,NumericValue> row=new TreeMap<>();
+            row.put(Real.from(y),v);
+            newData.put(Real.from(x),row);
         }
         return Matrix.asMatrix(newData,columns);
     }
@@ -111,19 +111,19 @@ public final class SparseMatrix extends Matrix{
     @Override
     public Matrix applyToAll(Function<NumericValue, NumericValue> f) {
         if(f.apply(Real.Int.ZERO).equals(Real.Int.ZERO)){
-            TreeMap<BigInteger,TreeMap<BigInteger,NumericValue>> newData=new TreeMap<>();
+            TreeMap<Real.Int,TreeMap<Real.Int,NumericValue>> newData=new TreeMap<>();
             for (Iterator<Pair> it = data.mapIterator(); it.hasNext(); ) {
                 Pair e = it.next();
                 if(e.b instanceof FiniteMap) {
-                    TreeMap<BigInteger,NumericValue> row=newData.get(e.a.numericValue().realPart().num());
+                    @SuppressWarnings("SuspiciousMethodCalls") TreeMap<Real.Int,NumericValue> row=newData.get(e.a);
                     if(row==null){
                         row=new TreeMap<>();
                     }
                     for (Iterator<Pair> iter = ((FiniteMap) e.b).mapIterator(); iter.hasNext(); ) {
                         Pair p = iter.next();
-                        row.put(p.a.numericValue().realPart().num(),f.apply((NumericValue) p.b));
+                        row.put((Real.Int)p.a,f.apply((NumericValue) p.b));
                     }
-                    newData.put(e.a.numericValue().realPart().num(),row);
+                    newData.put((Real.Int)e.a,row);
                 }
             }
             return Matrix.asMatrix(newData,columns);
@@ -148,15 +148,15 @@ public final class SparseMatrix extends Matrix{
 
     @Override
     public Matrix transpose() {
-        TreeMap<BigInteger,TreeMap<BigInteger,NumericValue>> data=new TreeMap<>();
+        TreeMap<Real.Int,TreeMap<Real.Int,NumericValue>> data=new TreeMap<>();
         for (Iterator<MatrixEntry> it = matrixIterator(); it.hasNext(); ) {
             MatrixEntry e = it.next();
-            TreeMap<BigInteger,NumericValue> row=data.get(e.x);
+            TreeMap<Real.Int,NumericValue> row=data.get(Real.from(e.x));
             if(row==null){
                 row=new TreeMap<>();
             }
-            row.put(e.y,e.value);
-            data.put(e.x,row);
+            row.put(Real.from(e.y),e.value);
+            data.put(Real.from(e.x),row);
         }
         return Matrix.asMatrix(data,rows);
     }
@@ -228,13 +228,13 @@ public final class SparseMatrix extends Matrix{
 
             private Iterator<Pair> nextColumn() {
                 columnItr=null;
-                do {
+                while (columnItr==null&&rowItr.hasNext()){
                     Pair next = rowItr.next();
                     if (next.b instanceof FiniteMap) {
                         r=next.a.numericValue().realPart().num();
                         columnItr = ((FiniteMap) next.b).mapIterator();
                     }
-                }while (columnItr==null&&rowItr.hasNext());
+                }
                 return columnItr;
             }
 
@@ -250,6 +250,37 @@ public final class SparseMatrix extends Matrix{
                     columnItr=nextColumn();
                 }
                 return new MatrixEntry(r,next.a.numericValue().realPart().num(),(NumericValue) next.b);
+            }
+        };
+    }
+
+    @Override
+    public @NotNull Iterator<Pair> rowIterator() {
+        return new Iterator<Pair>() {
+            final Iterator<Pair> rowItr=data.mapIterator();
+            Pair nextRow=nextRow();
+
+            private Pair nextRow(){
+                nextRow=null;
+                while(nextRow==null&&rowItr.hasNext()) {
+                    Pair next = rowItr.next();
+                    if (next.b instanceof FiniteMap) {
+                        nextRow=next;
+                    }
+                }
+                return nextRow;
+            }
+
+            @Override
+            public boolean hasNext() {
+                return nextRow!=null;
+            }
+
+            @Override
+            public Pair next() {
+                Pair tmp=nextRow;
+                nextRow=nextRow();
+                return tmp;
             }
         };
     }

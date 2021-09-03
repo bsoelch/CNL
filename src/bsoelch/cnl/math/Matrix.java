@@ -90,26 +90,21 @@ public abstract class Matrix extends MathObject implements Iterable<NumericValue
         }
     }
 
-    //TODO? use Real.Int instead of BigInt
-    static Matrix asMatrix(TreeMap<BigInteger, TreeMap<BigInteger, NumericValue>> data,BigInteger rowLength) {
+    static Matrix asMatrix(TreeMap<Real.Int, TreeMap<Real.Int, NumericValue>> data,BigInteger rowLength) {
         TreeMap<MathObject,MathObject> rows=new TreeMap<>(MathObject::compare);
-        TreeMap<BigInteger,NumericValue> row;
-        for(Map.Entry<BigInteger, TreeMap<BigInteger, NumericValue>> e:data.entrySet()){
+        TreeMap<Real.Int,NumericValue> row;
+        for(Map.Entry<Real.Int, TreeMap<Real.Int, NumericValue>> e:data.entrySet()){
             row=e.getValue();
             if(row.size()<3L*rowLength.intValueExact()){
                 MathObject[] fullData=new MathObject[rowLength.intValueExact()];
                 for(int i=0;i<fullData.length;i++){
-                    fullData[i]=row.get(BigInteger.valueOf(i));
+                    fullData[i]=row.get(Real.from(i));
                     if(fullData[i]==null)
                         fullData[i]=Real.Int.ZERO;
                 }
-                rows.put(Real.from(e.getKey()),Tuple.create(fullData));
+                rows.put(e.getKey(),Tuple.create(fullData));
             }else{
-                TreeMap<MathObject,MathObject> mapData=new TreeMap<>(MathObject::compare);
-                for(Map.Entry<BigInteger, NumericValue> p:row.entrySet()){
-                    mapData.put(Real.from(p.getKey()),p.getValue());
-                }
-                rows.put(Real.from(e.getKey()),FiniteMap.from(mapData));
+                rows.put(e.getKey(),FiniteMap.from(row));
             }
         }
         return new SparseMatrix(FiniteMap.from(rows));
@@ -235,8 +230,51 @@ public abstract class Matrix extends MathObject implements Iterable<NumericValue
     }
 
     public static Matrix matrixMultiply(Matrix a, Matrix b) {
-        //TODO sparse Multiply
-        return a.toFullMatrix().multiply(b.toFullMatrix());
+        if(a instanceof FullMatrix&&b instanceof FullMatrix){
+            return ((FullMatrix)a).multiply(((FullMatrix)b));
+        }else{//sparse multiply
+            TreeMap<Real.Int,TreeMap<Real.Int,NumericValue>> res=new TreeMap<>();
+            BigInteger rowLen=BigInteger.ZERO;
+            for (Iterator<Pair> it = a.rowIterator(); it.hasNext(); ) {
+                Pair r = it.next();
+                for (Iterator<Pair> iter = ((FiniteMap) r.b).mapIterator(); iter.hasNext(); ) {
+                    Pair e = iter.next();
+                    for (Iterator<Pair> iterator = b.rowIterator(); iterator.hasNext(); ) {
+                        Pair s = iterator.next();
+                        Real.Int z = (Real.Int) s.a;
+                        rowLen=rowLen.max(z.num());
+                        NumericValue v=NumericValue.multiply((NumericValue)e.b,
+                                b.entryAt(((Real.Int)e.a).num().intValueExact(), z.num().intValueExact()));
+                        if(!v.equals(Real.Int.ZERO)){
+                            Real.Int x = (Real.Int) r.a;
+                            TreeMap<Real.Int,NumericValue> row=res.get(x);
+                            if(row==null){
+                                row=new TreeMap<>();
+                            }
+                            NumericValue prev=row.get(z);
+                            if(prev!=null){
+                                v=NumericValue.add(v,prev);
+                            }
+                            row.put(z,v);
+                            res.put(x,row);
+                        }
+                    }
+                }
+            }
+            //ensure full size
+            Real.Int lastRow = Real.from(a.dimensions()[0] - 1);
+            Real.Int lastColumn = Real.from(b.dimensions()[1] - 1);
+            TreeMap<Real.Int,NumericValue> row=res.get(lastRow);
+            if(row==null){
+                row=new TreeMap<>();
+            }
+            NumericValue prev=row.get(lastColumn);
+            if(prev==null){
+                row.put(lastColumn,Real.Int.ZERO);
+                res.put(lastRow,row);
+            }
+            return asMatrix(res,rowLen);
+        }
     }
 
     abstract FullMatrix toFullMatrix();
@@ -280,6 +318,11 @@ public abstract class Matrix extends MathObject implements Iterable<NumericValue
     /**Iterator over the Entries of this Matrix that skips elements with the value zero*/
     @NotNull
     public abstract Iterator<SparseMatrix.MatrixEntry> matrixIterator();
+    /**Iterates over the non-empty rows of this Matrix,
+     *  returns pairs with the rowid in the first component and the row in the second*/
+    @NotNull
+    public abstract Iterator<Pair> rowIterator();
+
 
     @Override
     public abstract String toString(BigInteger base, boolean useSmallBase);

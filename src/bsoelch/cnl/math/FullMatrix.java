@@ -206,6 +206,21 @@ public final class FullMatrix extends Matrix {
             }
         };
     }
+    @NotNull
+    public Iterator<Pair> rowIterator() {
+        return new Iterator<Pair>() {
+            int r=0;
+            @Override
+            public boolean hasNext() {
+                return r<matrix.length;
+            }
+
+            @Override
+            public Pair next() {
+                return new Pair(Real.from(r),Tuple.create(matrix[r++]));
+            }
+        };
+    }
 
     @Override
     public String toString(BigInteger base, boolean useSmallBase) {
