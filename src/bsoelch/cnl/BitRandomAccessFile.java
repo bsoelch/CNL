@@ -11,8 +11,10 @@ public class BitRandomAccessFile implements BitRandomAccessStream {
     final Object ioLock=new Object();
     final RandomAccessFile byteFile;
     long bytePos;
-    /**Maske des Aktuellen bits*/
-    int bitMask=1,bitIndex=0;
+    /**bitmask of the current bit*/
+    int bitMask=1;
+    /**index of the current bit*/
+    int bitIndex=0;
     /**the byte the current bit position is in*/
     int currentByte=0,cachedBits=0;
     /**true if the current byte is in cache (and the bytePointer is after the current byte) */

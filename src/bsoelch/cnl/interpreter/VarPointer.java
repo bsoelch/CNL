@@ -34,8 +34,8 @@ class VarPointer implements ValuePointer {
     }
 
     @Override
-    public boolean acceptsArg(int flags) {
-        return requiresArg() || ((active && (flags & Interpreter.FLAG_ROOT) == Interpreter.FLAG_ROOT) ||//Argument if root or empty and in varchain
+    public boolean acceptsArg(int flags) {//allow second argument if root or empty and in var-chain
+        return requiresArg() || ((active && (flags & Interpreter.FLAG_ROOT) == Interpreter.FLAG_ROOT) ||
                 (isStatic && ((flags & Interpreter.FLAG_VAR_DECLARATION_CHAIN) == Interpreter.FLAG_VAR_DECLARATION_CHAIN && !myEnv.hasVar(varId))));
     }
 

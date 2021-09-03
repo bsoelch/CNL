@@ -14,6 +14,8 @@ import java.util.function.Function;
 import java.util.function.IntFunction;
 
 public class Constants {
+    public static final double LOG2_DOUBLE = Math.log(2) ;
+
     public static final BigInteger BIG_INT_NEG_ONE = BigInteger.valueOf(-1);
     public static final BigInteger BIG_INT_TWO=BigInteger.valueOf(2);
     public static final BigInteger BIG_INT_THREE=BigInteger.valueOf(3);

@@ -18,13 +18,6 @@ public class ExecutionEnvironment {
         openFiles=new HashMap<>();
     }
 
-    /**Creates a new Execution Environment with the given root-Directory,
-     *  that inherits its open Files from exEnv*/
-    public ExecutionEnvironment(File codeDir, ExecutionEnvironment exEnv) {
-        this.rootDir=codeDir;
-        openFiles= exEnv.openFiles;
-    }
-
     public BitRandomAccessStream fileAt(String path) throws IOException{
         if(path.startsWith(".")){
            path=rootDir.getAbsolutePath()+File.separator+path.substring(1);

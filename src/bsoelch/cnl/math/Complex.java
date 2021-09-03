@@ -6,7 +6,7 @@ import java.math.BigInteger;
 import java.util.Objects;
 import java.util.function.Function;
 
-/**Zahl in Q[i]*/
+/**ComplexNumber with rational real and imaginary part*/
 public final class Complex extends NumericValue {
     public static final Complex I = new Complex(Real.Int.ZERO, Real.Int.ONE);
 

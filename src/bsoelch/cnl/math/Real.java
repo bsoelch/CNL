@@ -11,9 +11,7 @@ import static bsoelch.cnl.Constants.*;
 
 /**Real number, ist {@link Int} oder {@link Fraction}*/
 public abstract class Real extends NumericValue {
-
     Real() {}//package private Constructor
-
 
     static final String DIGITS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" +
             "αβγδεζηθικλμνξοπρςστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ" +
@@ -222,6 +220,14 @@ public abstract class Real extends NumericValue {
         }
         return from(res);
     }
+    /**approximate value for the logarithm of value in base 2*/
+    public static double approxLog2(BigInteger value){
+        int len=value.bitLength();
+        if(len>0&&len<500){
+            return Math.round(Math.log(value.doubleValue())/Constants.LOG2_DOUBLE);
+        }
+        return len;
+    }
 
     public abstract BigInteger num();
 
@@ -260,7 +266,9 @@ public abstract class Real extends NumericValue {
 
     public abstract Real abs();
 
-    public abstract double doubleValue();
+    /**approximate value for the logarithm of this real number in base 2*/
+    public abstract double approxLog2();
+
 
     public static final class Int extends Real {
         public static final Int ZERO = new Int(BigInteger.ZERO);
@@ -290,8 +298,8 @@ public abstract class Real extends NumericValue {
         }
 
         @Override
-        public double doubleValue() {
-            return value.doubleValue();
+        public double approxLog2() {
+            return approxLog2(value);
         }
 
         @Override
@@ -394,8 +402,8 @@ public abstract class Real extends NumericValue {
         }
 
         @Override
-        public double doubleValue() {
-            return a.doubleValue()/b.doubleValue();
+        public double approxLog2() {
+            return approxLog2(a)/approxLog2(b);
         }
 
         @Override
@@ -538,8 +546,7 @@ public abstract class Real extends NumericValue {
      * needed to represent numbers in the given base up to the given precision */
     private static int calculateNumDigits(BigInteger base, Real precision) {
         //offset of 0.1 to allow more digits for numbers with nearly high enough precision
-        //TODO dont use double
-        return (int) (0.1 - Math.log(precision.doubleValue()) / Math.log(base.doubleValue()));
+        return (int) (0.1 - precision.approxLog2() / approxLog2(base));
     }
 
     @NotNull

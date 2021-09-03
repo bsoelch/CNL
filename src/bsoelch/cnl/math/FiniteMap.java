@@ -37,7 +37,7 @@ public abstract class FiniteMap extends MathObject {
 
     /**creates a Tuple of the given length from the supplied map<br>
      * !!! this method does not preform any checks on the data in the map!!! */
-    static Tuple createTuple(Map<MathObject, MathObject> map, BigInteger length) {
+    static Tuple createTuple(Map<? extends MathObject, MathObject> map, BigInteger length) {
         if(length.compareTo(BigInteger.valueOf(Tuple.SPARSE_FACTOR* map.size()))<0){
             MathObject[] tupleData=new MathObject[length.intValueExact()];
             for(int i = 0; i< tupleData.length; i++){

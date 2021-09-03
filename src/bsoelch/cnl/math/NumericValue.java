@@ -32,7 +32,7 @@ public abstract class NumericValue extends MathObject implements Comparable<Nume
 
     abstract public NumericValue round(int mode);
 
-    /**simplified approximation of this NumbericValue with an error of at most precision*/
+    /**simplified approximation of this NumericValue with an error of at most precision*/
     public abstract NumericValue approx(Real precision);
 
     public static NumericValue add(NumericValue a, NumericValue b){

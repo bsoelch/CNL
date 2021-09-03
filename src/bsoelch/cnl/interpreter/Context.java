@@ -9,7 +9,7 @@ import java.math.BigInteger;
 public interface Context extends Action {
     @NotNull Context getChild(BigInteger id);
 
-    @NotNull MathObject getVar(MathObject id);//addLater: Multivar Access? (getVar({1,2}) => {VAR1,VAR2})
+    @NotNull MathObject getVar(MathObject id);//addLater: multi-var Access? (getVar({1,2}) => {VAR1,VAR2})
 
     boolean hasVar(MathObject id);
 

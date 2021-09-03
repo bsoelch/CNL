@@ -8,7 +8,7 @@ public final class FiniteMapImpl extends FiniteMap {
     final TreeMap<MathObject, MathObject> map;
 
     /**constructor of FiniteMapImpl, this method should only be called from {@link FiniteMap#from(Map)}*/
-    FiniteMapImpl(Map<MathObject, MathObject> map) {
+    FiniteMapImpl(Map<? extends MathObject, MathObject> map) {
         this.map=new TreeMap<>(map);
     }
 

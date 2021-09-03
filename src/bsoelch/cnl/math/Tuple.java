@@ -6,6 +6,7 @@ import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.TreeMap;
 import java.util.function.Function;
 
 public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
@@ -90,13 +91,22 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
                 zeros++;
             }
         }
-        //addLater convert to SparseTuples if necessary
-        if(objects.length==0){
-            return EMPTY_MAP;
-        }else if(objects.length==2){
-            return new Pair(objects[0],objects[1]);
-        }else{
-            return new NTuple(objects);
+        if(objects.length>3&&SPARSE_FACTOR*(objects.length-zeros)<objects.length){
+            TreeMap<Real.Int,MathObject> map=new TreeMap<>();
+            for(int i=0;i<objects.length;i++) {
+                if (!objects[i].equals(Real.Int.ZERO)){
+                    map.put(Real.from(i),objects[i]);
+                }
+            }
+            return FiniteMap.createTuple(map,BigInteger.valueOf(objects.length));
+        }else {
+            if (objects.length == 0) {
+                return EMPTY_MAP;
+            } else if (objects.length == 2) {
+                return new Pair(objects[0], objects[1]);
+            } else {
+                return new NTuple(objects);
+            }
         }
     }
 
