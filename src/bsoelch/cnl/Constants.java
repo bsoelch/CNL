@@ -148,9 +148,9 @@ public class Constants {
     public static final int HEADER_FUNCTION_DECLARATION = 0b00101111;
     public static final int HEADER_FUNCTION_DECLARATION_LENGTH = 8;
 
-    //11110010.
-    //11110011.
-    //11110100.
+    //11110010.[BigInt] -> Lambda Header   Lambda:N [expr(LambdaArg(0),...LambdaArg(N-1)]
+    //11110011.[BigInt] -> Lambda Argument
+    //11110100.[BigInt] -> Operator-reference &OP -> Lambda:[ArgCount] OP LambdaArg(0) ... LambdaArg(N-1)
 
     //11110101.[outID]{BASE} ->Out
     public static final int HEADER_OUT = 0b10101111;
@@ -488,11 +488,25 @@ public class Constants {
                             new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
                                     (a,i) -> Real.from(Real.stringAsBigInt(a.asString()
                                             .substring(0,i.numericValue().realPart().num().intValueExact()+1)))));
-                    //STRING_SUBSTRING <str> <off_index> <to_index>
+                    declareOperator("SUBSTRING",
+                            new ExecutionInfo(MODIFY_ARG0_NEVER,0) {
+                                @Override
+                                public int argCount() {
+                                    return 3;
+                                }
+                                @Override
+                                public MathObject execute(ExecutionEnvironment env, MathObject[] args) {
+                                    if(args.length!=3)
+                                        throw new IllegalArgumentException("Wrong Argument count: "+args.length+" expected: 3");
+                                    String str = args[0].asString();
+                                    return Real.from(Real.stringAsBigInt(str.substring(
+                                            args[1].numericValue().round(MathObject.FLOOR).realPart().num().intValueExact(),
+                                            args[2].numericValue().round(MathObject.FLOOR).realPart().num().intValueExact())));
+                                }
+                            });
 
                     //STRING_CHARS <str>
                     //STRING_SPLIT <str> <regex>
-                    //STRING_FILTER
 
                     //REGEX_...
                 }
@@ -588,7 +602,11 @@ public class Constants {
                             new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, MathObject::symmetricDifference));
                     declareOperator(DIFF,
                             new ExecutionInfo.Binary(MODIFY_ARG0_ROOT, MathObject::difference));
+                    //CONTAINS (Value)
+                    //SET_INSERT
+                    //SET_REMOVE
 
+                    //CONTAINS_KEY
                     declareOperator(TUPLE_CONCAT,
                             new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
                                     MathObject::tupleConcat));
@@ -599,28 +617,20 @@ public class Constants {
                     declareOperator("TUPLE_PUSH_LAST",
                             new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
                                     (l,r)->MathObject.tupleConcat(l,Tuple.create(new MathObject[]{r}))));
-                    //TUPLE_GET_FIRST
-                    //TUPLE_GET_LAST
-                    //TUPLE_POP_FIRST
-                    //TUPLE_POP_LAST
-                    //TUPLE_INSERT <index>
-                    //TUPLE_REMOVE <index>
-
-                    //TUPLE set -> Map put
-                    //TUPLE get -> Map get
-
-                    //CONTAINS
-                    //SET_INSERT
-                    //SET_REMOVE
-
-                    //CONTAINS_KEY
-                    //MAP_GET
                     //MAP_PUT
-
+                    //TUPLE_INSERT <index>
+                    //MAP_GET_FIRST
+                    //MAP_GET_LAST
+                    //MAP_GET
+                    declareOperator("MAP_GET",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    (m,k)->MathObject.asMap(k).evaluateAt(k)));
                     //MAP_RANGE_ABOVE
                     //MAP_RANGE_BELOW
                     //MAP_RANGE
-
+                    //MAP_POP_FIRST
+                    //MAP_POP_LAST
+                    //TUPLE_REMOVE <index>
                     //MAP_REMOVE_ALL
                     //MAP_REMOVE_VALUE
                     //MAP_REMOVE_ALL_VALUE
@@ -651,8 +661,36 @@ public class Constants {
                                 int[] dim=Matrix.asMatrix(m).dimensions();
                                 return new Pair(Real.from(dim[0]),Real.from(dim[1]));
                             }));
-                    //MAT_GET
-                    //MAT_SET
+                    //addLater? allow ranges in GET and SET
+                    //MAT_GET mat [i1,i2] {j,k} => [{mat[i1][j],mat[i1][k]},{mat[i2][j],mat[i2][k]}]
+                    declareOperator("MAT_GET",
+                            new ExecutionInfo(MODIFY_ARG0_NEVER,0) {
+                                @Override
+                                public int argCount() {
+                                    return 3;
+                                }
+                                @Override
+                                public MathObject execute(ExecutionEnvironment env, MathObject[] args) {
+                                    if(args.length!=3)
+                                        throw new IllegalArgumentException("Wrong Argument count: "+args.length+" expected: 3");
+                                    return Matrix.asMatrix(args[0]).entryAt(args[1].numericValue().realPart().num().intValueExact()
+                                            ,args[2].numericValue().realPart().num().intValueExact());
+                                }
+                            });
+                    declareOperator("MAT_SET",
+                            new ExecutionInfo(MODIFY_ARG0_NEVER,0) {
+                                @Override
+                                public int argCount() {
+                                    return 4;
+                                }
+                                @Override
+                                public MathObject execute(ExecutionEnvironment env, MathObject[] args) {
+                                    if(args.length!=4)
+                                        throw new IllegalArgumentException("Wrong Argument count: "+args.length+" expected: 4");
+                                    return Matrix.asMatrix(args[0]).setEntry(args[1].numericValue().realPart().num().intValueExact()
+                                            ,args[2].numericValue().realPart().num().intValueExact(),args[3].numericValue());
+                                }
+                            });
                 }
                 //Nary Operations
                 {
@@ -733,7 +771,7 @@ public class Constants {
                                         }
                                         return FiniteMap.from(map);
                                     }, c -> c==2?SINGLETON_MAP:null, Tuple.EMPTY_MAP));
-                    //NEW_MATRIX (Bi-Nary)
+                    //addLater? NEW_MATRIX (Bi-Nary)
 
                     declareOperator("NARY_TIMES",
                             new ExecutionInfo.Nary(MODIFY_ARG0_ROOT, 3, MathObject::nAryTimes, c -> c == 2 ? TIMES : null, FiniteSet.EMPTY_SET));
@@ -890,6 +928,18 @@ public class Constants {
                                     return Real.Int.NEGATIVE_ONE;
                                 }
                             }));
+                    //FILE_READ_CHAR <path>
+                    declareOperator("FILE_READ_CHAR",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_NEVER, (env, file) -> {
+                                try {
+                                    String path = file.asString();
+                                    return Real.from(Real.stringAsBigInt(new String(Character.toChars(env.fileAt(path).readUTF8()))));
+                                } catch (IOException io) {
+                                    System.err.println('\n' + io.toString());
+                                    return Real.Int.NEGATIVE_ONE;
+                                }
+                            }));
+                    //FILE_READ_STRING <path> <len> //addLater String IO
                     //FILE_READ_BYTES <path> <count>
                     declareOperator("FILE_READ_BYTES",
                             new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env -> (file, count) -> {
@@ -902,9 +952,30 @@ public class Constants {
                                     return Real.Int.NEGATIVE_ONE;
                                 }
                             }));
-                    //FILE_READ_CHAR
-                    //FILE_READ_STRING
-                    //FILE_READ_BIG_INT <path> <header> <block> <bigBlock> //TODO BigInt IO
+                    //FILE_READ_BIG_INT <path> <header> <block> <bigBlock>
+                    declareOperator("FILE_READ_BIG_INT",
+                            new ExecutionInfo(MODIFY_ARG0_NEVER,0) {
+                                @Override
+                                public int argCount() {
+                                    return 4;
+                                }
+                                @Override
+                                public MathObject execute(ExecutionEnvironment env, MathObject[] args) {
+                                    if(args.length!=4)
+                                        throw new IllegalArgumentException("Wrong Argument count: "+args.length+" expected: 4");
+                                    try {
+                                        String path = args[0].asString();
+                                        return Real.Int.from(env.fileAt(path).readBigInt(
+                                                args[1].numericValue().round(MathObject.FLOOR).realPart().num().intValueExact(),
+                                                args[2].numericValue().round(MathObject.FLOOR).realPart().num().intValueExact(),
+                                                args[3].numericValue().round(MathObject.FLOOR).realPart().num().intValueExact()));
+                                    } catch (IOException io) {
+                                        System.err.println('\n' + io.toString());
+                                        return Real.Int.NEGATIVE_ONE;
+                                    }
+                                }
+                            });
+                    //FILE_READ_FULLY <path>  reads complete File into memory
                     //FILE_WRITE_BIT <path> <value>
                     declareOperator("FILE_WRITE_BIT",
                             new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env -> (file, value) -> {
@@ -931,8 +1002,62 @@ public class Constants {
                                 }
                             }));
                     //FILE_WRITE_CHAR <path> <value>
+                    declareOperator("FILE_WRITE_CHAR",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_NEVER, env->(file, value) -> {
+                                try {
+                                    String path = file.asString();
+                                    env.fileAt(path).writeUTF8(value.asString().codePointAt(0));
+                                    return Real.Int.ZERO;
+                                } catch (IOException|IndexOutOfBoundsException io) {
+                                    System.err.println('\n' + io.toString());
+                                    return Real.Int.NEGATIVE_ONE;
+                                }
+                            }));
                     //FILE_WRITE_BITS <path> <value> <count>
+                    declareOperator("FILE_WRITE_BITS",
+                            new ExecutionInfo(MODIFY_ARG0_NEVER,0) {
+                                @Override
+                                public int argCount() {
+                                    return 3;
+                                }
+                                @Override
+                                public MathObject execute(ExecutionEnvironment env, MathObject[] args) {
+                                    if(args.length!=3)
+                                        throw new IllegalArgumentException("Wrong Argument count: "+args.length+" expected: 3");
+                                    try {
+                                        String path = args[0].asString();
+                                        env.fileAt(path).writeBits(args[1].numericValue().round(MathObject.FLOOR).realPart().num(),
+                                                args[2].numericValue().round(MathObject.FLOOR).realPart().num().intValueExact());
+                                        return Real.Int.ZERO;
+                                    } catch (IOException io) {
+                                        System.err.println('\n' + io.toString());
+                                        return Real.Int.NEGATIVE_ONE;
+                                    }
+                                }
+                            });
                     //FILE_WRITE_BYTES <path> <value> <count>
+                    declareOperator("FILE_WRITE_BYTES",
+                            new ExecutionInfo(MODIFY_ARG0_NEVER,0) {
+                                @Override
+                                public int argCount() {
+                                    return 3;
+                                }
+                                @Override
+                                public MathObject execute(ExecutionEnvironment env, MathObject[] args) {
+                                    if(args.length!=3)
+                                        throw new IllegalArgumentException("Wrong Argument count: "+args.length+" expected: 3");
+                                    try {
+                                        String path = args[0].asString();
+                                        env.fileAt(path).writeBits(args[1].numericValue().round(MathObject.FLOOR)
+                                                .realPart().num(),8 * args[2].numericValue().round(MathObject.FLOOR)
+                                                .realPart().num().intValueExact());
+                                        return Real.Int.ZERO;
+                                    } catch (IOException io) {
+                                        System.err.println('\n' + io.toString());
+                                        return Real.Int.NEGATIVE_ONE;
+                                    }
+                                }
+                            });
                     //FILE_WRITE_STRING <path> <value> <len>
                     //FILE_WRITE_ALL_BITS <path> <value>
                     declareOperator("FILE_WRITE_ALL_BITS",
@@ -948,6 +1073,30 @@ public class Constants {
                                 }
                             }));
                     //FILE_WRITE_BIG_INT <path> <value> <header> <block> <bigBlock>
+                    declareOperator("FILE_WRITE_BIG_INT",
+                            new ExecutionInfo(MODIFY_ARG0_NEVER,0) {
+                                @Override
+                                public int argCount() {
+                                    return 5;
+                                }
+                                @Override
+                                public MathObject execute(ExecutionEnvironment env, MathObject[] args) {
+                                    if(args.length!=5)
+                                        throw new IllegalArgumentException("Wrong Argument count: "+args.length+" expected: 5");
+                                    try {
+                                        String path = args[0].asString();
+                                        env.fileAt(path).writeBigInt(
+                                                args[1].numericValue().round(MathObject.FLOOR).realPart().num(),
+                                                args[2].numericValue().round(MathObject.FLOOR).realPart().num().intValueExact(),
+                                                args[3].numericValue().round(MathObject.FLOOR).realPart().num().intValueExact(),
+                                                args[4].numericValue().round(MathObject.FLOOR).realPart().num().intValueExact());
+                                        return Real.Int.ZERO;
+                                    } catch (IOException io) {
+                                        System.err.println('\n' + io.toString());
+                                        return Real.Int.NEGATIVE_ONE;
+                                    }
+                                }
+                            });
                     //FILE_TRUNCATE <path>
                     declareOperator("FILE_0TRUNCATE",
                             new ExecutionInfo.Unary(MODIFY_ARG0_NEVER, (env, file) -> {
