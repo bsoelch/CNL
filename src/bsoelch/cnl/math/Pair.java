@@ -1,11 +1,7 @@
 package bsoelch.cnl.math;
 
-import com.sun.org.apache.regexp.internal.RE;
-
-import javax.swing.event.TreeSelectionEvent;
 import java.math.BigInteger;
 import java.util.Objects;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Function;
 

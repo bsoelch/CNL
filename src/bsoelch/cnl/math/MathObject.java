@@ -37,7 +37,7 @@ public abstract class MathObject {
     /**{@inheritDoc}*/
     abstract public int hashCode();
 
-    public static MathObject not(MathObject o) {//addLater elementwise not
+    public static MathObject not(MathObject o) {//addLater element-wise not
         return isTrue(o)?Real.Int.ZERO:Real.Int.ONE;
     }
 
@@ -291,7 +291,7 @@ public abstract class MathObject {
 
     /**@param l Left operand (maps will be converted to their set representation)
      * @param r right operand (maps will be converted to their set representation)
-     * @param setOp operation that is aplied to sets
+     * @param setOp operation that is applied to sets
      * @param atomicOperation operation that is applied to Matrices and NumericValues
      * @param unwrapMaps if this value if true the program tries
      *                    to convert the result to a map if one of the arguments was a map
@@ -617,7 +617,7 @@ public abstract class MathObject {
                             switch (input.charAt(p)){
                                 case ':'://additional number characters
                                 case '.':
-                                case '@'://base modifieres
+                                case '@'://base modifiers
                                 case '$':
                                 case '§':
                                 case '#':break;
@@ -884,7 +884,7 @@ public abstract class MathObject {
                     }else{
                         throw new IllegalArgumentException("Missing 1st argument for A^B");
                     }
-                    i--;//Positon anpassen
+                    i--;//update position
                 }
             }
             //2. | * / \
@@ -897,7 +897,7 @@ public abstract class MathObject {
                                 parts.remove(i);
                                 l = ((ValueNode) parts.get(i - 1)).value;
                                 parts.set(i - 1, new ValueNode(add(l, multiply(r, Complex.I))));
-                                i--;//Positon anpassen
+                                i--;//update position
                             } else {
                                 parts.set(i, new ValueNode(multiply(r, Complex.I)));
                             }
@@ -912,7 +912,7 @@ public abstract class MathObject {
                                 throw new IllegalArgumentException("Missing 1st argument for A*B");
                             }
                             parts.set(i - 1, new ValueNode(multiply(l, r)));
-                            i--;//Positon anpassen
+                            i--;//update position
 
                             break;
                         }
@@ -933,7 +933,7 @@ public abstract class MathObject {
                                     throw div0;
                                 }
                             }
-                            i--;//Positon anpassen
+                            i--;//update position
 
                             break;
                         }
@@ -955,7 +955,7 @@ public abstract class MathObject {
                             parts.remove(i);
                             l=((ValueNode) parts.get(i-1)).value;
                             parts.set(i-1,new ValueNode(add(l,r)));
-                            i--;//Positon anpassen
+                            i--;//update position
                         }else{
                             parts.set(i,new ValueNode(r));
                         }
@@ -965,7 +965,7 @@ public abstract class MathObject {
                             parts.remove(i);
                             l=((ValueNode) parts.get(i-1)).value;
                             parts.set(i-1,new ValueNode(subtract(l,r)));
-                            i--;//Positon anpassen
+                            i--;//update position
                         }else{
                             parts.set(i,new ValueNode(negate(r)));
                         }
@@ -974,7 +974,7 @@ public abstract class MathObject {
             }
             boolean isMap=false,topLevel=true;
             //5. ->
-            for(int i=parts.size()-1;i>=0;i--){//addLater? detect Multimaps: {1->2->3,1->3->4} -> {1->{2->3,3->4}}
+            for(int i=parts.size()-1;i>=0;i--){//addLater? detect multi-maps: {1->2->3,1->3->4} -> {1->{2->3,3->4}}
                 if(parts.get(i) instanceof OperatorNode){
                     switch (((OperatorNode) parts.get(i)).value) {
                         case "->":
@@ -1045,7 +1045,7 @@ public abstract class MathObject {
                                         throw new IllegalArgumentException("unexpected ,");
                                     }
                                 }
-                                i--;//Positon anpassen
+                                i--;//update position
                             } else {
                                 if(safeMode||mode==MODE_TUPLE) {
                                     parts.set(i, new ValueNode(mode == MODE_SET ? FiniteSet.from(Real.Int.ZERO, r) :

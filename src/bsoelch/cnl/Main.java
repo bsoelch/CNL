@@ -138,7 +138,7 @@ public class Main {
         return word.toString();
     }
 
-
+    //addLater compile/decompile directory (all files ending with .cnl / .cnls)
 
     public static void main(String[] args) {
         if(args.length==0){
