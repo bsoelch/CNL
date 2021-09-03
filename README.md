@@ -11,6 +11,5 @@ Intentional behaviour that may seem weird:
 (containing the bytes of their UTF-8 representation)</li>
 <li> matrices and tuples are handled as special cases of maps </li>
 <li> entries of value 0 in maps are interpreted as empty and therefore ignored
-(except for the last entry in a tuple, which is necessary to use 
-tuples as stacks) </li>
+(except for the last entry in a tuple, which is saved to allow the usage of tuples as stacks) </li>
 
