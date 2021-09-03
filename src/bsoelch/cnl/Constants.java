@@ -444,17 +444,50 @@ public class Constants {
                                     (a, b) -> MathObject.FromString.safeFromString(
                                             a.asString(), MathObject.round(b, MathObject.FLOOR)
                                                     .numericValue().realPart().num())));
-                    //TODO String Methods
 
-                    //STRING_STARTS_WITH <str> <start>
-                    //STRING_ENDS_WITH <str> <end>
-                    //STRING_CONTAINS <str> <subStr>
-                    //STRING_INDEX_OF <str> <subStr>
-                    //STRING_SUBSTRING_FROM <str> <off_index>
-                    //STRING_SUBSTRING_TO <str> <to_index>
+                    declareOperator("STRING_COMPARE",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    (a,b) -> Real.Int.from(a.asString().compareTo(b.asString()))));
+                    declareOperator("STRING_LOWERCASE",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    (a) -> Real.from(Real.stringAsBigInt(a.asString().toLowerCase(Locale.ROOT)))));
+                    declareOperator("STRING_UPPERCASE",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    (a) -> Real.from(Real.stringAsBigInt(a.asString().toUpperCase(Locale.ROOT)))));
+                    declareOperator("STRING_STARTS_WITH",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    (a,b) -> Real.Int.from(a.asString().startsWith(b.asString())?1:0)));
+                    declareOperator("STRING_ENDS_WITH",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    (a,b) -> Real.Int.from(a.asString().endsWith(b.asString())?1:0)));
+                    declareOperator("STRING_CONTAINS",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    (a,b) -> Real.Int.from(a.asString().contains(b.asString())?1:0)));
+                    declareOperator("STRING_STARTS_WITH_IGNORE_CASE",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    (a,b) -> Real.Int.from(a.asString().toLowerCase(Locale.ROOT)
+                                            .startsWith(b.asString().toLowerCase(Locale.ROOT))?1:0)));
+                    declareOperator("STRING_ENDS_WITH_IGNORE_CASE",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    (a,b) -> Real.Int.from(a.asString().toLowerCase(Locale.ROOT)
+                                            .endsWith(b.asString().toLowerCase(Locale.ROOT))?1:0)));
+                    declareOperator("STRING_CONTAINS_IGNORE_CASE",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    (a,b) -> Real.Int.from(a.asString().toLowerCase(Locale.ROOT)
+                                            .contains(b.asString().toLowerCase(Locale.ROOT))?1:0)));
+                    declareOperator("STRING_INDEX_OF",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    (a,b) -> Real.Int.from(a.asString().indexOf(b.asString()))));
+                    declareOperator("SUBSTRING_FROM",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    (a,i) -> Real.from(Real.stringAsBigInt(a.asString()
+                                            .substring(i.numericValue().realPart().num().intValueExact())))));
+                    declareOperator("SUBSTRING_TO",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    (a,i) -> Real.from(Real.stringAsBigInt(a.asString()
+                                            .substring(0,i.numericValue().realPart().num().intValueExact()+1)))));
                     //STRING_SUBSTRING <str> <off_index> <to_index>
 
-                    //STRING_COMPARE <str> <str>
                     //STRING_CHARS <str>
                     //STRING_SPLIT <str> <regex>
 
@@ -556,41 +589,56 @@ public class Constants {
                     declareOperator(TUPLE_CONCAT,
                             new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
                                     MathObject::tupleConcat));
-
                     //TODO Set/Map/Matrix edit
-
+                    declareOperator("TUPLE_PUSH_FIRST",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    (l,r)->MathObject.tupleConcat(Tuple.create(new MathObject[]{l}),r)));
+                    declareOperator("TUPLE_PUSH_LAST",
+                            new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
+                                    (l,r)->MathObject.tupleConcat(l,Tuple.create(new MathObject[]{r}))));
                     //TUPLE_GET_FIRST
                     //TUPLE_GET_LAST
-                    //TUPLE_GET <index>
-                    //TUPLE_SET <index>
+                    //TUPLE_POP_FIRST
+                    //TUPLE_POP_LAST
                     //TUPLE_INSERT <index>
-                    //TUPLE_REMOVE_LAST
-                    //TUPLE_REMOVE_FIRST
                     //TUPLE_REMOVE <index>
 
-                    //MAP_INSERT
-                    //MAP_REMOVE
+                    //TUPLE set -> Map put
+                    //TUPLE get -> Map get
+
+                    //CONTAINS
+                    //SET_INSERT
+                    //SET_REMOVE
+
+                    //CONTAINS_KEY
+                    //MAP_GET
+                    //MAP_PUT
+
+                    //MAP_RANGE_ABOVE
+                    //MAP_RANGE_BELOW
+                    //MAP_RANGE
+
                     //MAP_REMOVE_ALL
                     //MAP_REMOVE_VALUE
                     //MAP_REMOVE_ALL_VALUE
-
-                    //CONTAINS
-                    //CONTAINS_KEY
                 }
                 //Matrix Operations
                 {
+                    declareOperator("MAT_TRANSPOSE",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    (m)->Matrix.asMatrix(m).transpose()));
                     declareOperator("MAT_MULT",
                             new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
                                     (l,r)->Matrix.matrixMultiply(Matrix.asMatrix(l),Matrix.asMatrix(r))));
+                    declareOperator("MAT_INV",
+                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
+                                    (m)->Matrix.asMatrix(m).invert()));
                     declareOperator("MAT_RDIV",
                             new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
                                     (l,r)->Matrix.matrixMultiply(Matrix.asMatrix(l),Matrix.asMatrix(r).invert())));
                     declareOperator("MAT_LDIV",
                             new ExecutionInfo.Binary(MODIFY_ARG0_ROOT,
                                     (l,r)->Matrix.matrixMultiply(Matrix.asMatrix(l).invert(),Matrix.asMatrix(r))));
-                    declareOperator("MAT_INV",
-                            new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
-                                    (m)->Matrix.asMatrix(m).invert()));
                     declareOperator("MAT_DET",
                             new ExecutionInfo.Unary(MODIFY_ARG0_ROOT,
                                     (m)->Matrix.asMatrix(m).determinant()));
@@ -851,6 +899,8 @@ public class Constants {
                                     return Real.Int.NEGATIVE_ONE;
                                 }
                             }));
+                    //FILE_READ_CHAR
+                    //FILE_READ_STRING
                     //FILE_READ_BIG_INT <path> <header> <block> <bigBlock> //TODO BigInt IO
                     //FILE_WRITE_BIT <path> <value>
                     declareOperator("FILE_WRITE_BIT",
