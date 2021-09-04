@@ -1,6 +1,8 @@
 package bsoelch.cnl.math;
 
 import bsoelch.cnl.Constants;
+import bsoelch.cnl.math.expressions.ExpressionNode;
+import bsoelch.cnl.math.expressions.LambdaVariable;
 import org.jetbrains.annotations.NotNull;
 
 import java.math.BigInteger;
@@ -9,8 +11,8 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 
 /**Root of all MathObjects*/
-public abstract class MathObject {
-    MathObject(){}//package private constructor
+public abstract class MathObject implements ExpressionNode {
+    MathObject(){}//package private constructor to ensure that there are no MathObject classes outside this package
 
     public static int FLOOR = -1;
     public static int ROUND = 0;
@@ -26,6 +28,25 @@ public abstract class MathObject {
     public abstract String asString();
     /**String representation of this if all ints are replaced with their String-value*/
     public abstract String intsAsString();
+
+    @Override
+    public Set<LambdaVariable> variables() {
+        return Collections.emptySet();
+    }
+    @Override
+    public MathObject evaluate(Map<LambdaVariable, ? extends ExpressionNode> replace) {
+        return this;
+    }
+
+    @Override
+    public boolean equals(LambdaVariable[] boundVars,ExpressionNode node, LambdaVariable[] nodeVars) {
+        return equals(node);
+    }
+
+    @Override
+    public int hashCode(LambdaVariable[] boundVars) {
+        return hashCode();//no bound variables
+    }
 
     @Override
     public String toString() {

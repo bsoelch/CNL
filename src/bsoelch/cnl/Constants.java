@@ -197,6 +197,8 @@ public class Constants {
     public static class Operators {
         public static final int FLAG_DYNAMIC=1;
         public static final int FLAG_NARY=2;
+        public static final int FLAG_NEEDS_ENVIRONMENT=4;
+
         private static final HashMap<Integer, OperatorInfo> operators=new HashMap<>();
         private static final HashMap<String, OperatorInfo> operatorNames=new HashMap<>();
 
@@ -954,7 +956,7 @@ public class Constants {
                             }));
                     //FILE_READ_BIG_INT <path> <header> <block> <bigBlock>
                     declareOperator("FILE_READ_BIG_INT",
-                            new ExecutionInfo(MODIFY_ARG0_NEVER,0) {
+                            new ExecutionInfo(MODIFY_ARG0_NEVER,FLAG_NEEDS_ENVIRONMENT) {
                                 @Override
                                 public int argCount() {
                                     return 4;
@@ -1015,7 +1017,7 @@ public class Constants {
                             }));
                     //FILE_WRITE_BITS <path> <value> <count>
                     declareOperator("FILE_WRITE_BITS",
-                            new ExecutionInfo(MODIFY_ARG0_NEVER,0) {
+                            new ExecutionInfo(MODIFY_ARG0_NEVER,FLAG_NEEDS_ENVIRONMENT) {
                                 @Override
                                 public int argCount() {
                                     return 3;
@@ -1037,7 +1039,7 @@ public class Constants {
                             });
                     //FILE_WRITE_BYTES <path> <value> <count>
                     declareOperator("FILE_WRITE_BYTES",
-                            new ExecutionInfo(MODIFY_ARG0_NEVER,0) {
+                            new ExecutionInfo(MODIFY_ARG0_NEVER,FLAG_NEEDS_ENVIRONMENT) {
                                 @Override
                                 public int argCount() {
                                     return 3;
@@ -1074,7 +1076,7 @@ public class Constants {
                             }));
                     //FILE_WRITE_BIG_INT <path> <value> <header> <block> <bigBlock>
                     declareOperator("FILE_WRITE_BIG_INT",
-                            new ExecutionInfo(MODIFY_ARG0_NEVER,0) {
+                            new ExecutionInfo(MODIFY_ARG0_NEVER,FLAG_NEEDS_ENVIRONMENT) {
                                 @Override
                                 public int argCount() {
                                     return 5;
@@ -1184,7 +1186,7 @@ public class Constants {
                     fEnv=null;
                 }
                 Unary(int storeMode,BiFunction<ExecutionEnvironment, MathObject, MathObject> fEnv) {
-                    super(storeMode,0);
+                    super(storeMode,FLAG_NEEDS_ENVIRONMENT);
                     f=null;
                     this.fEnv = fEnv;
                 }
@@ -1216,7 +1218,7 @@ public class Constants {
                     fEnv=null;
                 }
                 Binary(int storeMode,Function<ExecutionEnvironment,BiFunction<MathObject, MathObject, MathObject>> fEnv) {
-                    super(storeMode,0);
+                    super(storeMode,FLAG_NEEDS_ENVIRONMENT);
                     this.fEnv=fEnv;
                     this.f = null;
                 }
@@ -1266,10 +1268,10 @@ public class Constants {
                 }
             }
         }
-        private static class OperatorInfo{
-            final int id;
-            final String name;
-            final ExecutionInfo executionInfo;
+        public static final class OperatorInfo{
+            final public int id;
+            final public String name;
+            final public ExecutionInfo executionInfo;
             private OperatorInfo(int id, String name, ExecutionInfo executionInfo) {
                 this.id = id;
                 this.name = name;

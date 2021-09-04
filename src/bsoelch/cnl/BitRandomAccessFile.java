@@ -453,7 +453,7 @@ public class BitRandomAccessFile implements BitRandomAccessStream {
 
     public Reader reader(){
         if (readerCache == null) {
-            readerCache = new Reader() {
+            readerCache = new Reader() {//direct implementation to ensure that no additional bytes are read
                 long mark=-1;
                 int surrogateCache=-1;
                 @Override
