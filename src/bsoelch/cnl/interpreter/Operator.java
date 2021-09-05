@@ -10,23 +10,22 @@ import static bsoelch.cnl.Constants.*;
 
 public class Operator implements Action {
     final ValuePointer[] args;
-    final int type;
+    final Operators.OperatorInfo operatorInfo;
     final ExecutionEnvironment env;
 
-    Operator(int type, ExecutionEnvironment env) {
+    Operator(Operators.OperatorInfo operatorInfo, ExecutionEnvironment env) {
         this.env = env;
-        int numArgs=Operators.argCountById(type);
-        args = new ValuePointer[numArgs];
-        this.type = type;
+        this.operatorInfo=operatorInfo;
+        args = new ValuePointer[operatorInfo.minArgs];
     }
     /**Constructor for N-ary operators*/
-    public Operator(int type, int additionalArgs, ExecutionEnvironment env) {
-        if((Operators.flags(type)& Operators.FLAG_NARY)==0)
-            throw new IllegalArgumentException("the operator at id "+type+" is no N-ary operator");
+    public Operator(Operators.OperatorInfo operatorInfo, int additionalArgs, ExecutionEnvironment env) {
+        this.operatorInfo=operatorInfo;
+        if(!operatorInfo.isNary)
+            throw new IllegalArgumentException("the operator  "+operatorInfo.name+" is no N-ary operator");
         this.env = env;
-        int numArgs=Operators.argCountById(type)+additionalArgs;
+        int numArgs= operatorInfo.minArgs+additionalArgs;
         args = new ValuePointer[numArgs];
-        this.type = type;
     }
 
     public ValuePointer preformOperation(int flags) {
@@ -36,11 +35,10 @@ public class Operator implements Action {
         MathObject[] values=new MathObject[args.length];
         for(int i=0;i<args.length;i++)
             values[i]=args[i].getValue();
-        res=Operators.execute(type,env,values);
+        res=operatorInfo.execute(env,values);
         if(args[0] instanceof VarPointer){
-            int storeMode=Operators.storeMode(type);
-            if(storeMode==Operators.MODIFY_ARG0_ALWAYS||
-                    (storeMode==Operators.MODIFY_ARG0_ROOT&&(flags & Interpreter.FLAG_OPERATOR_CHAIN) != 0)){
+            if(operatorInfo.storeMode==Operators.MODIFY_ARG0_ALWAYS||
+                    (operatorInfo.storeMode==Operators.MODIFY_ARG0_ROOT&&(flags & Interpreter.FLAG_OPERATOR_CHAIN) != 0)){
                 //store result in arg0
                 ((VarPointer) args[0]).setValue(res);
                 return args[0];
@@ -71,22 +69,18 @@ public class Operator implements Action {
     @Override
     public void writeTo(BitRandomAccessStream target) throws IOException {
         target.write(new long[]{HEADER_OPERATOR},0, HEADER_OPERATOR_LENGTH);
-        target.writeBigInt(BigInteger.valueOf(type), OPERATOR_INT_HEADER,OPERATOR_INT_BLOCK,OPERATOR_INT_BIG_BLOCK);
-        int flags=Operators.flags(type);
-        if((flags& Operators.FLAG_NARY)!=0){
-            int defArgs=Operators.argCountById(type);
-            target.writeBigInt(BigInteger.valueOf(args.length-defArgs), NARY_INT_HEADER,NARY_INT_BLOCK,NARY_INT_BIG_BLOCK);
+        target.writeBigInt(BigInteger.valueOf(operatorInfo.id), OPERATOR_INT_HEADER,OPERATOR_INT_BLOCK,OPERATOR_INT_BIG_BLOCK);
+        if(operatorInfo.isNary){
+            target.writeBigInt(BigInteger.valueOf(args.length-operatorInfo.minArgs), NARY_INT_HEADER,NARY_INT_BLOCK,NARY_INT_BIG_BLOCK);
         }
     }
 
     @Override
     public String stringRepresentation() {
-        String name=Operators.nameById(type);
-        int flags=Operators.flags(type);
-        if((flags& Operators.FLAG_NARY)!=0){
-            return name+":"+args.length;
+        if(operatorInfo.isNary){
+            return operatorInfo.name+":"+args.length;
         }else{
-            return name;
+            return operatorInfo.name;
         }
     }
 }

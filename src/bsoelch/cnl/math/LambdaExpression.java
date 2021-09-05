@@ -5,16 +5,32 @@ import bsoelch.cnl.math.expressions.LambdaVariable;
 import org.jetbrains.annotations.NotNull;
 
 import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 //TODO add to MathObject
 public final class LambdaExpression extends MathObject {
     final ExpressionNode node;
     final LambdaVariable[] boundVariables;
 
-    public LambdaExpression(ExpressionNode node, LambdaVariable[] boundVariables) {
+    public static MathObject from(ExpressionNode node, LambdaVariable[] boundVariables){
+        if(node instanceof MathObject){
+            if(node instanceof LambdaExpression){
+                HashSet<LambdaVariable> vars=new HashSet<>(node.variables());
+                vars.removeAll(Arrays.asList(boundVariables));
+                if(vars.isEmpty()){
+                    return (MathObject) node;
+                }else{
+                    return new LambdaExpression(node, boundVariables);
+                }
+            }else{
+                return (MathObject) node;
+            }
+        }else {
+            return new LambdaExpression(node, boundVariables);
+        }
+    }
+
+    private LambdaExpression(ExpressionNode node, LambdaVariable[] boundVariables) {
         this.node = node;
         Set<LambdaVariable> nodeVars=node.variables();
         int lastIn=boundVariables.length-1;
@@ -27,11 +43,16 @@ public final class LambdaExpression extends MathObject {
 
     @Override
     public Set<LambdaVariable> variables() {
-        return super.variables();
+        HashSet<LambdaVariable> vars=new HashSet<>(node.variables());
+        vars.removeAll(Arrays.asList(boundVariables));
+        return Collections.unmodifiableSet(vars);
     }
     @Override
     public MathObject evaluate(Map<LambdaVariable, ? extends ExpressionNode> replace) {
-        return super.evaluate(replace);
+        HashMap<LambdaVariable,? extends ExpressionNode> replaceUnbound=new HashMap<>(replace);
+        for(LambdaVariable var:boundVariables)
+            replaceUnbound.remove(var);
+        return from(node.evaluate(replaceUnbound),boundVariables);
     }
 
     @Override

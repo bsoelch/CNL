@@ -9,6 +9,7 @@ import static bsoelch.cnl.Constants.*;
 
 import java.io.*;
 import java.math.BigInteger;
+import java.rmi.RemoteException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Locale;
@@ -178,22 +179,21 @@ public class Translator {
             case HEADER_OPERATOR:{
                 BigInteger id= code.readBigInt(OPERATOR_INT_HEADER,OPERATOR_INT_BLOCK,OPERATOR_INT_BIG_BLOCK);
                 int intID = id.intValueExact();
-                int flags=Operators.flags(intID);
-                if((flags& Operators.FLAG_DYNAMIC)!=0){
-                    String name=Operators.nameById(intID);
-                    if (name.equals(Operators.DYNAMIC_VAR)) {
+                Operators.OperatorInfo operatorInfo=Operators.byId(intID);
+                if(operatorInfo.isRuntimeOperator()){
+                    if (operatorInfo.name.equals(Operators.DYNAMIC_VAR)) {
                         return new VarPointer(context, null);
-                    } else if (name.equals(Operators.CALL_FUNCTION)) {
+                    } else if (operatorInfo.name.equals(Operators.CALL_FUNCTION)) {
                         BigInteger fId=code.readBigInt(FUNCTION_ID_INT_HEADER,FUNCTION_ID_INT_BLOCK,FUNCTION_ID_INT_BIG_BLOCK);
                         return new CallFunction(context,fId);
                     } else{
-                        throw new IllegalArgumentException("Unknown Dynamic Operator: "+name);
+                        throw new IllegalArgumentException("Unknown Dynamic Operator: "+operatorInfo.name);
                     }
-                } else if((flags& Operators.FLAG_NARY)!=0){
+                } else if(operatorInfo.isNary){
                     BigInteger numArgs=code.readBigInt(NARY_INT_HEADER,NARY_INT_BLOCK,NARY_INT_BIG_BLOCK);
-                    return new Operator(intID, numArgs.intValueExact(), executionEnvironment);
+                    return new Operator(operatorInfo, numArgs.intValueExact(), executionEnvironment);
                 }else{
-                    return new Operator(intID, executionEnvironment);
+                    return new Operator(operatorInfo, executionEnvironment);
                 }
             }
             case HEADER_VAR:{
@@ -545,48 +545,45 @@ public class Translator {
                 }
             }
         }else{
-            long id;
             if(str.contains(":")){
                 //detect N-ary operators
                 String name=str.substring(0,str.lastIndexOf(':'));
                 String[] counts=str.substring(str.lastIndexOf(':')+1).split(",");
-                id=Operators.idByName(name.toUpperCase(Locale.ROOT));
-                if(id!=-1){//Operators
-                    if(counts.length>1){
+                Operators.OperatorInfo operatorInfo=Operators.byNameOrNull(name.toUpperCase(Locale.ROOT));
+                if(operatorInfo!=null) {
+                    if (counts.length > 1) {
                         throw new UnsupportedOperationException("Multidimensional N-ary not yet supported");
-                    }else{
-                        int flags = Operators.flags((int) id);
-                        if((flags & Operators.FLAG_DYNAMIC)!=0){
-                            if(Operators.nameById((int)id).equals(Operators.CALL_FUNCTION)){
-                                return new CallFunction(context,new BigInteger(counts[0]));
-                            }else{
-                                throw new IllegalArgumentException("N-ary arguments for non N-ary operator");
-                            }
-                        }else if((flags & Operators.FLAG_NARY)==0){
+                    } else {
+                        if (operatorInfo.name.equals(Operators.CALL_FUNCTION)) {
+                            return new CallFunction(context, new BigInteger(counts[0]));
+                        } else if (!operatorInfo.isNary) {
                             throw new IllegalArgumentException("N-ary arguments for non N-ary operator");
-                        }else {
+                        } else {
+                            Operators.NAryInfo nAryInfo = Operators.nAryInfo(operatorInfo);
+                            if (nAryInfo == null)
+                                throw new RemoteException("N-Ary Operator without N-AryInfo:" + operatorInfo.name);
                             int count = new BigInteger(counts[0]).intValueExact();
-                            if(count==0){
-                                return wrap(Operators.nilaryReplacement((int)id));
-                            }else {
-                                int minArgs = Operators.argCountById((int) id);
-                                long replace = Operators.nAryReplacementId((int) id, count);
-                                if (replace != -1) {
-                                    return new Operator((int) replace, executionEnvironment);
+                            if (count == 0) {
+                                return wrap(nAryInfo.nilaryReplacement);
+                            } else {
+                                int minArgs = operatorInfo.minArgs;
+                                Operators.OperatorInfo replace = nAryInfo.getShortCut(count);
+                                if (replace != null) {
+                                    return new Operator(replace, executionEnvironment);
                                 } else if (count < minArgs) {
                                     throw new IllegalArgumentException("Number of Arguments for NAry operator " + name + " is less than " +
                                             "the minimum allowed value " + minArgs);
                                 } else {
-                                    return new Operator((int) id, count - minArgs, executionEnvironment);
+                                    return new Operator(operatorInfo, count - minArgs, executionEnvironment);
                                 }
                             }
                         }
                     }
                 }
             }else{//nary without args -> exactly minArgs arguments
-                id=Operators.idByName(str.toUpperCase(Locale.ROOT));
-                if(id!=-1){//Operators
-                    return new Operator((int)id,executionEnvironment);
+                Operators.OperatorInfo operatorInfo = Operators.byNameOrNull(str.toUpperCase(Locale.ROOT));
+                if(operatorInfo!=null) {
+                    return new Operator(operatorInfo,executionEnvironment);
                 }
             }
             switch (str.toUpperCase(Locale.ROOT)){
@@ -657,17 +654,20 @@ public class Translator {
                 target.writeBigInt(BigInteger.valueOf(CONSTANT_EMPTY_SET),Constants.CONSTANTS_INT_HEADER
                         ,Constants.CONSTANTS_INT_BLOCK,Constants.CONSTANTS_INT_BIG_BLOCK);
             }else{
-                long replace=Operators.nAryReplacementId(Operators.NEW_SET,size);
+                Operators.OperatorInfo opNewSet = Operators.byName(Operators.NEW_SET);
+                Operators.NAryInfo nAryInfo=Operators.nAryInfo(opNewSet);
+                if(nAryInfo==null)
+                    throw new RuntimeException("No NAryInfo for N-Ary operator:"+opNewSet);
+                Operators.OperatorInfo replace=nAryInfo.getShortCut(size);
                 target.write(new long[]{HEADER_OPERATOR}, 0, HEADER_OPERATOR_LENGTH);
-                if(replace==-1) {
-                    long id = Operators.idByName(Operators.NEW_SET);
-                    target.writeBigInt(BigInteger.valueOf(id), OPERATOR_INT_HEADER
+                if(replace!=null) {
+                    target.writeBigInt(BigInteger.valueOf(replace.id), OPERATOR_INT_HEADER
                             , OPERATOR_INT_BLOCK, OPERATOR_INT_BIG_BLOCK);
-                    target.writeBigInt(BigInteger.valueOf(size - Operators.argCountById((int)id)), NARY_INT_HEADER
-                            , NARY_INT_BLOCK, NARY_INT_BIG_BLOCK);
                 }else{
-                    target.writeBigInt(BigInteger.valueOf(replace), OPERATOR_INT_HEADER
+                    target.writeBigInt(BigInteger.valueOf(opNewSet.id), OPERATOR_INT_HEADER
                             , OPERATOR_INT_BLOCK, OPERATOR_INT_BIG_BLOCK);
+                    target.writeBigInt(BigInteger.valueOf(size - opNewSet.minArgs), NARY_INT_HEADER
+                            , NARY_INT_BLOCK, NARY_INT_BIG_BLOCK);
                 }
                 for (MathObject o : (FiniteSet) value) {
                     writeValue(target, o);
@@ -680,17 +680,21 @@ public class Translator {
                 target.writeBigInt(BigInteger.valueOf(CONSTANT_EMPTY_MAP),Constants.CONSTANTS_INT_HEADER
                         ,Constants.CONSTANTS_INT_BLOCK,Constants.CONSTANTS_INT_BIG_BLOCK);
             }else{
-                long replace=Operators.nAryReplacementId(Operators.NEW_TUPLE,length);
+                Operators.OperatorInfo opNewTuple=Operators.byName(Operators.NEW_TUPLE);
+                Operators.NAryInfo nAryInfo=Operators.nAryInfo(opNewTuple);
+                if(nAryInfo==null)
+                    throw new RuntimeException("No NAryInfo for N-Ary operator:"+opNewTuple);
+                Operators.OperatorInfo replace=nAryInfo.getShortCut(length);
                 target.write(new long[]{HEADER_OPERATOR}, 0, HEADER_OPERATOR_LENGTH);
-                if(replace==-1) {
-                    long id = Operators.idByName(Operators.NEW_TUPLE);
+                if (replace != null) {
+                    target.writeBigInt(BigInteger.valueOf(replace.id), OPERATOR_INT_HEADER
+                            , OPERATOR_INT_BLOCK, OPERATOR_INT_BIG_BLOCK);
+                } else {
+                    long id = opNewTuple.id;
                     target.writeBigInt(BigInteger.valueOf(id), OPERATOR_INT_HEADER
                             , OPERATOR_INT_BLOCK, OPERATOR_INT_BIG_BLOCK);
-                    target.writeBigInt(BigInteger.valueOf(length - Operators.argCountById((int)id)), NARY_INT_HEADER
+                    target.writeBigInt(BigInteger.valueOf(length - opNewTuple.minArgs), NARY_INT_HEADER
                             , NARY_INT_BLOCK, NARY_INT_BIG_BLOCK);
-                }else{
-                    target.writeBigInt(BigInteger.valueOf(replace), OPERATOR_INT_HEADER
-                            , OPERATOR_INT_BLOCK, OPERATOR_INT_BIG_BLOCK);
                 }
                 for(MathObject e:(Tuple)value){
                     writeValue(target,e);
@@ -708,17 +712,21 @@ public class Translator {
                 target.writeBigInt(BigInteger.valueOf(CONSTANT_EMPTY_MAP),Constants.CONSTANTS_INT_HEADER
                         ,Constants.CONSTANTS_INT_BLOCK,Constants.CONSTANTS_INT_BIG_BLOCK);
             }else{
-                long replace=Operators.nAryReplacementId(Operators.NEW_MAP,2*size);
+                Operators.OperatorInfo opNewMap=Operators.byName(Operators.NEW_MAP);
+                Operators.NAryInfo nAryInfo=Operators.nAryInfo(opNewMap);
+                if(nAryInfo==null)
+                    throw new RuntimeException("No NAryInfo for N-Ary operator:"+opNewMap);
+                Operators.OperatorInfo replace=nAryInfo.getShortCut(2*size);
                 target.write(new long[]{HEADER_OPERATOR}, 0, HEADER_OPERATOR_LENGTH);
-                if(replace==-1) {
-                    long id = Operators.idByName(Operators.NEW_MAP);
+                if (replace != null) {
+                    target.writeBigInt(BigInteger.valueOf(replace.id), OPERATOR_INT_HEADER
+                            , OPERATOR_INT_BLOCK, OPERATOR_INT_BIG_BLOCK);
+                } else {
+                    long id = opNewMap.id;
                     target.writeBigInt(BigInteger.valueOf(id), OPERATOR_INT_HEADER
                             , OPERATOR_INT_BLOCK, OPERATOR_INT_BIG_BLOCK);
-                    target.writeBigInt(BigInteger.valueOf(2L*size - Operators.argCountById((int)id)), NARY_INT_HEADER
+                    target.writeBigInt(BigInteger.valueOf(2L*size - opNewMap.minArgs), NARY_INT_HEADER
                             , NARY_INT_BLOCK, NARY_INT_BIG_BLOCK);
-                }else{
-                    target.writeBigInt(BigInteger.valueOf(replace), OPERATOR_INT_HEADER
-                            , OPERATOR_INT_BLOCK, OPERATOR_INT_BIG_BLOCK);
                 }
                 for (Iterator<Pair> it = ((FiniteMap) value).mapIterator(); it.hasNext(); ) {
                     Pair e = it.next();
@@ -742,7 +750,7 @@ public class Translator {
                         ,Constants.CONSTANTS_INT_BLOCK,Constants.CONSTANTS_INT_BIG_BLOCK);
             }else if(value.equals(Complex.I.negate())){
                 target.write(new long[]{HEADER_OPERATOR},0,HEADER_OPERATOR_LENGTH);
-                target.writeBigInt(BigInteger.valueOf(Operators.idByName(Operators.NEGATE)),OPERATOR_INT_HEADER
+                target.writeBigInt(BigInteger.valueOf(Operators.byName(Operators.NEGATE).id),OPERATOR_INT_HEADER
                         ,OPERATOR_INT_BLOCK,OPERATOR_INT_BIG_BLOCK);
 
                 target.write(new long[]{Constants.HEADER_CONSTANTS},0,Constants.HEADER_CONSTANTS_LENGTH);
@@ -753,16 +761,16 @@ public class Translator {
                         && value.imaginaryPart().compareTo(Real.Int.ZERO)<0){
                     //real and int both negative -> move NEG in front of CMPLX
                     target.write(new long[]{HEADER_OPERATOR},0,HEADER_OPERATOR_LENGTH);
-                    target.writeBigInt(BigInteger.valueOf(Operators.idByName(Operators.NEGATE)),OPERATOR_INT_HEADER
+                    target.writeBigInt(BigInteger.valueOf(Operators.byName(Operators.NEGATE).id),OPERATOR_INT_HEADER
                             ,OPERATOR_INT_BLOCK,OPERATOR_INT_BIG_BLOCK);
 
                     target.write(new long[]{HEADER_OPERATOR},0,HEADER_OPERATOR_LENGTH);
-                    target.writeBigInt(BigInteger.valueOf(Operators.idByName(Operators.COMPLEX)),OPERATOR_INT_HEADER
+                    target.writeBigInt(BigInteger.valueOf(Operators.byName(Operators.COMPLEX).id),OPERATOR_INT_HEADER
                             ,OPERATOR_INT_BLOCK,OPERATOR_INT_BIG_BLOCK);
                     value = value.negate();
                 }else{
                     target.write(new long[]{HEADER_OPERATOR},0,HEADER_OPERATOR_LENGTH);
-                    target.writeBigInt(BigInteger.valueOf(Operators.idByName(Operators.COMPLEX)),OPERATOR_INT_HEADER
+                    target.writeBigInt(BigInteger.valueOf(Operators.byName(Operators.COMPLEX).id),OPERATOR_INT_HEADER
                             ,OPERATOR_INT_BLOCK,OPERATOR_INT_BIG_BLOCK);
                 }
                 writeReal(target,value.realPart());
@@ -774,7 +782,7 @@ public class Translator {
     private static void writeReal(BitRandomAccessStream target, Real value) throws IOException {
         if(value.compareTo(Real.Int.ZERO)<0){
             target.write(new long[]{HEADER_OPERATOR},0,HEADER_OPERATOR_LENGTH);
-            target.writeBigInt(BigInteger.valueOf(Operators.idByName(Operators.NEGATE)),OPERATOR_INT_HEADER,OPERATOR_INT_BLOCK,OPERATOR_INT_BIG_BLOCK);
+            target.writeBigInt(BigInteger.valueOf(Operators.byName(Operators.NEGATE).id),OPERATOR_INT_HEADER,OPERATOR_INT_BLOCK,OPERATOR_INT_BIG_BLOCK);
             value=value.abs();
         }
         if(value.isInt()){
@@ -789,6 +797,7 @@ public class Translator {
 
     //addLater? symbolic names in scripts (i.e &name) for varIds/fktIds
     // pre-compiling that replaces symbolic names with varIds (by frequency)
+    // +simplification of N-ary expressions similar to OperatorNode.simplify
     public static void compile(Reader source,File targetFile) throws IOException, SyntaxError, CNL_RuntimeException {
         if (!(targetFile.exists() || targetFile.createNewFile()))
             throw new IOException("target-file does not exists");

@@ -61,7 +61,7 @@ class VarPointer implements ValuePointer {
                     , VAR_INT_BIG_BLOCK);
         }else {
             target.write(new long[]{HEADER_OPERATOR}, 0, HEADER_OPERATOR_LENGTH);
-            target.writeBigInt(BigInteger.valueOf(Constants.Operators.idByName(Operators.DYNAMIC_VAR)),
+            target.writeBigInt(BigInteger.valueOf(Operators.byName(Operators.DYNAMIC_VAR).id),
                     Constants.OPERATOR_INT_HEADER,Constants.OPERATOR_INT_BLOCK,Constants.OPERATOR_INT_BIG_BLOCK);
             if(varId!=null){
                 Translator.writeValue(target, varId);

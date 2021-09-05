@@ -55,7 +55,7 @@ class CallFunction implements Action {
     @Override
     public void writeTo(BitRandomAccessStream target) throws IOException {
         target.write(new long[]{Constants.HEADER_OPERATOR},0,Constants.HEADER_OPERATOR_LENGTH);
-        target.writeBigInt(BigInteger.valueOf(Constants.Operators.idByName(Constants.Operators.CALL_FUNCTION)),
+        target.writeBigInt(BigInteger.valueOf(Constants.Operators.byName(Constants.Operators.CALL_FUNCTION).id),
                 Constants.OPERATOR_INT_HEADER,Constants.OPERATOR_INT_BLOCK,Constants.OPERATOR_INT_BIG_BLOCK);
         target.writeBigInt(fktId,Constants.FUNCTION_ID_INT_HEADER,Constants.FUNCTION_ID_INT_BLOCK,Constants.FUNCTION_ID_INT_BIG_BLOCK);
     }
