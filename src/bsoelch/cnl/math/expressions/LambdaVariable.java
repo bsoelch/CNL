@@ -49,7 +49,7 @@ public class LambdaVariable implements ExpressionNode, Comparable<LambdaVariable
 
     @Override
     public String toString() {
-        return "λ" + id;//TODO? better string
+        return "x" + id;
     }
 
     @Override
@@ -94,5 +94,22 @@ public class LambdaVariable implements ExpressionNode, Comparable<LambdaVariable
     public int hashCode() {
         return Objects.hash(id);
     }
+
+    @Override
+    public boolean equals(Map<LambdaVariable,Integer> parentVars, ExpressionNode other, Map<LambdaVariable,Integer> otherVars) {
+        if (!(other instanceof LambdaVariable)) return false;
+        Integer iA=parentVars.get(this);
+        if(iA!=null){
+            return iA.equals(otherVars.get(other));
+        }
+        return (!otherVars.containsKey(other))&&Objects.equals(id, ((LambdaVariable) other).id);
+    }
+
+    @Override
+    public int hashCode(Map<LambdaVariable,Integer> parentVars) {
+        Integer iA=parentVars.get(this);
+        return iA!=null?iA:id.hashCode();
+    }
+
 }
 

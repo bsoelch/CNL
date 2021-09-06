@@ -1,16 +1,20 @@
 package bsoelch.cnl.math.expressions;
 
+import bsoelch.cnl.BitRandomAccessStream;
+import bsoelch.cnl.Constants;
+import bsoelch.cnl.interpreter.Translator;
 import bsoelch.cnl.math.LambdaExpression;
 import bsoelch.cnl.math.MathObject;
 import bsoelch.cnl.math.Real;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.function.Function;
 
 import static bsoelch.cnl.Constants.Operators.*;
 
-public class OperatorNode implements ExpressionNode,Comparable<OperatorNode>{
+public class OperatorNode implements ExpressionNode{
     final ExpressionNode[] params;
     final OperatorInfo operator;
 
@@ -22,16 +26,40 @@ public class OperatorNode implements ExpressionNode,Comparable<OperatorNode>{
         if(params.length< operator.minArgs)
             throw new IllegalArgumentException("No enough arguments for operator"+operator.name+": "+params.length+
                     " expected:"+operator.minArgs);
-        if(operator.isNary&&params.length>operator.minArgs){
+        if((!operator.isNary)&&params.length>operator.minArgs){
             throw new IllegalArgumentException("To much arguments for operator"+operator.name+": "+params.length+
                     " expected:"+operator.minArgs);
+        }
+        if(operator== ID){
+            return params[0];
         }
         NAryInfo nAryInfo=nAryInfo(operator);
         if(nAryInfo!=null&&nAryInfo.isAssociative){//simplify associative n-ary operators
             ArrayList<MathObject> objects=new ArrayList<>(params.length);
             ArrayList<ExpressionNode> nodes=new ArrayList<>(params.length);
             simplify(operator, nAryInfo, params, objects, nodes);
-            return new OperatorNode(operator, nodes.toArray(new ExpressionNode[0]));
+            if(objects.size()>0){//evaluate remaining objects
+                evaluateObjects(operator, nAryInfo, objects, nodes);
+            }
+            if(nodes.isEmpty()){
+                return nAryInfo.nilaryReplacement;
+            }else {
+                OperatorInfo op = nAryInfo.getShortCut(nodes.size());
+                if (op != null) {
+                    if(op==ID){//unwrap ID
+                        return nodes.get(0);
+                    }else{
+                        return new OperatorNode(op, nodes.toArray(new ExpressionNode[0]));
+                    }
+                } else {
+                    op = nAryInfo.nAryVariant;
+                    if (nodes.size() >= op.minArgs) {
+                        return new OperatorNode(op, nodes.toArray(new ExpressionNode[0]));
+                    } else {
+                        throw new IllegalArgumentException("Not enough Arguments for nArg operator:"+op.name);
+                    }
+                }
+            }
         }else {//check if all elements are MathObjects
             boolean onlyMathObjects = true;
             for (ExpressionNode node : params) {
@@ -55,6 +83,7 @@ public class OperatorNode implements ExpressionNode,Comparable<OperatorNode>{
                     NAryInfo other=nAryInfo(((OperatorNode) node).operator);
                     if(other==nAryInfo){
                         simplify(operator,nAryInfo,((OperatorNode) node).params,objects,nodes);
+                        continue;//go to start of loop
                     }
                 }
                 if(objects.size()>0&&(!nAryInfo.isCommutative)){
@@ -64,11 +93,9 @@ public class OperatorNode implements ExpressionNode,Comparable<OperatorNode>{
                 nodes.add(node);
             }
         }
-        if(objects.size()>0){
-            evaluateObjects(operator, nAryInfo, objects, nodes);
-        }
     }
-    private static void evaluateObjects(OperatorInfo operator, NAryInfo nAryInfo, ArrayList<MathObject> objects, ArrayList<ExpressionNode> nodes) {
+    private static void evaluateObjects(OperatorInfo operator, NAryInfo nAryInfo, ArrayList<MathObject> objects,
+                                        ArrayList<ExpressionNode> nodes) {
         OperatorInfo replace = nAryInfo.getShortCut(objects.size());
         MathObject[] mathObjects = objects.toArray(new MathObject[0]);
         if (replace != null) {
@@ -82,6 +109,7 @@ public class OperatorNode implements ExpressionNode,Comparable<OperatorNode>{
         this.operator = operator;
         this.params = params;
     }
+
 
     @Override
     public Set<LambdaVariable> variables() {
@@ -146,6 +174,9 @@ public class OperatorNode implements ExpressionNode,Comparable<OperatorNode>{
 
     private String toString(Function<ExpressionNode,String> nodeToString){
         StringBuilder sb=new StringBuilder(operator.name);
+        if(operator.isNary){
+            sb.append(':').append(params.length);
+        }
         for (ExpressionNode param : params) {
             sb.append(' ').append(nodeToString.apply(param));
         }
@@ -161,15 +192,49 @@ public class OperatorNode implements ExpressionNode,Comparable<OperatorNode>{
         return sb.toString();
     }
 
-    public int compareTo(OperatorNode b) {
-        int c=operator.id-b.operator.id;
+    public boolean isOperatorReference(LambdaVariable[] boundVariables) {
+        NAryInfo info= Constants.Operators.nAryInfo(operator);
+        if(info!=null&&info.isCommutative){
+            //params are (ignoring their order) the first elements of boundVariables
+            HashSet<ExpressionNode> unorderedParams=new HashSet<>(Arrays.asList(params));
+            for (LambdaVariable var : boundVariables) {
+                if (!unorderedParams.remove(var))
+                    return false;
+            }
+            return unorderedParams.isEmpty();
+        }else{
+            //params are exactly the first elements of boundVariables
+            for(int i=0;i<params.length&&i<boundVariables.length;i++){
+                if(!params[i].equals(boundVariables[i]))
+                    return false;
+            }
+            return true;
+        }
+    }
+
+    public String refString() {
+        return "&"+operator.name+(operator.isNary?":"+params.length:"");
+    }
+
+    public void writeTo(BitRandomAccessStream target,boolean isOperatorReference) throws IOException {
+        if(isOperatorReference){
+            Translator.writeOperator(target, operator, params.length, true);
+        }else {
+            Translator.writeOperator(target, operator, params.length, false);
+            for (ExpressionNode param : params)
+                LambdaExpression.writeNode(target, param);
+        }
+    }
+
+    public static int compare(OperatorNode a, Map<LambdaVariable, Integer> boundA, OperatorNode b, Map<LambdaVariable, Integer> boundB) {
+        int c=a.operator.id-b.operator.id;
         if(c!=0)
             return c;
-        c=params.length-b.params.length;
+        c=a.params.length-b.params.length;
         if(c!=0)
             return c;
-        for(int i=0;i<params.length;i++){
-            c= LambdaExpression.compare(params[i],b.params[i]);
+        for(int i=0;i<a.params.length;i++){
+            c=LambdaExpression.compare(a.params[i],boundA,b.params[i],boundB);
             if(c!=0)
                 return c;
         }
@@ -185,10 +250,35 @@ public class OperatorNode implements ExpressionNode,Comparable<OperatorNode>{
     }
 
     @Override
+    public boolean equals(Map<LambdaVariable,Integer> parentVars, ExpressionNode other, Map<LambdaVariable,Integer> otherVars) {
+        if (this == other) return true;
+        if (!(other instanceof OperatorNode)) return false;
+        OperatorNode that = (OperatorNode) other;
+        if(operator.id!=that.operator.id)
+            return false;
+        if(params.length!=that.params.length)
+            return false;
+        //TODO? handle commutative operators
+        for(int i=0;i<params.length;i++){
+            if(!params[i].equals(parentVars,that.params[i],otherVars))
+                return false;
+        }
+
+        return true;
+    }
+    @Override
     public int hashCode() {
         int result = operator.id;
         for(ExpressionNode e:params){
             result=31*result+e.hashCode();
+        }
+        return result;
+    }
+    @Override
+    public int hashCode(Map<LambdaVariable,Integer> boundVars) {
+        int result = operator.id;
+        for(ExpressionNode e:params){
+            result=31*result+e.hashCode(boundVars);
         }
         return result;
     }

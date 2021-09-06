@@ -57,8 +57,17 @@ public abstract class MathObject implements ExpressionNode {
     //all MathObject have to Override equals and hashCOde
     /**{@inheritDoc}*/
     abstract public boolean equals(Object o);
+
+    @Override
+    public boolean equals(Map<LambdaVariable,Integer> parentVars, ExpressionNode other, Map<LambdaVariable,Integer> otherVars) {
+        return equals(other);
+    }
     /**{@inheritDoc}*/
     abstract public int hashCode();
+    @Override
+    public int hashCode(Map<LambdaVariable,Integer> boundVars) {
+        return hashCode();
+    }
 
     public static MathObject not(MathObject o) {//addLater element-wise not
         return isTrue(o)?Real.Int.ZERO:Real.Int.ONE;
@@ -472,7 +481,7 @@ public abstract class MathObject implements ExpressionNode {
     public static int compare(MathObject a, MathObject b){
         if(a instanceof LambdaExpression){
             if(b instanceof LambdaExpression){
-                return LambdaExpression.compare(((LambdaExpression) a).node,((LambdaExpression) b).node);
+                return ((LambdaExpression)a).compareTo((LambdaExpression)b);
             }else{
                 return 1;
             }

@@ -2,6 +2,8 @@ package bsoelch.cnl.interpreter;
 
 import bsoelch.cnl.*;
 import bsoelch.cnl.math.*;
+import bsoelch.cnl.math.expressions.LambdaVariable;
+import bsoelch.cnl.math.expressions.OperatorNode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -9,10 +11,8 @@ import static bsoelch.cnl.Constants.*;
 
 import java.io.*;
 import java.math.BigInteger;
-import java.rmi.RemoteException;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Locale;
+
+import java.util.*;
 
 public class Translator {
     /**Action for End of File*/
@@ -176,10 +176,14 @@ public class Translator {
             return EOF;
         }
         switch (header){
-            case HEADER_OPERATOR:{
+            case HEADER_OPERATOR:
+            case HEADER_OPERATOR_REFERENCE:{
+                boolean isRef=(header==HEADER_OPERATOR_REFERENCE);
                 BigInteger id= code.readBigInt(OPERATOR_INT_HEADER,OPERATOR_INT_BLOCK,OPERATOR_INT_BIG_BLOCK);
                 int intID = id.intValueExact();
                 Operators.OperatorInfo operatorInfo=Operators.byId(intID);
+                if(isRef&&(operatorInfo.needsEnvironment()||operatorInfo.isRuntimeOperator()))
+                    throw new IllegalArgumentException("Cannot create OperatorReference from: "+operatorInfo.name);
                 if(operatorInfo.isRuntimeOperator()){
                     if (operatorInfo.name.equals(Operators.DYNAMIC_VAR)) {
                         return new VarPointer(context, null);
@@ -191,9 +195,17 @@ public class Translator {
                     }
                 } else if(operatorInfo.isNary){
                     BigInteger numArgs=code.readBigInt(NARY_INT_HEADER,NARY_INT_BLOCK,NARY_INT_BIG_BLOCK);
-                    return new Operator(operatorInfo, numArgs.intValueExact(), executionEnvironment);
+                    if(isRef){
+                        return createOperatorReference(operatorInfo,numArgs.intValueExact()+operatorInfo.minArgs);
+                    }else {
+                        return new Operator(operatorInfo, numArgs.intValueExact(), executionEnvironment);
+                    }
                 }else{
-                    return new Operator(operatorInfo, executionEnvironment);
+                    if(isRef){
+                        return createOperatorReference(operatorInfo, operatorInfo.minArgs);
+                    }else {
+                        return new Operator(operatorInfo, executionEnvironment);
+                    }
                 }
             }
             case HEADER_VAR:{
@@ -266,6 +278,24 @@ public class Translator {
                 BigInteger id= code.readBigInt(ENVIRONMENTS_INT_HEADER,ENVIRONMENTS_INT_BLOCK,ENVIRONMENTS_INT_BIG_BLOCK);
                 return new Import(context,id);
             }
+            case HEADER_LAMBDA:{
+                BigInteger argCount=code.readBigInt(LAMBDA_COUNT_INT_HEADER,LAMBDA_COUNT_INT_BLOCK,LAMBDA_COUNT_INT_BIG_BLOCK);
+                int count=argCount.intValueExact()+1;
+                LambdaVariable[] vars=new LambdaVariable[count];
+                for(int i=0;i<count;i++){
+                    BigInteger id = code.readBigInt(LAMBDA_VAR_INT_HEADER, LAMBDA_VAR_INT_BLOCK, LAMBDA_VAR_INT_BIG_BLOCK);
+                    for(int j=0;j<i;j++){//skip already existing ids
+                        if(id.compareTo(vars[j].getId())>=0)
+                            id=id.add(BigInteger.ONE);
+                    }
+                    vars[i]=new LambdaVariable(id);
+                }
+                return new BindLambda(vars);
+            }
+            case HEADER_LAMBDA_VARIABLE:{
+                BigInteger id = code.readBigInt(LAMBDA_VAR_INT_HEADER, LAMBDA_VAR_INT_BLOCK, LAMBDA_VAR_INT_BIG_BLOCK);
+                return wrap(LambdaExpression.from(new LambdaVariable(id),new LambdaVariable[0]));
+            }
             case HEADER_IN:{
                 long[] tmp=new long[1];
                 code.readFully(tmp,0, IN_TYPES_LENGTH);
@@ -312,6 +342,7 @@ public class Translator {
             default:throw new IllegalArgumentException("Unknown Header: 0b"+Integer.toBinaryString(header));
         }
     }
+
 
     static private final int STATE_CODE=0,STATE_VALUE=1,STATE_MATRIX=2,STATE_STRING=3,STATE_COMMENT=4;
 
@@ -506,6 +537,11 @@ public class Translator {
             if(id.signum()==-1)
                 throw new IllegalArgumentException("Negative Id");
             return new ArgPointer(context,id);
+        }else if(str.toUpperCase(Locale.ROOT).startsWith("X")){//Lambda-Var
+            BigInteger id = new BigInteger(str.substring(1));
+            if(id.signum()==-1)
+                throw new IllegalArgumentException("Negative Id");
+            return wrap(LambdaExpression.from(new LambdaVariable(id),new LambdaVariable[0]));
         }else if(str.toUpperCase(Locale.ROOT).startsWith("NEW_FUNC:")&&str.endsWith("[")){//Function declaration
             if(!isTopLayer)
                 throw new IllegalStateException("Function declarations in Brackets are not allowed");
@@ -515,6 +551,16 @@ public class Translator {
             if(args.signum()==-1)
                 throw new IllegalArgumentException("Negative Id");
             return new FunctionDeclaration(id,new Function(context,bitCode==null?NO_POS:new Interpreter.CodePosition(bitCode, true),args.intValueExact()));
+        }else if(str.toUpperCase(Locale.ROOT).startsWith("LAMBDA:")){//Lambda expression
+            String[] params=str.substring(7).split(",");
+            LambdaVariable[] vars=new LambdaVariable[params.length];
+            for(int i=0;i< params.length;i++){
+                if(params[i].toUpperCase(Locale.ROOT).startsWith("X")){
+                    params[i]=params[i].substring(1);
+                }
+                vars[i]=new LambdaVariable(new BigInteger(params[i]));
+            }
+            return new BindLambda(vars);
         }else if(str.toUpperCase(Locale.ROOT).startsWith("RUN_IN:")){//Environment
             BigInteger id=new BigInteger(str.substring(7));
             if(id.signum()==-1)
@@ -545,12 +591,19 @@ public class Translator {
                 }
             }
         }else{
+            boolean isRef=false;
+            if(str.startsWith("&")){
+                isRef=true;
+                str=str.substring(1);
+            }
             if(str.contains(":")){
                 //detect N-ary operators
                 String name=str.substring(0,str.lastIndexOf(':'));
                 String[] counts=str.substring(str.lastIndexOf(':')+1).split(",");
                 Operators.OperatorInfo operatorInfo=Operators.byNameOrNull(name.toUpperCase(Locale.ROOT));
                 if(operatorInfo!=null) {
+                    if(isRef&&(operatorInfo.isRuntimeOperator()||operatorInfo.needsEnvironment()))
+                        throw new IllegalArgumentException("Cannot create OperatorReference from: "+operatorInfo.name);
                     if (counts.length > 1) {
                         throw new UnsupportedOperationException("Multidimensional N-ary not yet supported");
                     } else {
@@ -561,7 +614,7 @@ public class Translator {
                         } else {
                             Operators.NAryInfo nAryInfo = Operators.nAryInfo(operatorInfo);
                             if (nAryInfo == null)
-                                throw new RemoteException("N-Ary Operator without N-AryInfo:" + operatorInfo.name);
+                                throw new RuntimeException("N-Ary Operator without N-AryInfo:" + operatorInfo.name);
                             int count = new BigInteger(counts[0]).intValueExact();
                             if (count == 0) {
                                 return wrap(nAryInfo.nilaryReplacement);
@@ -569,12 +622,20 @@ public class Translator {
                                 int minArgs = operatorInfo.minArgs;
                                 Operators.OperatorInfo replace = nAryInfo.getShortCut(count);
                                 if (replace != null) {
-                                    return new Operator(replace, executionEnvironment);
+                                    if(isRef){
+                                        return createOperatorReference(replace,count);
+                                    }else {
+                                        return new Operator(replace, executionEnvironment);
+                                    }
                                 } else if (count < minArgs) {
                                     throw new IllegalArgumentException("Number of Arguments for NAry operator " + name + " is less than " +
                                             "the minimum allowed value " + minArgs);
                                 } else {
-                                    return new Operator(operatorInfo, count - minArgs, executionEnvironment);
+                                    if(isRef){
+                                        return createOperatorReference(operatorInfo,count);
+                                    }else {
+                                        return new Operator(operatorInfo, count - minArgs, executionEnvironment);
+                                    }
                                 }
                             }
                         }
@@ -583,7 +644,11 @@ public class Translator {
             }else{//nary without args -> exactly minArgs arguments
                 Operators.OperatorInfo operatorInfo = Operators.byNameOrNull(str.toUpperCase(Locale.ROOT));
                 if(operatorInfo!=null) {
-                    return new Operator(operatorInfo,executionEnvironment);
+                    if(isRef){
+                        return createOperatorReference(operatorInfo,operatorInfo.minArgs);
+                    }else {
+                        return new Operator(operatorInfo, executionEnvironment);
+                    }
                 }
             }
             switch (str.toUpperCase(Locale.ROOT)){
@@ -643,9 +708,37 @@ public class Translator {
         }
     }
 
+    private static ValuePointer createOperatorReference(Operators.OperatorInfo operatorInfo, int argCount) {
+        LambdaVariable[] args=new LambdaVariable[argCount];
+        for(int i=0;i<args.length;i++){
+            args[i]=new LambdaVariable(BigInteger.valueOf(i));
+        }
+        return wrap(LambdaExpression.from(OperatorNode.from(operatorInfo,args),args));
+    }
+
+    /** Writes an  Operator to a BitRandomAccessStream
+     * @param target Stream the Operator should be written to
+     * @param operatorInfo the Operator that should be written
+     * @param argCount the number of Arguments (for N-ary Operators)
+     * @param isReference if true the operator is written as an operator-reference
+     * */
+    public static void writeOperator(BitRandomAccessStream target, Operators.OperatorInfo operatorInfo, int argCount,
+                                     boolean isReference) throws IOException {
+        if(isReference){
+            target.write(new long[]{HEADER_OPERATOR_REFERENCE},0, HEADER_OPERATOR_REFERENCE_LENGTH);
+        }else{
+            target.write(new long[]{HEADER_OPERATOR},0, HEADER_OPERATOR_LENGTH);
+        }
+        target.writeBigInt(BigInteger.valueOf(operatorInfo.id), OPERATOR_INT_HEADER,OPERATOR_INT_BLOCK,OPERATOR_INT_BIG_BLOCK);
+        if(operatorInfo.isNary){
+            target.writeBigInt(BigInteger.valueOf(argCount-operatorInfo.minArgs), NARY_INT_HEADER,NARY_INT_BLOCK,NARY_INT_BIG_BLOCK);
+        }
+    }
 
     public static void writeValue(BitRandomAccessStream target, MathObject value) throws IOException {
-        if(value instanceof NumericValue){
+        if(value instanceof LambdaExpression){
+            ((LambdaExpression)value).writeTo(target);
+        }else if(value instanceof NumericValue){
             writeNumeric(target, (NumericValue) value);
         }else if(value instanceof FiniteSet){
             int size=((FiniteSet) value).size();
@@ -794,6 +887,24 @@ public class Translator {
             target.writeBigInt(value.den().subtract(BIG_INT_TWO),INT_HEADER,INT_BLOCK,INT_BIG_BLOCK);
         }
     }
+    public static void writeLambdaHeader(BitRandomAccessStream target, LambdaVariable[] boundVariables) throws IOException {
+        target.write(new long[]{HEADER_LAMBDA},0,HEADER_LAMBDA_LENGTH);
+        target.writeBigInt(BigInteger.valueOf(boundVariables.length-1),//offset by 1 because vars.length==0 is not possible
+                LAMBDA_COUNT_INT_HEADER,LAMBDA_COUNT_INT_BLOCK, LAMBDA_COUNT_INT_BIG_BLOCK);
+        for(int i=0;i<boundVariables.length;i++){
+            BigInteger id=boundVariables[i].getId();
+            for(int j=0;j<i;j++){//skip already existing ids
+                if(id.compareTo(boundVariables[j].getId())>=0)
+                    id=id.subtract(BigInteger.ONE);
+            }
+            target.writeBigInt(id,LAMBDA_VAR_INT_HEADER, LAMBDA_VAR_INT_BLOCK, LAMBDA_VAR_INT_BIG_BLOCK);
+        }
+    }
+    public static void writeLambdaVariable(BitRandomAccessStream target, LambdaVariable var) throws IOException {
+        target.write(new long[]{HEADER_LAMBDA_VARIABLE},0,HEADER_LAMBDA_VARIABLE_LENGTH);
+        target.writeBigInt(var.getId(),LAMBDA_VAR_INT_HEADER, LAMBDA_VAR_INT_BLOCK, LAMBDA_VAR_INT_BIG_BLOCK);
+    }
+
 
     //addLater? symbolic names in scripts (i.e &name) for varIds/fktIds
     // pre-compiling that replaces symbolic names with varIds (by frequency)
@@ -895,6 +1006,7 @@ public class Translator {
     public static final int FILE_TYPE_INVALID =-1, FILE_TYPE_CODE =0, FILE_TYPE_EXECUTABLE =1, FILE_TYPE_SCRIPT =2, FILE_TYPE_EXECUTABLE_SCRIPT =3;
     public static final FileHeader FILE_HEADER_INVALID =new FileHeader(FILE_TYPE_INVALID, null, null);
     public static final FileHeader FILE_HEADER_SCRIPT =new FileHeader(FILE_TYPE_SCRIPT, null, null);
+
 
     public static class FileHeader{
         public final int type;

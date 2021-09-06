@@ -1,7 +1,6 @@
 package bsoelch.cnl.math.expressions;
 
 import bsoelch.cnl.math.MathObject;
-import bsoelch.cnl.math.NumericValue;
 import bsoelch.cnl.math.Real;
 
 import java.math.BigInteger;
@@ -27,4 +26,13 @@ public interface ExpressionNode {
     /**String representation of this if all ints are replaced with their String-value*/
     String intsAsString();
 
+    int hashCode(Map<LambdaVariable,Integer> boundVars);
+    /**returns true if this Expression node has the same structure and unbound variables as other
+     * @param other the Expression node with that Equality should be checked
+     * @param parentVars Variables bound to a LambdaExpression containing this element
+     *                   (in the form var->Index)
+     * @param otherVars Variables bound to a LambdaExpression containing other element
+     *                   (in the form var->Index)
+     * */
+    boolean equals(Map<LambdaVariable,Integer> parentVars,ExpressionNode other,Map<LambdaVariable,Integer> otherVars);
 }

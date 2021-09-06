@@ -4,7 +4,6 @@ import bsoelch.cnl.BitRandomAccessStream;
 import bsoelch.cnl.math.MathObject;
 
 import java.io.IOException;
-import java.math.BigInteger;
 
 import static bsoelch.cnl.Constants.*;
 
@@ -68,11 +67,8 @@ public class Operator implements Action {
 
     @Override
     public void writeTo(BitRandomAccessStream target) throws IOException {
-        target.write(new long[]{HEADER_OPERATOR},0, HEADER_OPERATOR_LENGTH);
-        target.writeBigInt(BigInteger.valueOf(operatorInfo.id), OPERATOR_INT_HEADER,OPERATOR_INT_BLOCK,OPERATOR_INT_BIG_BLOCK);
-        if(operatorInfo.isNary){
-            target.writeBigInt(BigInteger.valueOf(args.length-operatorInfo.minArgs), NARY_INT_HEADER,NARY_INT_BLOCK,NARY_INT_BIG_BLOCK);
-        }
+        if(operatorInfo.id!=-1)//don't write Operator ID
+            Translator.writeOperator(target,operatorInfo,args.length, false);
     }
 
     @Override

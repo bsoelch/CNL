@@ -453,6 +453,12 @@ public class Interpreter implements Closeable {
                 }else{
                     value= Translator.ZERO;
                 }
+            }else if(last instanceof BindLambda){
+                if(doBranching) {
+                    value = ((BindLambda) last).preformOperation();
+                }else{
+                    value= Translator.ZERO;
+                }
             }else if(last instanceof Input){
                 if(doBranching) {
                     value=((Input) last).read();

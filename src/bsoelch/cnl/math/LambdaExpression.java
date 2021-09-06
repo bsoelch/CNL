@@ -1,10 +1,13 @@
 package bsoelch.cnl.math;
 
+import bsoelch.cnl.BitRandomAccessStream;
 import bsoelch.cnl.Constants;
+import bsoelch.cnl.interpreter.Translator;
 import bsoelch.cnl.math.expressions.ExpressionNode;
 import bsoelch.cnl.math.expressions.LambdaVariable;
 import bsoelch.cnl.math.expressions.OperatorNode;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
 
@@ -20,102 +23,41 @@ public final class LambdaExpression extends MathObject {
     final ExpressionNode node;
     final LambdaVariable[] boundVariables;
 
-    public static MathObject from(ExpressionNode node, LambdaVariable[] bindVars){
-        HashSet<LambdaVariable> freeVars=new HashSet<>(node.variables());
-        freeVars.removeAll(Arrays.asList(bindVars));
-        if(freeVars.isEmpty()){
-            return (MathObject) node;
-        }else{
-            HashMap<LambdaVariable,LambdaVariable> remap=new HashMap<>();
-            LambdaVariable prev;
-            long j=0;
-            for(int i=0;i<bindVars.length;i++){
-                prev=bindVars[i];
-                do {
-                    bindVars[i] = new LambdaVariable(BigInteger.valueOf(j++));
-                }while (freeVars.contains(bindVars[i]));
-                remap.put(prev,bindVars[i]);
-            }
-            return new LambdaExpression(node.renameVariables(remap), bindVars);
-        }
+   public static MathObject from(ExpressionNode node, LambdaVariable[] bindVars){
+       if(node instanceof MathObject&&bindVars.length==0){
+           return (MathObject) node;//unwrap unbound lambdas
+       }else if(node instanceof LambdaExpression&&((LambdaExpression) node).boundVariables.length==0){
+           node=((LambdaExpression) node).node;//unwrap unbound lambdas
+       }
+       return new LambdaExpression(node, bindVars);
     }
 
+    //TODO? prevent "sideways binding" like in ADD L:0_(x1) L:1_(x0) => L:0,1_(ADD x1 x0)
+    // ? standard Form
     public static MathObject from(Constants.Operators.OperatorInfo operatorInfo, MathObject[] params){
-        HashSet<LambdaVariable> vars=new HashSet<>();
-        HashSet<LambdaVariable> tmp;
-        int maxLambdaArgs=0;
+        TreeSet<LambdaVariable> boundVars=new TreeSet<>();
         for(MathObject o:params){
             if(o instanceof LambdaExpression){
-                tmp=new HashSet<>(o.variables());
-                tmp.removeAll(Arrays.asList(((LambdaExpression) o).boundVariables));
-                vars.addAll(tmp);//add all not directly bound variables
-                maxLambdaArgs=Math.max(maxLambdaArgs,((LambdaExpression) o).boundVariables.length);
+                boundVars.addAll(Arrays.asList(((LambdaExpression) o).boundVariables));
             }
-        }
-        if(vars.isEmpty()&&!operatorInfo.unwrapBoundLambdas){
-            return operatorInfo.execute(null,params);
-        }
-        LambdaVariable[] boundVars=new LambdaVariable[maxLambdaArgs];
-        long j=0;
-        for(int i=0;i<boundVars.length;i++){
-            do {
-                boundVars[i] = new LambdaVariable(BigInteger.valueOf(j++));
-            }while (vars.contains(boundVars[i]));
         }
         ExpressionNode[] unwrap=new ExpressionNode[params.length];
         for(int i=0;i<params.length;i++){
             if(params[i] instanceof LambdaExpression){
                 unwrap[i]=((LambdaExpression) params[i]).node;
-                HashMap<LambdaVariable,LambdaVariable> remap=new HashMap<>();
-                for(int k=0;k<((LambdaExpression) params[i]).boundVariables.length;k++){
-                    remap.put(((LambdaExpression) params[i]).boundVariables[k],boundVars[k]);
-                }
-                unwrap[i]=unwrap[i].renameVariables(remap);
             }else{
                 unwrap[i]=params[i];
             }
         }
-        return from(OperatorNode.from(operatorInfo,unwrap),boundVars);
+        return from(OperatorNode.from(operatorInfo,unwrap),boundVars.toArray(new LambdaVariable[0]));
     }
 
     private LambdaExpression(ExpressionNode node, LambdaVariable[] boundVariables) {
         this.node = node;
-        Set<LambdaVariable> nodeVars=node.variables();
-        int lastIn=boundVariables.length-1;
-        while(!nodeVars.contains(boundVariables[lastIn])){
-            lastIn--;
-        }//remove bindings to nonexistent variables (at end)
-        //key all other bindings to not disturb the positions of the existing bindings
-        this.boundVariables = Arrays.copyOf(boundVariables,lastIn);
+        this.boundVariables=boundVariables;//unused bound vars  are necessary for lambda calculus
     }
 
-    public static int compare(ExpressionNode a, ExpressionNode b) {
-        if(a instanceof MathObject){
-            if(b instanceof MathObject){
-                return MathObject.compare((MathObject)a,(MathObject)b);
-            }else{
-                return -1;
-            }
-        }else if(a instanceof LambdaVariable){
-            if(b instanceof MathObject){
-                return 1;
-            }else if(b instanceof LambdaVariable){
-                return ((LambdaVariable) a).getId().compareTo(((LambdaVariable) b).getId());
-            }else {
-                return -1;
-            }
-        }else if(a instanceof OperatorNode){
-            if(b instanceof MathObject||b instanceof LambdaVariable){
-                return 1;
-            }else if(b instanceof OperatorNode){
-               return ((OperatorNode)a).compareTo((OperatorNode)b);
-            }else{
-                throw new IllegalArgumentException("Unexpected ExpressionNode class:"+b.getClass());
-            }
-        }else{
-            throw new IllegalArgumentException("Unexpected ExpressionNode class:"+a.getClass());
-        }
-    }
+
 
     @Override
     public Set<LambdaVariable> variables() {
@@ -143,6 +85,28 @@ public final class LambdaExpression extends MathObject {
         for(LambdaVariable var:boundVariables)
             replaceUnbound.remove(var);
         return from(node.evaluate(replaceUnbound),boundVariables);
+    }
+    /**evaluates this LambdaExpression with the specific input values
+     * @param mathObjects the values used as parameters for the evaluation*/
+    public MathObject evaluate(MathObject[] mathObjects) {
+        HashMap<LambdaVariable,ExpressionNode> replace=new HashMap<>(mathObjects.length);
+        ExpressionNode tmp;
+        for(int i=0;i<mathObjects.length;i++){
+            if(i>= boundVariables.length)
+                break;
+            tmp=mathObjects[i];
+            if(tmp instanceof LambdaExpression&&((LambdaExpression) tmp).boundVariables.length==0){
+                tmp=((LambdaExpression) tmp).node;//unwrap unbound lambdas
+            }
+            replace.put(boundVariables[i],tmp );
+        }
+        LambdaVariable[] newParams;
+        if(mathObjects.length<boundVariables.length) {
+            newParams = Arrays.copyOfRange(boundVariables, mathObjects.length, boundVariables.length);
+        }else{
+            newParams=new LambdaVariable[0];
+        }
+        return from(node.evaluate(replace), newParams);
     }
 
     @Override
@@ -173,29 +137,147 @@ public final class LambdaExpression extends MathObject {
         return toString(node.intsAsString());
     }
     private String toString(String nodeString){
-        StringBuilder ret=new StringBuilder("LAMBDA:");
-        for(LambdaVariable var:boundVariables){
-            if(ret.length()>7)
-                ret.append(",");
-            ret.append(var.getId());
+        if(boundVariables.length==0){
+            return nodeString;
+        }else {
+            StringBuilder ret = new StringBuilder("LAMBDA:");
+            for (LambdaVariable var : boundVariables) {
+                if (ret.length() > 7)
+                    ret.append(",");
+                ret.append(var.getId());
+            }
+            return ret.append(" (").append(nodeString).append(')').toString();
         }
-        return ret.append(" (").append(nodeString).append(')').toString();
     }
-
     @Override
     public String asString() {
         return node.asString();
+    }
+    @Override
+    public String toString() {
+        if(node instanceof OperatorNode&&((OperatorNode)node).isOperatorReference(boundVariables)){
+            return ((OperatorNode)node).refString();
+        }else{
+            return super.toString();
+        }
+    }
+
+    public void writeTo(BitRandomAccessStream target) throws IOException {
+        if(node instanceof OperatorNode&&((OperatorNode)node).isOperatorReference(boundVariables)){
+            ((OperatorNode) node).writeTo(target,true);
+        }else {
+            if (boundVariables.length > 0) {
+                Translator.writeLambdaHeader(target, boundVariables);
+            }
+            writeNode(target, node);
+        }
+    }
+    public static void writeNode(BitRandomAccessStream target, ExpressionNode node) throws IOException {
+        if(node instanceof MathObject){
+            Translator.writeValue(target,(MathObject) node);
+        }else if(node instanceof LambdaVariable){
+            Translator.writeLambdaVariable(target,(LambdaVariable) node);
+        }else if(node instanceof OperatorNode){
+            ((OperatorNode)node).writeTo(target,false);
+        }else{
+            throw new IllegalArgumentException("Unexpected ExpressionNode class:"+node.getClass());
+        }
+    }
+
+    public int compareTo(LambdaExpression b) {
+        return compare(node,toMap(boundVariables),b.node,toMap(b.boundVariables));
+    }
+    public static int compare(ExpressionNode a,Map<LambdaVariable,Integer> boundA, ExpressionNode b,Map<LambdaVariable,Integer> boundB) {
+       if(a instanceof MathObject){
+            if(b instanceof MathObject){
+                if(a instanceof LambdaExpression){
+                    if(b instanceof LambdaExpression){
+                        return compare(((LambdaExpression) a).node,concat(((LambdaExpression) a).boundVariables,boundA),
+                                ((LambdaExpression) b).node,concat(((LambdaExpression) b).boundVariables,boundB));
+                    }else{
+                        return 1;
+                    }
+                }else if(b instanceof LambdaExpression){
+                    return -1;
+                }else {
+                    return MathObject.compare((MathObject) a, (MathObject) b);
+                }
+            }else{
+                return -1;
+            }
+        }else if(a instanceof LambdaVariable){
+            if(b instanceof MathObject){
+                return 1;
+            }else if(b instanceof LambdaVariable){
+                Integer iA=boundA.get(a),iB=boundB.get(b);
+                if(iA!=null){
+                    if(iB!=null){
+                        return iA.compareTo(iB);
+                    }else {
+                        return -1;
+                    }
+                }else if(iB!=null){
+                    return 1;
+                }else {
+                    return ((LambdaVariable) a).getId().compareTo(((LambdaVariable) b).getId());
+                }
+            }else {
+                return -1;
+            }
+        }else if(a instanceof OperatorNode){
+            if(b instanceof MathObject||b instanceof LambdaVariable){
+                return 1;
+            }else if(b instanceof OperatorNode){
+                return OperatorNode.compare(((OperatorNode)a),boundA,(OperatorNode)b,boundB);
+            }else{
+                throw new IllegalArgumentException("Unexpected ExpressionNode class:"+b.getClass());
+            }
+        }else{
+            throw new IllegalArgumentException("Unexpected ExpressionNode class:"+a.getClass());
+        }
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof LambdaExpression)) return false;
-        //equality of similar structures through standard form of Expressions
-        return node.equals(((LambdaExpression) o).node)&&Arrays.equals(boundVariables,((LambdaExpression) o).boundVariables);
+        return node.equals(toMap(boundVariables),((LambdaExpression) o).node,toMap(((LambdaExpression) o).boundVariables));
     }
+
+    @Override
+    public boolean equals(Map<LambdaVariable,Integer> parentVars, ExpressionNode other, Map<LambdaVariable,Integer> otherVars) {
+        if(!(other instanceof LambdaExpression)) return false;
+        if(boundVariables.length!=((LambdaExpression) other).boundVariables.length)
+            return false;
+        return node.equals(concat(boundVariables,parentVars),
+                ((LambdaExpression) other).node,concat(((LambdaExpression) other).boundVariables,otherVars));
+    }
+
     @Override
     public int hashCode() {
-        return Objects.hash(node.hashCode(),Arrays.hashCode(boundVariables));
+        return node.hashCode(toMap(boundVariables));
     }
+    @Override
+    public int hashCode(Map<LambdaVariable,Integer> parentVars) {
+        return node.hashCode(concat(boundVariables,parentVars));
+    }
+
+    private static HashMap<LambdaVariable,Integer> toMap(LambdaVariable[] vars){
+       HashMap<LambdaVariable,Integer> map=new HashMap<>(vars.length);
+       for(int i=0;i<vars.length;i++){
+           map.put(vars[i],i);
+       }
+       return map;
+    }
+
+    private static Map<LambdaVariable,Integer> concat(LambdaVariable[] vars, Map<LambdaVariable,Integer> parent) {
+        int parentSize = parent.size();
+        HashMap<LambdaVariable,Integer> map=new HashMap<>(parentSize+vars.length);
+        map.putAll(parent);
+        for(int i=0;i<vars.length;i++){
+            map.put(vars[i],i+ parentSize);
+        }
+        return map;
+    }
+
 }
