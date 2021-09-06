@@ -1,7 +1,7 @@
 package bsoelch.cnl.math.expressions;
 
+import bsoelch.cnl.math.LambdaExpression;
 import bsoelch.cnl.math.MathObject;
-import bsoelch.cnl.math.NumericValue;
 import bsoelch.cnl.math.Real;
 
 import java.math.BigInteger;
@@ -10,7 +10,7 @@ import java.util.function.Function;
 
 import static bsoelch.cnl.Constants.Operators.*;
 
-public class OperatorNode implements ExpressionNode{
+public class OperatorNode implements ExpressionNode,Comparable<OperatorNode>{
     final ExpressionNode[] params;
     final OperatorInfo operator;
 
@@ -90,6 +90,22 @@ public class OperatorNode implements ExpressionNode{
             vars.addAll(node.variables());
         return Collections.unmodifiableSet(vars);
     }
+    @Override
+    public Set<LambdaVariable> freeVariables() {
+        HashSet<LambdaVariable> vars=new HashSet<>();
+        for(ExpressionNode node:params)
+            vars.addAll(node.freeVariables());
+        return Collections.unmodifiableSet(vars);
+    }
+
+    @Override
+    public ExpressionNode renameVariables(Map<LambdaVariable, LambdaVariable> replace) {
+        ExpressionNode[] newParams=new ExpressionNode[params.length];
+        for(int i=0;i< params.length;i++){
+            newParams[i]=params[i].renameVariables(replace);
+        }
+        return from(operator,newParams);
+    }
 
     @Override
     public ExpressionNode evaluate(Map<LambdaVariable, ? extends ExpressionNode> replace) {
@@ -101,11 +117,11 @@ public class OperatorNode implements ExpressionNode{
     }
 
     @Override
-    public NumericValue numericValue() {
-        MathObject[] numValues=new MathObject[params.length];
+    public MathObject asMathObject() {
+        MathObject[] values=new MathObject[params.length];
         for(int i=0;i< params.length;i++)
-            numValues[i]=params[i].numericValue();
-        return operator.execute(null,numValues).numericValue();
+            values[i]=params[i].asMathObject();
+        return operator.execute(null,values);
     }
 
     @Override
@@ -145,29 +161,19 @@ public class OperatorNode implements ExpressionNode{
         return sb.toString();
     }
 
-    @Override
-    public boolean equals(LambdaVariable[] boundVars, ExpressionNode node, LambdaVariable[] nodeVars) {
-        if (this == node) return true;
-        if (!(node instanceof OperatorNode)) return false;
-        OperatorNode that = (OperatorNode) node;
-        if(operator.id!=that.operator.id)
-            return false;
-        if(params.length!=that.params.length)
-            return false;
-        for(int i=0;i< params.length;i++){
-            if(!params[i].equals(boundVars,((OperatorNode) node).params[i],nodeVars))
-                return false;
+    public int compareTo(OperatorNode b) {
+        int c=operator.id-b.operator.id;
+        if(c!=0)
+            return c;
+        c=params.length-b.params.length;
+        if(c!=0)
+            return c;
+        for(int i=0;i<params.length;i++){
+            c= LambdaExpression.compare(params[i],b.params[i]);
+            if(c!=0)
+                return c;
         }
-        return true;
-    }
-
-    @Override
-    public int hashCode(LambdaVariable[] boundVars) {
-        int result = operator.id;
-        for(ExpressionNode e:params){
-            result=31*result+e.hashCode(boundVars);
-        }
-        return result;
+        return 0;
     }
 
     @Override
@@ -186,4 +192,5 @@ public class OperatorNode implements ExpressionNode{
         }
         return result;
     }
+
 }

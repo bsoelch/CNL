@@ -2,6 +2,7 @@ package bsoelch.cnl.math.expressions;
 
 import bsoelch.cnl.math.NumericValue;
 import bsoelch.cnl.math.Real;
+import org.jetbrains.annotations.NotNull;
 
 import java.math.BigInteger;
 import java.util.Collections;
@@ -9,7 +10,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-public class LambdaVariable implements ExpressionNode {
+public class LambdaVariable implements ExpressionNode, Comparable<LambdaVariable>{
     final BigInteger id;
 
     public LambdaVariable(BigInteger id) {
@@ -24,6 +25,16 @@ public class LambdaVariable implements ExpressionNode {
     public Set<LambdaVariable> variables() {
         return Collections.singleton(this);
     }
+    @Override
+    public Set<LambdaVariable> freeVariables() {
+        return Collections.singleton(this);
+    }
+
+    @Override
+    public ExpressionNode renameVariables(Map<LambdaVariable, LambdaVariable> replace) {
+        LambdaVariable tmp = replace.get(this);
+        return tmp == null ? this : tmp;
+    }
 
     @Override
     public ExpressionNode evaluate(Map<LambdaVariable, ? extends ExpressionNode> replace) {
@@ -32,7 +43,7 @@ public class LambdaVariable implements ExpressionNode {
     }
 
     @Override
-    public NumericValue numericValue() {
+    public NumericValue asMathObject() {
         return Real.Int.ZERO;
     }
 
@@ -67,23 +78,8 @@ public class LambdaVariable implements ExpressionNode {
     }
 
     @Override
-    public boolean equals(LambdaVariable[] boundVars,ExpressionNode node, LambdaVariable[] nodeVars) {
-        if (this == node) return true;
-        if (!(node instanceof LambdaVariable)) return false;
-        for(int i=0;i<boundVars.length;i++){
-            if(id.equals(boundVars[i].id))
-                return id.equals(nodeVars[i].id);
-        }
-        return id.equals(((LambdaVariable) node).id);
-    }
-
-    @Override
-    public int hashCode(LambdaVariable[] boundVars) {
-        for(int i=0;i<boundVars.length;i++){
-            if(id.equals(boundVars[i].id))
-                return i;
-        }
-        return hashCode();
+    public int compareTo(@NotNull LambdaVariable o) {
+        return id.compareTo(o.id);
     }
 
     @Override

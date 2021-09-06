@@ -29,6 +29,8 @@ public abstract class Matrix extends MathObject implements Iterable<NumericValue
 
     /**Converts the given MathObject to a Matrix*/
     public static Matrix asMatrix(MathObject o){
+        if(o instanceof LambdaExpression)
+            o=o.asMathObject();
         if(o instanceof NumericValue){
             return new FullMatrix(new NumericValue[][]{{(NumericValue) o}});
         }else if(o instanceof FullMatrix){

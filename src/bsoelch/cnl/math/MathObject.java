@@ -34,18 +34,20 @@ public abstract class MathObject implements ExpressionNode {
         return Collections.emptySet();
     }
     @Override
+    public Set<LambdaVariable> freeVariables() {
+        return Collections.emptySet();
+    }
+    @Override
+    public MathObject renameVariables(Map<LambdaVariable, LambdaVariable> replace) {
+        return this;
+    }
+    @Override
     public MathObject evaluate(Map<LambdaVariable, ? extends ExpressionNode> replace) {
         return this;
     }
-
     @Override
-    public boolean equals(LambdaVariable[] boundVars,ExpressionNode node, LambdaVariable[] nodeVars) {
-        return equals(node);
-    }
-
-    @Override
-    public int hashCode(LambdaVariable[] boundVars) {
-        return hashCode();//no bound variables
+    public MathObject asMathObject() {
+        return this;
     }
 
     @Override
@@ -65,11 +67,15 @@ public abstract class MathObject implements ExpressionNode {
     /**@return the boolean value of the supplied MathObject,
      * the only objects resulting in false are 0, empty sets and empty maps/tuples */
     public static boolean isTrue(MathObject arg) {
+        if(arg instanceof LambdaExpression)
+            arg=arg.asMathObject();
         return !(arg.equals(Real.Int.ZERO)||arg.equals(FiniteSet.EMPTY_SET)
                 ||arg.equals(Tuple.EMPTY_MAP));
     }
 
     public static FiniteSet asSet(MathObject o){
+        if(o instanceof LambdaExpression)
+            o=o.asMathObject();
         if(o instanceof NumericValue){
             return FiniteSet.from(o);
         }else if(o instanceof Matrix){
@@ -83,6 +89,8 @@ public abstract class MathObject implements ExpressionNode {
         }
     }
     public static FiniteMap asMap(MathObject o){
+        if(o instanceof LambdaExpression)
+            o=o.asMathObject();
         if(o instanceof NumericValue){
             return Tuple.create(new MathObject[]{o});
         }else if(o instanceof Matrix){
@@ -95,7 +103,7 @@ public abstract class MathObject implements ExpressionNode {
             throw new IllegalArgumentException("Unexpected MathObject:"+o.getClass());
         }
     }
-    static MathObject elementWise(MathObject l, MathObject r,
+    public static MathObject elementWise(MathObject l, MathObject r,
                                   BinaryOperator<NumericValue> scalarOperation){
         if(l instanceof NumericValue){
             if(r instanceof NumericValue){
@@ -143,7 +151,7 @@ public abstract class MathObject implements ExpressionNode {
             throw new IllegalArgumentException("Unexpected MathObject:"+l.getClass());
         }
     }
-    static MathObject elementWise(MathObject o, Function<NumericValue, NumericValue> scalarFunction){
+    public static MathObject elementWise(MathObject o, Function<NumericValue, NumericValue> scalarFunction){
         if(o instanceof NumericValue){
             return scalarFunction.apply((NumericValue) o);
         }else if(o instanceof Matrix){
@@ -234,15 +242,7 @@ public abstract class MathObject implements ExpressionNode {
     public static MathObject negate(MathObject o) {
         return elementWise(o, e->e.negate());
     }
-    public static MathObject realPart(MathObject o) {
-        return elementWise(o, e->e.realPart());
-    }
-    public static MathObject imaginaryPart(MathObject o) {
-        return elementWise(o, e->e.imaginaryPart());
-    }
-    public static MathObject conjugate(MathObject o) {
-        return elementWise(o, e->e.conjugate());
-    }
+
 
     public static MathObject multiply(MathObject l, MathObject r) {
         return elementWise(l,r, NumericValue::multiply);
@@ -276,9 +276,6 @@ public abstract class MathObject implements ExpressionNode {
         }
     }
 
-    public static MathObject invert(MathObject o) {
-        return elementWise(o, e->e.invert());
-    }
 
     public static MathObject divide(MathObject l, MathObject r) {
         return elementWise(l,r, NumericValue::divide);
@@ -292,9 +289,6 @@ public abstract class MathObject implements ExpressionNode {
     }
     public static MathObject round(MathObject o, int mode) {
         return elementWise(o,e->e.round(mode));
-    }
-    public static MathObject approximate(MathObject o, Real precision) {
-        return elementWise(o,e->e.approx(precision));
     }
 
     public static MathObject floorAnd(MathObject l, MathObject r) {
@@ -476,6 +470,15 @@ public abstract class MathObject implements ExpressionNode {
 
 
     public static int compare(MathObject a, MathObject b){
+        if(a instanceof LambdaExpression){
+            if(b instanceof LambdaExpression){
+                return LambdaExpression.compare(((LambdaExpression) a).node,((LambdaExpression) b).node);
+            }else{
+                return 1;
+            }
+        }else if(b instanceof LambdaExpression){
+            return -1;
+        }
         //compare Matrices as Maps
         if(a instanceof Matrix)
             a=((Matrix) a).asMap();

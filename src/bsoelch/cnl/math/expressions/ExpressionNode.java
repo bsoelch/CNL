@@ -1,5 +1,6 @@
 package bsoelch.cnl.math.expressions;
 
+import bsoelch.cnl.math.MathObject;
 import bsoelch.cnl.math.NumericValue;
 import bsoelch.cnl.math.Real;
 
@@ -9,9 +10,13 @@ import java.util.Set;
 
 public interface ExpressionNode {
     Set<LambdaVariable> variables();
+    Set<LambdaVariable> freeVariables();
+
+    ExpressionNode renameVariables(Map<LambdaVariable,LambdaVariable> replace);
+
     ExpressionNode evaluate(Map<LambdaVariable,? extends ExpressionNode> replace);
 
-    NumericValue numericValue();
+    MathObject asMathObject();
 
     String toString(BigInteger base, boolean useSmallBase);
     String toStringFixedPoint(BigInteger base, Real precision, boolean useSmallBase);
@@ -22,8 +27,4 @@ public interface ExpressionNode {
     /**String representation of this if all ints are replaced with their String-value*/
     String intsAsString();
 
-    /**helper method for comparing to partially bound lambda expressions*/
-    boolean equals(LambdaVariable[] boundVars,ExpressionNode node,LambdaVariable[] nodeVars);
-    /**helper method for hashCode of partially bound lambda expressions*/
-    int hashCode(LambdaVariable[] boundVars);
 }
