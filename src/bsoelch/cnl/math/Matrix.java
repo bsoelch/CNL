@@ -33,8 +33,8 @@ public final class Matrix extends MathObject implements Iterable<NumericValue> {
             throw new IllegalArgumentException("n has to be >0");
         TreeMap<Integer,MutableTuple<NumericValue>> data=new TreeMap<>();
         for(int i = 0; i< n; i++)
-            data.put(i,MutableTuple.from(new TreeMap<>(Collections.singletonMap(i, value))));
-        return MutableTuple.from(data);
+            data.put(i,MutableTuple.from(new TreeMap<>(Collections.singletonMap(i, value)),n));
+        return MutableTuple.from(data,n);
     }
 
     /**Converts the given MathObject to a Matrix*/
@@ -188,8 +188,7 @@ public final class Matrix extends MathObject implements Iterable<NumericValue> {
     }
 
     public static Matrix matrixMultiply(Matrix a, Matrix b) {
-        MutableTuple<MutableTuple<NumericValue>> res=MutableTuple.from(new TreeMap<>());
-        res.ensureLength(a.rows);
+        MutableTuple<MutableTuple<NumericValue>> res=MutableTuple.from(a.rows);
         boolean hasRow =false;//true if there is a nonempty row in the result (for ensuring correct size of result)
         for (Iterator<Pair> it = a.rowIterator(); it.hasNext(); ) {//rowA
             Pair rA = it.next();
@@ -213,8 +212,7 @@ public final class Matrix extends MathObject implements Iterable<NumericValue> {
                         if(!v.equals(Real.Int.ZERO)){
                             MutableTuple<NumericValue> row=res.get(x);
                             if(row==null){
-                                row=MutableTuple.from(new TreeMap<>());
-                                row.ensureLength(b.columns);
+                                row=MutableTuple.from(b.columns);
                                 res.set(x,row);
                                 hasRow=true;
                             }
@@ -231,8 +229,7 @@ public final class Matrix extends MathObject implements Iterable<NumericValue> {
             }
         }
         if(!hasRow){//add empty row with correct length
-            MutableTuple<NumericValue> row=MutableTuple.from(new TreeMap<>());
-            row.ensureLength(b.columns);
+            MutableTuple<NumericValue> row=MutableTuple.from(b.columns);
             res.set(0,row);
         }
         return fromMutableTuple(res);
@@ -243,7 +240,7 @@ public final class Matrix extends MathObject implements Iterable<NumericValue> {
         int y=0,k0;
         for (MutableTuple.TupleEntry<MutableTuple<NumericValue>> row : target) {
             k0 = -1;
-            for (Iterator<MutableTuple.TupleEntry<NumericValue>> it = row.value.tail(y, true); it.hasNext(); ) {
+            for (Iterator<MutableTuple.TupleEntry<NumericValue>> it = row.value.tail(y); it.hasNext(); ) {
                 MutableTuple.TupleEntry<NumericValue> e = it.next();
                 if (e.value!=null&&!Real.Int.ZERO.equals(e.value)) {
                     k0 = e.index;
@@ -253,14 +250,14 @@ public final class Matrix extends MathObject implements Iterable<NumericValue> {
             if (k0 != -1) {
                 if (k0 != y)
                     addLine(target, applicant, k0, row.value.get(k0).invert(), y);
-                for (Iterator<MutableTuple.TupleEntry<NumericValue>> it = row.value.tail(y, false); it.hasNext(); ) {
+                for (Iterator<MutableTuple.TupleEntry<NumericValue>> it = row.value.tail(y+1); it.hasNext(); ) {
                     MutableTuple.TupleEntry<NumericValue> e = it.next();
                     if (e.value!=null&&!Real.Int.ZERO.equals(e.value)) {
                         addLine(target, applicant, y, NumericValue.divide(e.value,row.value.get(y)).negate(), e.index);
                     }
                 }
                 if (total) {
-                    for (Iterator<MutableTuple.TupleEntry<NumericValue>> it = row.value.head(y, false); it.hasNext(); ) {
+                    for (Iterator<MutableTuple.TupleEntry<NumericValue>> it = row.value.head(y); it.hasNext(); ) {
                         MutableTuple.TupleEntry<NumericValue> e = it.next();
                         if (e.value!=null&&!Real.Int.ZERO.equals(e.value)) {
                             addLine(target, applicant, y, NumericValue.divide(e.value,row.value.get(y)).negate(), e.index);
@@ -318,30 +315,36 @@ public final class Matrix extends MathObject implements Iterable<NumericValue> {
                     rows[i]= asMutableTuple((FiniteMap)t);
                 }
             }
-            return MutableTuple.from(rows);
+            return MutableTuple.from(rows,data.size());
         }else {
             TreeMap<Integer, MutableTuple<NumericValue>> map = new TreeMap<>();
+            int maxIndex=0;
             for (Iterator<Pair> it = data.mapIterator(); it.hasNext(); ) {
                 Pair p = it.next();
                 if (p.b instanceof FiniteMap) {
-                    map.put(((Real.Int)p.a).num().intValueExact(), asMutableTuple((FiniteMap)p.b));
+                    int i = ((Real.Int) p.a).num().intValueExact();
+                    map.put(i, asMutableTuple((FiniteMap)p.b));
+                    maxIndex=Math.max(maxIndex,i);
                 }
             }
-            return MutableTuple.from(map);
+            return MutableTuple.from(map,maxIndex+1);
         }
     }
 
     private static MutableTuple<NumericValue> asMutableTuple(FiniteMap row) {
         if(row instanceof Tuple&&((Tuple) row).isFullTuple()){
             NumericValue[] elements=((Tuple) row).toArray(NumericValue[].class);
-            return MutableTuple.from(elements);
+            return MutableTuple.from(elements,row.size());
         }else {
+            int maxIndex=0;
             TreeMap<Integer, NumericValue> map = new TreeMap<>();
             for (Iterator<Pair> it = row.mapIterator(); it.hasNext(); ) {
                 Pair p = it.next();
-                map.put(((Real.Int)p.a).num().intValueExact(),(NumericValue)p.b);
+                int i = ((Real.Int) p.a).num().intValueExact();
+                map.put(i,(NumericValue)p.b);
+                maxIndex=Math.max(maxIndex,i);
             }
-            return MutableTuple.from(map);
+            return MutableTuple.from(map,maxIndex+1);
         }
     }
 
@@ -383,8 +386,7 @@ public final class Matrix extends MathObject implements Iterable<NumericValue> {
         return fromMutableTuple(data);
     }
     public Matrix transpose() {
-        MutableTuple<MutableTuple<NumericValue>> res=MutableTuple.from(new TreeMap<>());
-        res.ensureLength(columns);
+        MutableTuple<MutableTuple<NumericValue>> res=MutableTuple.from(columns);
         for (Iterator<Pair> it = data.mapIterator(); it.hasNext(); ) {
             Pair row = it.next();
             if(row.b instanceof FiniteMap){
@@ -392,8 +394,7 @@ public final class Matrix extends MathObject implements Iterable<NumericValue> {
                     Pair e = iter.next();
                     MutableTuple<NumericValue> column = res.get(((Real.Int) e.a).num().intValueExact());
                     if(column==null){
-                        column=MutableTuple.from(new TreeMap<>());
-                        column.ensureLength(rows);
+                        column=MutableTuple.from(rows);
                         res.set(((Real.Int) e.a).num().intValueExact(),column);
                     }
                     column.ensureLength(rows);

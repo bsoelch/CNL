@@ -93,7 +93,8 @@ public class Constants {
     public static final int BRACKET_FLAG_END_WHILE_EQ =0b1011;
     public static final int BRACKET_FLAG_END_WHILE_NE =0b1101;
     public static final int BRACKET_FLAG_BREAK =0b1111;
-    //addLater? TRY,CATCH,THROW,EXIT
+    //addLater? TRY,CATCH,THROW
+    // move EXIT to brackets?
 
     //111000.[BigInt] -> Constants
     public static final int HEADER_CONSTANTS = 0b000111;
