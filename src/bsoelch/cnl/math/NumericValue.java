@@ -35,6 +35,9 @@ public abstract class NumericValue extends MathObject implements Comparable<Nume
     /**simplified approximation of this NumericValue with an error of at most precision*/
     public abstract NumericValue approx(Real precision);
 
+    public static NumericValue not(NumericValue e){
+        return e.equals(Real.Int.ZERO)?Real.Int.ONE:Real.Int.ZERO;
+    }
     public static NumericValue add(NumericValue a, NumericValue b){
         if(a instanceof Real){
             if(b instanceof Real){

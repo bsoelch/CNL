@@ -32,24 +32,44 @@ public final class LambdaExpression extends MathObject {
        return new LambdaExpression(node, bindVars);
     }
 
-    //TODO? prevent "sideways binding" like in ADD L:0_(x1) L:1_(x0) => L:0,1_(ADD x1 x0)
-    // ? standard Form
     public static MathObject from(Constants.Operators.OperatorInfo operatorInfo, MathObject[] params){
-        TreeSet<LambdaVariable> boundVars=new TreeSet<>();
+        //vars: variables that are unbound in at least one subexpression
+        TreeSet<LambdaVariable> vars=new TreeSet<>(),tmp;
+        int maxBound=0;
         for(MathObject o:params){
             if(o instanceof LambdaExpression){
-                boundVars.addAll(Arrays.asList(((LambdaExpression) o).boundVariables));
+                tmp=new TreeSet<>(o.variables());
+                tmp.removeAll(Arrays.asList(((LambdaExpression) o).boundVariables));
+                vars.addAll(tmp);
+                maxBound=Math.max(maxBound,((LambdaExpression) o).boundVariables.length);
             }
+        }
+        LambdaVariable[] bindVars=new LambdaVariable[maxBound];
+        long j=0;
+        for(int i=0;i<bindVars.length;i++){
+            do {
+                bindVars[i] = new LambdaVariable(BigInteger.valueOf(j++));
+            }while (vars.contains(bindVars[i]));
         }
         ExpressionNode[] unwrap=new ExpressionNode[params.length];
         for(int i=0;i<params.length;i++){
             if(params[i] instanceof LambdaExpression){
-                unwrap[i]=((LambdaExpression) params[i]).node;
+                if(((LambdaExpression) params[i]).boundVariables.length>0) {
+                    HashMap<LambdaVariable, LambdaVariable> replace = new HashMap<>();
+                    for (int k = 0; k < ((LambdaExpression) params[i]).boundVariables.length; k++) {
+                        if(!((LambdaExpression) params[i]).boundVariables[k].equals(bindVars[k])) {
+                            replace.put(((LambdaExpression) params[i]).boundVariables[k], bindVars[k]);
+                        }
+                    }
+                    unwrap[i] = ((LambdaExpression) params[i]).node.renameVariables(replace);
+                }else{
+                    unwrap[i]=((LambdaExpression) params[i]).node;
+                }
             }else{
                 unwrap[i]=params[i];
             }
         }
-        return from(OperatorNode.from(operatorInfo,unwrap),boundVars.toArray(new LambdaVariable[0]));
+        return from(OperatorNode.from(operatorInfo,unwrap),bindVars);
     }
 
     private LambdaExpression(ExpressionNode node, LambdaVariable[] boundVariables) {
@@ -103,10 +123,17 @@ public final class LambdaExpression extends MathObject {
         LambdaVariable[] newParams;
         if(mathObjects.length<boundVariables.length) {
             newParams = Arrays.copyOfRange(boundVariables, mathObjects.length, boundVariables.length);
+            mathObjects=new MathObject[0];
         }else{
             newParams=new LambdaVariable[0];
+            mathObjects=Arrays.copyOfRange(mathObjects, boundVariables.length, mathObjects.length);
         }
-        return from(node.evaluate(replace), newParams);
+        MathObject res=from(node.evaluate(replace), newParams);
+        if(mathObjects.length>0&&res instanceof LambdaExpression&&((LambdaExpression) res).boundVariables.length>0){
+            return ((LambdaExpression) res).evaluate(mathObjects);
+        }else {
+            return res;
+        }
     }
 
     @Override

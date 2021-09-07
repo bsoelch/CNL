@@ -502,7 +502,7 @@ public class Constants {
                 declareBinaryOperator(APPROXIMATE,MODIFY_ARG0_ROOT,
                         (a,b)-> MathObject.elementWise(a,e->e.approx(b.numericValue().realPart())), 0);
                 declareOperator(OPTIONAL, 3, false, MODIFY_ARG0_NEVER, (args)->
-                            MathObject.isTrue(args[0])?args[1]:args[2],0);//addLater? allow Lambda in slots 1 and 2
+                            MathObject.isTrue(args[0])?args[1]:args[2],OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                 //13bit Operators
                 declareBinaryOperator(POW,MODIFY_ARG0_ROOT, MathObject::pow, 0);
 
@@ -601,7 +601,7 @@ public class Constants {
                     declareBinaryOperator("SUBSTRING_TO",MODIFY_ARG0_ROOT,
                                     (a,i) -> Real.from(Real.stringAsBigInt(a.asString()
                                             .substring(0,i.numericValue().realPart().num().intValueExact()+1))), 0);
-                    declareOperator("SUBSTRING", 3, false, MODIFY_ARG0_NEVER,
+                    declareOperator("SUBSTRING", 3, false, MODIFY_ARG0_ROOT,
                             (args)->{
                                 String str = args[0].asString();
                                 try {
@@ -642,7 +642,7 @@ public class Constants {
                     declareUnaryOperator("IS_TUPLE",MODIFY_ARG0_ROOT,
                                     o-> ((o instanceof FiniteMap&&((FiniteMap) o).isTuple())?Real.Int.ONE:Real.Int.ZERO), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     declareUnaryOperator("IS_MATRIX",MODIFY_ARG0_ROOT,
-                                    o-> ((o instanceof FullMatrix ||(o instanceof FiniteMap&&((FiniteMap) o).isMatrix()))
+                                    o-> ((o instanceof Matrix ||(o instanceof FiniteMap&&((FiniteMap) o).isMatrix()))
                                             ?Real.Int.ONE:Real.Int.ZERO), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     //IS_LAMBDA
 
@@ -731,7 +731,7 @@ public class Constants {
 
                     //CONTAINS_KEY
                     declareBinaryOperator(TUPLE_CONCAT,MODIFY_ARG0_ROOT,MathObject::tupleConcat, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
-                    //TODO Set/Map/Matrix edit
+                    //TODO Set/Map edit
                     declareBinaryOperator("TUPLE_PUSH_FIRST",MODIFY_ARG0_ROOT,
                                     (l,r)->MathObject.tupleConcat(Tuple.create(new MathObject[]{l}),r), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     declareBinaryOperator("TUPLE_PUSH_LAST",MODIFY_ARG0_ROOT,
@@ -783,7 +783,7 @@ public class Constants {
                 }
                 //Nary Operations
                 {
-                    //addLater? unaryDeep...
+                    //addLater? UN(ary)_DEEP_...
                     {
                         OperatorInfo sum=declareOperator("SUM", 3, true, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.nAryReduce(args,Real.Int.ZERO,MathObject::add), 0);
@@ -1034,6 +1034,7 @@ public class Constants {
                                 }
                             });
                     //FILE_READ_STRING <path> <len> //addLater String IO
+                    //FILE_READ_LINE <path>
                     //FILE_READ_BYTES <path> <count>
                     declareBinaryEnvOperator("FILE_READ_BYTES", env -> (file, count) -> {
                                 try {
@@ -1119,6 +1120,7 @@ public class Constants {
                         }
                     });
                     //FILE_WRITE_STRING <path> <value> <len>
+                    //FILE_WRITE_NEW_LINE <path>
                     //FILE_WRITE_ALL_BITS <path> <value>
                     declareBinaryEnvOperator("FILE_WRITE_ALL_BITS", env -> (file, value) -> {
                                 try {

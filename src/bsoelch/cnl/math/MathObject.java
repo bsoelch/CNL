@@ -69,8 +69,8 @@ public abstract class MathObject implements ExpressionNode {
         return hashCode();
     }
 
-    public static MathObject not(MathObject o) {//addLater element-wise not
-        return isTrue(o)?Real.Int.ZERO:Real.Int.ONE;
+    public static MathObject not(MathObject o) {
+        return elementWise(o,NumericValue::not);
     }
 
     /**@return the boolean value of the supplied MathObject,
@@ -435,17 +435,13 @@ public abstract class MathObject implements ExpressionNode {
         if(l<Tuple.SPARSE_FACTOR*s){
             MathObject[] objects=new MathObject[l];
             if(a instanceof Tuple){
-                for(l=0;l<((Tuple) a).length();l++){
-                    objects[l]=((Tuple) a).get(l);
-                }
+                System.arraycopy(((Tuple) a).toArray(),0,objects,0,l=((Tuple) a).length());
             }else{
                 objects[0]=a;
                 l=1;
             }
             if(b instanceof Tuple){
-                for(int t=0;t<((Tuple) b).length();t++,l++){
-                    objects[l]=((Tuple) b).get(t);
-                }
+                System.arraycopy(((Tuple) b).toArray(),0,objects,l,((Tuple) b).length());
             }else{
                 objects[l]=b;
             }
@@ -960,7 +956,7 @@ public abstract class MathObject implements ExpressionNode {
                             try {
                                 parts.set(i - 1, new ValueNode(divide(l, r)));
                             }catch (ArithmeticException div0){
-                                if(safeMode){//addLater? safeDivide
+                                if(safeMode){
                                     parts.set(i - 1, new ValueNode(Real.Int.ZERO));
                                 }else{
                                     throw div0;

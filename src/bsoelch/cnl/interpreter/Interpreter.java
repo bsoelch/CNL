@@ -20,10 +20,8 @@ import static bsoelch.cnl.Constants.*;
 public class Interpreter implements Closeable {
     /**All Actions in Stack are Operators*/
     final static int FLAG_OPERATOR_CHAIN =1;
-    /**All Actions in Stack only need one Argument*/
-    final static int FLAG_SINGLE_ARG_CHAIN =2;
     /**All Actions in Stack are Var declarations*/
-    final static int FLAG_VAR_DECLARATION_CHAIN =4|FLAG_SINGLE_ARG_CHAIN;
+    final static int FLAG_VAR_DECLARATION_CHAIN =4;
     final static int FLAG_ROOT =-1;
 
 
@@ -684,9 +682,8 @@ public class Interpreter implements Closeable {
                     flags&=FLAG_VAR_DECLARATION_CHAIN;
                     if(flags==0)
                         return 0;
-                }else if(a instanceof Operator||a instanceof Output){
-                    flags&=((a instanceof Operator&&((Operator) a).args.length>1)?0:FLAG_SINGLE_ARG_CHAIN)
-                            |FLAG_OPERATOR_CHAIN;
+                }else if(a instanceof Operator){
+                    flags&=(((Operator) a).operatorInfo.storeMode==Operators.MODIFY_ARG0_NEVER) ? 0: FLAG_OPERATOR_CHAIN;
                     if(flags==0)
                         return 0;
                 }else{

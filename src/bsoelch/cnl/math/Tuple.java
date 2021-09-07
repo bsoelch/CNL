@@ -2,6 +2,7 @@ package bsoelch.cnl.math;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.Map;
@@ -12,6 +13,17 @@ import java.util.function.Function;
 public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
     /**value of length/size above which SparseTuple are used*/
     static final long SPARSE_FACTOR=3;
+    private static final Iterator<Pair> EMPTY_ITERATOR = new Iterator<Pair>() {
+        @Override
+        public boolean hasNext() {
+            return false;
+        }
+
+        @Override
+        public Pair next() {
+            return null;
+        }
+    };
 
     Tuple(){}//package private constructor
     public static Tuple EMPTY_MAP=new Tuple() {
@@ -23,6 +35,17 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
         public int length() {
             return 0;
         }
+
+        @Override
+        public MathObject[] toArray() {
+            return new MathObject[0];
+        }
+        @Override
+        @SuppressWarnings("unchecked")
+        public <T extends MathObject> T[] toArray(Class<T[]> cls) {
+            return (T[])new MathObject[0];
+        }
+
         @Override
         public MathObject get(int i) {
             return Real.Int.ZERO;
@@ -113,16 +136,18 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
     public abstract int size();
     public abstract int length();
     public abstract MathObject get(int i);
+    public abstract MathObject[] toArray();
+    public abstract <T extends MathObject> T[] toArray(Class<T[]> cls);
 
-    @Override
-    public Iterator<Pair> mapIterator() {
+    /**Iterator of the subsection from start (included) to end (excluded)*/
+    private Iterator<Pair> rangeIterator(int start,int end){
         return new Iterator<Pair>() {
-            int i=0;
+            int i=start;
             Pair nextEntry=nextEntry();
 
             private Pair nextEntry() {
                 nextEntry=null;
-                while (nextEntry==null&&i<length()) {
+                while (nextEntry==null&&i<end) {
                     Pair p = new Pair(Real.from(i), get(i++));
                     if(!p.b.equals(Real.Int.ZERO)){
                         nextEntry=p;
@@ -143,6 +168,64 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
             }
         };
     }
+    @Override
+    public Iterator<Pair> mapIterator() {
+        return rangeIterator(0,length());
+    }
+    @Override
+    public Iterator<Pair> tailIterator(MathObject slice, boolean inclusive) {
+        int c=MathObject.compare(Real.Int.ZERO,slice);
+        if(c<0)
+            return rangeIterator(0,length());
+        else if(c==0)
+            return rangeIterator(inclusive?0:1,length());
+        c=MathObject.compare(Real.from(length()-1),slice);
+        if(c>0)
+            return EMPTY_ITERATOR;
+        else if(c==0)
+            return rangeIterator(0,inclusive?length():length()-1);
+        int l=0,r=length(),m=(l+r)/2;
+        do {
+            c = MathObject.compare(Real.from(m), slice);
+            if (c == 0) {
+                return rangeIterator(inclusive?m:m+1,length());
+            }else if(c<0){
+                r=m;
+            }else{
+                l=m;
+            }
+            m=(l+r)/2;
+        }while (l-r>1);
+        return rangeIterator(r,length());
+    }
+    @Override
+    public Iterator<Pair> headIterator(MathObject slice, boolean inclusive) {
+        int c=MathObject.compare(Real.Int.ZERO,slice);
+        if(c<0)
+            return EMPTY_ITERATOR;
+        else if(c==0)
+            return rangeIterator(inclusive?0:1,1);
+        c=MathObject.compare(Real.from(length()-1),slice);
+        if(c>0)
+            return rangeIterator(0,length());
+        else if(c==0)
+            return rangeIterator(0,inclusive?length():(length()-1));
+
+        int l=0,r=length(),m=(l+r)/2;
+        do {
+            c = MathObject.compare(Real.from(m), slice);
+            if (c == 0) {
+                return rangeIterator(0,inclusive?m+1:m);
+            }else if(c<0){
+                r=m;
+            }else{
+                l=m;
+            }
+            m=(l+r)/2;
+        }while (l-r>1);
+        return rangeIterator(0,r);
+    }
+
     @Override
     public @NotNull Iterator<MathObject> iterator() {
         return new Iterator<MathObject>() {
@@ -256,10 +339,8 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
             return evaluateAt(Real.Int.ZERO).numericValue();
         }
 
-        @Override
-        public Iterator<Pair> mapIterator() {
-                return new Iterator<Pair>() {
-                final Iterator<Pair> mapItr=map.mapIterator();
+        private Iterator<Pair> withTailElement(Iterator<Pair> mapItr){
+            return new Iterator<Pair>() {
                 final Real.Int last=Real.from(length.subtract(BigInteger.ONE));
                 boolean hasLast=true;
                 @Override
@@ -283,13 +364,38 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
                 }
             };
         }
+        @Override
+        public Iterator<Pair> mapIterator() {
+                return withTailElement(map.mapIterator());
+        }
+        @Override
+        public Iterator<Pair> headIterator(MathObject slice, boolean inclusive) {
+            int c=MathObject.compare(slice,Real.from(length.subtract(BigInteger.ONE)));
+            if(c<0){
+                return map.headIterator(slice, inclusive);
+            }else if(c==0&&inclusive){
+                return mapIterator();
+            }else{
+                //no elements in slice
+                return EMPTY_ITERATOR;
+            }
+        }
+        @Override
+        public Iterator<Pair> tailIterator(MathObject slice, boolean inclusive) {
+            int c=MathObject.compare(slice,Real.from(length.subtract(BigInteger.ONE)));
+            if(c<0||(inclusive&&c==0)){
+                return withTailElement(map.tailIterator(slice, inclusive));
+            }else{
+                //no elements in slice
+                return EMPTY_ITERATOR;
+            }
+        }
 
         @Override
         public @NotNull Iterator<MathObject> sparseIterator() {
             return map.valueIterator();
         }
 
-        //addLater? BigIntSize/keys
         @Override
         public int length() {
             return length.intValue();
@@ -303,6 +409,26 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
         @Override
         public MathObject get(int i) {
             return evaluateAt(Real.from(i));
+        }
+
+        @Override
+        public MathObject[] toArray() {
+            MathObject[] ret=new MathObject[length.intValueExact()];
+            fillArray(ret);
+            return ret;
+        }
+        @Override
+        public <T extends MathObject> T[] toArray(Class<T[]> cls) {
+            @SuppressWarnings("unchecked")
+            T[] ret= (T[]) Array.newInstance(cls.getComponentType(),length.intValueExact());
+            fillArray(ret);
+            return ret;
+        }
+        private void fillArray(MathObject[] ret) {
+            for (Iterator<Pair> it = map.mapIterator(); it.hasNext(); ) {
+                Pair e = it.next();
+                ret[((Real.Int)e.a).num().intValueExact()]=e.b;
+            }
         }
 
         @Override

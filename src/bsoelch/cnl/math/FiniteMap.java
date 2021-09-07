@@ -202,12 +202,9 @@ public abstract class FiniteMap extends MathObject {
         return FiniteSet.from(pairs);
     }
 
-    /**Iterator over the key-value pairs (with non-zero value) in this map*/
-    public Iterator<Pair> mapIterator(){
+    private Iterator<Pair> wrapItr(Iterator<MathObject> keyItr){
         return new Iterator<Pair>() {
-            final Iterator<MathObject> keyItr=domain().iterator();
             Pair nextEntry=nextEntry();
-
             private Pair nextEntry() {
                 nextEntry=null;
                 while (nextEntry==null&&keyItr.hasNext()) {
@@ -232,6 +229,16 @@ public abstract class FiniteMap extends MathObject {
                 return ret;
             }
         };
+    }
+    /**Iterator over the key-value pairs (with non-zero value) in this map*/
+    public Iterator<Pair> mapIterator(){
+        return wrapItr(domain().iterator());
+    }
+    public Iterator<Pair> tailIterator(MathObject slice, boolean inclusive) {
+        return wrapItr(domain().tailIterator(slice,inclusive));
+    }
+    public Iterator<Pair> headIterator(MathObject slice, boolean inclusive) {
+        return wrapItr(domain().headIterator(slice,inclusive));
     }
     /**Iterator over the non-zero values in this map*/
     public Iterator<MathObject> valueIterator(){
@@ -271,6 +278,7 @@ public abstract class FiniteMap extends MathObject {
     public abstract boolean isMatrix();
     /**true is this Map is a (sparse) Tuple and all Values are NumericValues*/
     public abstract boolean isNumericTuple();
+
     /**true is this Map is a (sparse) Tuple
      * i.e all Keys are non-negative integers*/
     public abstract boolean isTuple();

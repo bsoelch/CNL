@@ -41,6 +41,16 @@ final class NTuple extends Tuple{
     }
 
     @Override
+    public MathObject[] toArray() {
+        return Arrays.copyOf(objects,objects.length);
+    }
+
+    @Override
+    public <T extends MathObject> T[] toArray(Class<T[]> cls) {
+        return Arrays.copyOf(objects,objects.length,cls);
+    }
+
+    @Override
     public Tuple forEach(Function<MathObject, MathObject> f) {
         MathObject[] newObjects=new MathObject[objects.length];
         for(int i=0;i<objects.length;i++)

@@ -12,4 +12,4 @@ Intentional behaviour that may seem weird:
 <li> matrices and tuples are handled as special cases of maps </li>
 <li> entries of value 0 in maps are interpreted as empty and therefore ignored
 (except for the last entry in a tuple, which is saved to allow the usage of tuples as stacks) </li>
-
+<li>matrix multiplication automatically extends to smaller matrix with zeros to allow calculation </li>

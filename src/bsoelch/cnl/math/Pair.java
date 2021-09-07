@@ -1,5 +1,6 @@
 package bsoelch.cnl.math;
 
+import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.util.Objects;
 import java.util.TreeSet;
@@ -65,6 +66,19 @@ public final class Pair extends Tuple{
         if(i==1)
             return this.b;
         return Real.Int.ZERO;
+    }
+
+    @Override
+    public MathObject[] toArray() {
+        return new MathObject[]{a,b};
+    }
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T extends MathObject> T[] toArray(Class<T[]> cls) {
+        T[] ret= (T[])Array.newInstance(cls.getComponentType(),2);
+        ret[0]=(T)a;
+        ret[1]=(T)b;
+        return ret;
     }
 
     @Override

@@ -2,6 +2,7 @@ package bsoelch.cnl;
 
 import bsoelch.cnl.interpreter.*;
 import bsoelch.cnl.math.MathObject;
+import bsoelch.cnl.math.Real;
 import bsoelch.cnl.math.Tuple;
 import org.jetbrains.annotations.NotNull;
 
@@ -189,9 +190,10 @@ public class Main {
                     }else {
                         MathObject value = MathObject.FromString.fromString(argString.toString(), Constants.DEFAULT_BASE);
                         if (value instanceof Tuple) {
-                            programArgs = new MathObject[((Tuple) value).length()];
-                            for(int p=0;p<((Tuple) value).length();p++){
-                                programArgs[p]=((Tuple) value).get(p);
+                            programArgs = ((Tuple) value).toArray();
+                            for(int j=0;j< programArgs.length;j++){
+                                if(programArgs[j]==null)
+                                    programArgs[j]= Real.Int.ZERO;
                             }
                         } else {
                             programArgs = new MathObject[]{value};

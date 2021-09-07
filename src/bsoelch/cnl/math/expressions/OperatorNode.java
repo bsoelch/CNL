@@ -249,6 +249,27 @@ public class OperatorNode implements ExpressionNode{
         return operator.id==that.operator.id&&Arrays.equals(params, that.params);
     }
 
+    /**helper class for commutative equals:
+     * wraps the logic for comparing node in relation to their parentVars for usage in HashMap*/
+    static private class NodeWithVars{
+        final ExpressionNode node;
+        final Map<LambdaVariable,Integer> parentVars;
+        private NodeWithVars(ExpressionNode node, Map<LambdaVariable, Integer> parentVars) {
+            this.node = node;
+            this.parentVars = parentVars;
+        }
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof NodeWithVars)) return false;
+            NodeWithVars that = (NodeWithVars) o;
+            return node.equals(parentVars,that.node,that.parentVars);
+        }
+        @Override
+        public int hashCode() {
+            return node.hashCode(parentVars);
+        }
+    }
     @Override
     public boolean equals(Map<LambdaVariable,Integer> parentVars, ExpressionNode other, Map<LambdaVariable,Integer> otherVars) {
         if (this == other) return true;
@@ -258,12 +279,36 @@ public class OperatorNode implements ExpressionNode{
             return false;
         if(params.length!=that.params.length)
             return false;
-        //TODO? handle commutative operators
-        for(int i=0;i<params.length;i++){
-            if(!params[i].equals(parentVars,that.params[i],otherVars))
-                return false;
+        NAryInfo info= nAryInfo(operator);
+        if(info!=null&&info.isCommutative){//compare commutative operators independent of order
+            HashMap<NodeWithVars,Integer> delta=new HashMap<>();
+            for (int i = 0; i < params.length; i++) {
+                if (!params[i].equals(parentVars, that.params[i], otherVars)) {//ignore equal elements with same position
+                    NodeWithVars key = new NodeWithVars(params[i], parentVars);
+                    Integer t = delta.get(key);
+                    t = t == null ? 1 : t + 1;
+                    if (t != 0) {
+                        delta.put(key, t);
+                    } else {
+                        delta.remove(key);
+                    }
+                    key = new NodeWithVars(that.params[i], otherVars);
+                    t = delta.get(key);
+                    t = t == null ? -1 : t - 1;
+                    if (t != 0) {
+                        delta.put(key, t);
+                    } else {
+                        delta.remove(key);
+                    }
+                }
+            }
+            return delta.isEmpty();
+        }else {
+            for (int i = 0; i < params.length; i++) {
+                if (!params[i].equals(parentVars, that.params[i], otherVars))
+                    return false;
+            }
         }
-
         return true;
     }
     @Override

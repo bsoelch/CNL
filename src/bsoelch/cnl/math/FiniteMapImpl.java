@@ -31,10 +31,8 @@ public final class FiniteMapImpl extends FiniteMap {
         return FiniteSet.from(new HashSet<>(map.values()));
     }
 
-    @Override
-    public Iterator<Pair> mapIterator() {
+    private Iterator<Pair> wrapIterator(Iterator<Map.Entry<MathObject, MathObject>> mapItr){
         return new Iterator<Pair>() {
-            final Iterator<Map.Entry<MathObject, MathObject>> mapItr=map.entrySet().iterator();
             Pair nextEntry=nextEntry();
             private Pair nextEntry() {
                 nextEntry=null;
@@ -60,6 +58,18 @@ public final class FiniteMapImpl extends FiniteMap {
                 return ret;
             }
         };
+    }
+    @Override
+    public Iterator<Pair> mapIterator() {
+        return wrapIterator(map.entrySet().iterator());
+    }
+    @Override
+    public Iterator<Pair> headIterator(MathObject slice,boolean inclusive) {
+        return wrapIterator(map.headMap(slice,inclusive).entrySet().iterator());
+    }
+    @Override
+    public Iterator<Pair> tailIterator(MathObject slice,boolean inclusive) {
+        return wrapIterator(map.tailMap(slice,inclusive).entrySet().iterator());
     }
 
     @Override

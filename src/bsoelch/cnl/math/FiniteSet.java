@@ -130,6 +130,14 @@ public final class FiniteSet extends MathObject implements Iterable<MathObject>{
     public Iterator<MathObject> iterator() {
         return contents.iterator();
     }
+    @NotNull
+    public Iterator<MathObject> tailIterator(MathObject slice,boolean inclusive) {
+        return contents.tailSet(slice,inclusive).iterator();
+    }
+    @NotNull
+    public Iterator<MathObject> headIterator(MathObject slice,boolean inclusive) {
+        return contents.headSet(slice,inclusive).iterator();
+    }
 
     public int size() {
         return contents.size();
@@ -153,10 +161,7 @@ public final class FiniteSet extends MathObject implements Iterable<MathObject>{
                     prev=new TreeSet<>(MathObject::compare);
                 }
                 if(((Tuple) e).length()>2) {
-                    MathObject[] subTuple = new MathObject[((Tuple) e).length() - 1];
-                    for (int i = 0; i < subTuple.length; i++) {
-                        subTuple[i] = ((Tuple) e).get(i + 1);
-                    }
+                    MathObject[] subTuple =Arrays.copyOfRange(((Tuple) e).toArray(),1,((Tuple) e).length());
                     prev.add(Tuple.create(subTuple));
                 }else{
                     prev.add(((Tuple) e).get(1));
