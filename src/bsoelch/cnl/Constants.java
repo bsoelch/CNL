@@ -191,8 +191,8 @@ public class Constants {
 
     public static final int OUT_NUMBER_BLOCK_LENGTH=5;
     public static final int OUT_FLAG_FRACTION=0;
-    public static final int OUT_FLAG_FIXED_POINT=1;
-    public static final int OUT_FLAG_FLOAT=2;
+    public static final int OUT_FLAG_FIXED_POINT_APPROX =1;
+    public static final int OUT_FLAG_FLOAT_APPROX =2;
     public static final int OUT_FLAG_FIXED_POINT_EXACT=3;
     public static final int OUT_FLAG_FLOAT_EXACT=4;
     public static final int OUT_BASE_FLAG_DEC=0;
@@ -726,32 +726,37 @@ public class Constants {
                     declareBinaryOperator(SYM_DIFF,MODIFY_ARG0_ROOT, MathObject::symmetricDifference, 0);
                     declareBinaryOperator(DIFF,MODIFY_ARG0_ROOT, MathObject::difference, 0);
                     declareBinaryOperator(TIMES,MODIFY_ARG0_ROOT, MathObject::times, 0);
-                    //CONTAINS (Value)
-                    //SET_INSERT
-                    //SET_REMOVE
 
-                    //CONTAINS_KEY
+                    declareUnaryOperator("GET_FIRST",MODIFY_ARG0_ROOT, o->MathObject.firstOrLast(o,true, false), 0);
+                    declareUnaryOperator("GET_LAST",MODIFY_ARG0_ROOT, o->MathObject.firstOrLast(o,false, false), 0);
+                    declareUnaryOperator("FIRST_KEY",MODIFY_ARG0_ROOT, o->MathObject.firstOrLast(o,true, true), 0);
+                    declareUnaryOperator("LAST_KEY",MODIFY_ARG0_ROOT, o->MathObject.firstOrLast(o,false, true), 0);
+                    declareUnaryOperator("DOMAIN",MODIFY_ARG0_ROOT, o->MathObject.domainOrRange(o,true), 0);
+                    declareUnaryOperator("RANGE",MODIFY_ARG0_ROOT, o->MathObject.domainOrRange(o,false), 0);
+                    declareBinaryOperator("GET_ELEMENT",MODIFY_ARG0_ROOT, MathObject::getElement, 0);//TODO? allow Lambda in 2nd slot
+                    declareBinaryOperator("INSERT",MODIFY_ARG0_ROOT, MathObject::insert, 0);//? allow Lambda in 2nd slot
+                    //INSERT_ALL
+                    declareOperator("PUT",3,false,MODIFY_ARG0_ROOT,
+                            (args)->MathObject.put(args[0],args[1],args[2]), 0);//? allow Lambda in 2nd/3rd slot
+                    //PUT_ALL
                     declareBinaryOperator(TUPLE_CONCAT,MODIFY_ARG0_ROOT,MathObject::tupleConcat, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     //TODO Set/Map edit
                     declareBinaryOperator("TUPLE_PUSH_FIRST",MODIFY_ARG0_ROOT,
                                     (l,r)->MathObject.tupleConcat(Tuple.create(new MathObject[]{l}),r), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     declareBinaryOperator("TUPLE_PUSH_LAST",MODIFY_ARG0_ROOT,
                                     (l,r)->MathObject.tupleConcat(l,Tuple.create(new MathObject[]{r})), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
-                    //MAP_PUT
                     //TUPLE_INSERT <index>
-                    //MAP_GET_FIRST
-                    //MAP_GET_LAST
-                    //MAP_GET
-                    declareBinaryOperator("MAP_GET",MODIFY_ARG0_ROOT,(m,k)->MathObject.asMap(k).evaluateAt(k), 0);
+
                     //MAP_RANGE_ABOVE
                     //MAP_RANGE_BELOW
                     //MAP_RANGE
-                    //MAP_POP_FIRST
-                    //MAP_POP_LAST
+
+                    //REMOVE_FIRST
+                    //REMOVE_LAST
                     //TUPLE_REMOVE <index>
-                    //MAP_REMOVE_ALL
-                    //MAP_REMOVE_VALUE
-                    //MAP_REMOVE_ALL_VALUE
+
+                    //REMOVE
+                    //REMOVE_ALL
                 }
                 //Matrix Operations
                 {

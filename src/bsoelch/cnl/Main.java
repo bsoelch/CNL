@@ -284,6 +284,13 @@ public class Main {
                         source=main;
                         main=main+".cnls";
                     }
+                }else if(main==null){
+                    int lastDot=source.lastIndexOf(".");
+                    if(lastDot>0&&lastDot>source.lastIndexOf(File.separatorChar)){
+                        main=source.substring(0,lastDot)+".cnls";
+                    }else{
+                        main=source+".cnls";
+                    }
                 }
                 try (Reader read=new InputStreamReader(new FileInputStream(fileFromPath(source)),StandardCharsets.UTF_8)){
                     compile(read, fileFromPath(main));

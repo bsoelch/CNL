@@ -224,7 +224,7 @@ public abstract class Real extends NumericValue {
     public static double approxLog2(BigInteger value){
         int len=value.bitLength();
         if(len>0&&len<500){
-            return Math.round(Math.log(value.doubleValue())/Constants.LOG2_DOUBLE);
+            return Math.log(value.doubleValue())/Constants.LOG2_DOUBLE;
         }
         return len;
     }
@@ -403,7 +403,7 @@ public abstract class Real extends NumericValue {
 
         @Override
         public double approxLog2() {
-            return approxLog2(a)/approxLog2(b);
+            return approxLog2(a) - approxLog2(b);
         }
 
         @Override
