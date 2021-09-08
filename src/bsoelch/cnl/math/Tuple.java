@@ -4,10 +4,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Array;
 import java.math.BigInteger;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.function.Function;
 
 public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
@@ -70,6 +67,16 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
         public MathObject evaluateAt(MathObject a) {
             return Real.Int.ZERO;
         }
+
+        @Override
+        public MathObject insert(MathObject value) {
+            return Tuple.create(new MathObject[]{value});
+        }
+        @Override
+        public MathObject put(MathObject key, MathObject value) {
+            return FiniteMap.from(Collections.singletonMap(key, value));
+        }
+
         @Override
         public NumericValue numericValue() {
             return Real.Int.ZERO;
@@ -138,6 +145,11 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
     public abstract MathObject get(int i);
     public abstract MathObject[] toArray();
     public abstract <T extends MathObject> T[] toArray(Class<T[]> cls);
+
+    @Override
+    public MathObject insert(MathObject value) {
+        return MathObject.tupleConcat(this,create(new MathObject[]{value}));
+    }
 
     /**Iterator of the subsection from start (included) to end (excluded)*/
     private Iterator<Pair> rangeIterator(int start,int end){
@@ -294,6 +306,22 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
         return true;
     }
 
+    @Override
+    public MathObject firstKey() {
+        return Real.Int.ZERO;
+    }
+    @Override
+    public MathObject firstValue() {
+        return get(0);
+    }
+    @Override
+    public MathObject lastKey() {
+        return Real.from(length()-1);
+    }
+    @Override
+    public MathObject lastValue() {
+        return get(length()-1);
+    }
 
     /**wrapper class that wraps a FiniteMap (which is assumed to be a SparseTuple) in the Tuple interface*/
     public static final class SparseTuple extends Tuple{
@@ -332,6 +360,11 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
         @Override
         public MathObject evaluateAt(MathObject a) {
             return map.evaluateAt(a);
+        }
+
+        @Override
+        public MathObject put(MathObject key, MathObject value) {
+            return map.put(key, value);
         }
 
         @Override

@@ -473,6 +473,102 @@ public abstract class MathObject implements ExpressionNode {
         }
     }
 
+    /**gets the first or last element of a given MathObject*/
+    public static MathObject firstOrLast(MathObject source, boolean first, boolean getKey){
+        if(source instanceof LambdaExpression)
+            source=source.asMathObject();
+        //no else
+        if(source instanceof Matrix)
+            source=((Matrix) source).asMap();
+        //no else
+        if(source instanceof NumericValue){
+            return source;
+        }else if(source instanceof FiniteSet){
+            return first?((FiniteSet) source).getFirst():((FiniteSet) source).getLast();
+        }else if(source instanceof FiniteMap){
+            return getKey?(first?((FiniteMap) source).firstKey():((FiniteMap) source).lastKey()):
+                    (first?((FiniteMap) source).firstValue():((FiniteMap) source).lastValue());
+        }else{
+            throw new IllegalArgumentException("Unexpected MathObject:"+source.getClass());
+        }
+    }
+    /**gets the domain or range element of a given MathObject*/
+    public static MathObject domainOrRange(MathObject source, boolean domain){
+        if(source instanceof LambdaExpression)
+            source=source.asMathObject();
+        //no else
+        if(source instanceof Matrix)
+            source=((Matrix) source).asMap();
+        //no else
+        if(source instanceof NumericValue){
+            return FiniteSet.from(domain?source:Real.Int.ONE);
+        }else if(source instanceof FiniteSet){
+            return domain?source:FiniteSet.from(Real.Int.ONE);
+        }else if(source instanceof FiniteMap){
+            return domain?((FiniteMap) source).domain():((FiniteMap) source).values();
+        }else{
+            throw new IllegalArgumentException("Unexpected MathObject:"+source.getClass());
+        }
+    }
+    /**gets the element in source at the given key*/
+    public static MathObject getElement(MathObject source,MathObject key){
+        if(source instanceof LambdaExpression)
+            source=source.asMathObject();
+        //no else
+        if(source instanceof Matrix)
+            source=((Matrix) source).asMap();
+        //no else
+        if(source instanceof NumericValue){
+            return source.equals(key)?Real.Int.ONE:Real.Int.ZERO;
+        }else if(source instanceof FiniteSet){
+            return ((FiniteSet) source).contains(key)?Real.Int.ONE:Real.Int.ZERO;
+        }else if(source instanceof FiniteMap){
+            return ((FiniteMap) source).evaluateAt(key);
+        }else{
+            throw new IllegalArgumentException("Unexpected MathObject:"+source.getClass());
+        }
+    }
+    /**inserts an element in the given MathObject */
+    public static MathObject insert(MathObject source,MathObject value){
+        if(source instanceof LambdaExpression)
+            source=source.asMathObject();
+        //no else
+        if(source instanceof Matrix)
+            source=((Matrix) source).asMap();
+        //no else
+        if(source instanceof NumericValue){
+            return FiniteSet.from(source,value);
+        }else if(source instanceof FiniteSet){
+            return unite(source,FiniteSet.from(value));
+        }else if(source instanceof Tuple){
+            return tupleConcat(source,Tuple.create(new MathObject[]{value}));
+        }else if(source instanceof FiniteMap){
+            return ((FiniteMap) source).insert(value);
+        }else{
+            throw new IllegalArgumentException("Unexpected MathObject:"+source.getClass());
+        }
+    }
+    /**inserts an element in the given MathObject at the specified position */
+    public static MathObject put(MathObject source,MathObject key,MathObject value){
+        if(source instanceof LambdaExpression)
+            source=source.asMathObject();
+        //no else
+        if(source instanceof Matrix)
+            source=((Matrix) source).asMap();
+        //no else
+        if(source instanceof NumericValue){
+            return asMap(source).put(key, value);
+        }else if(source instanceof FiniteSet){
+            return ((FiniteSet) source).asMap().put(key, value);
+        }else if(source instanceof Tuple){
+            return ((Tuple) source).put(key, value);
+        }else if(source instanceof FiniteMap){
+            return ((FiniteMap) source).put(key, value);
+        }else{
+            throw new IllegalArgumentException("Unexpected MathObject:"+source.getClass());
+        }
+    }
+
 
     public static int compare(MathObject a, MathObject b){
         if(a instanceof LambdaExpression){

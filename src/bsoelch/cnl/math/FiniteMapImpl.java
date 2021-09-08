@@ -31,6 +31,23 @@ public final class FiniteMapImpl extends FiniteMap {
         return FiniteSet.from(new HashSet<>(map.values()));
     }
 
+    @Override
+    public MathObject firstKey() {
+        return map.firstKey();
+    }
+    @Override
+    public MathObject firstValue() {
+        return map.firstEntry().getValue();
+    }
+    @Override
+    public MathObject lastKey() {
+        return map.lastKey();
+    }
+    @Override
+    public MathObject lastValue() {
+        return map.lastEntry().getValue();
+    }
+
     private Iterator<Pair> wrapIterator(Iterator<Map.Entry<MathObject, MathObject>> mapItr){
         return new Iterator<Pair>() {
             Pair nextEntry=nextEntry();
@@ -113,6 +130,29 @@ public final class FiniteMapImpl extends FiniteMap {
     public MathObject evaluateAt(MathObject a) {
         MathObject o=map.get(a);
         return o==null?Real.Int.ZERO:o;
+    }
+
+    @Override
+    public MathObject insert(MathObject value) {
+        TreeMap<MathObject,MathObject> newMap=new TreeMap<>(MathObject::compare);
+        NumericValue maxKey=null;
+        for(Map.Entry<MathObject, MathObject> e:map.entrySet()){
+            if(maxKey==null){
+                maxKey=e.getKey().numericValue();
+            }else{
+                maxKey=NumericValue.max(maxKey,e.getKey().numericValue());
+            }
+            newMap.put(e.getKey(),e.getValue());
+        }
+        newMap.put(NumericValue.add(maxKey,Real.Int.ONE),value);
+        return FiniteMap.from(newMap);
+    }
+    @Override
+    public MathObject put(MathObject key, MathObject value) {
+        TreeMap<MathObject,MathObject> newMap=new TreeMap<>(MathObject::compare);
+        newMap.putAll(map);
+        newMap.put(key, value);
+        return FiniteMap.from(newMap);
     }
 
     @Override

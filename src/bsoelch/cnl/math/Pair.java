@@ -3,6 +3,7 @@ package bsoelch.cnl.math;
 import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Function;
 
@@ -66,6 +67,22 @@ public final class Pair extends Tuple{
         if(i==1)
             return this.b;
         return Real.Int.ZERO;
+    }
+    @Override
+    public MathObject insert(MathObject value) {
+        MathObject[] newValues= new MathObject[3];
+        newValues[0]=a;
+        newValues[1]=b;
+        newValues[2]=value;
+        return Tuple.create(newValues);
+    }
+    @Override
+    public MathObject put(MathObject key, MathObject value) {
+        TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
+        map.put(Real.Int.ZERO,a);
+        map.put(Real.Int.ONE,b);
+        map.put(key,value);
+        return FiniteMap.from(map);
     }
 
     @Override

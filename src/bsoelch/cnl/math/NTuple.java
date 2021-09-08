@@ -4,6 +4,7 @@ package bsoelch.cnl.math;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Function;
 
@@ -38,6 +39,24 @@ final class NTuple extends Tuple{
         if(i<0||i>=objects.length)
             return Real.Int.ZERO;
         return objects[i];
+    }
+
+    @Override
+    public MathObject insert(MathObject value) {
+        MathObject[] newValues=Arrays.copyOf(objects,objects.length+1);
+        newValues[objects.length]=value;
+        return Tuple.create(newValues);
+    }
+    @Override
+    public MathObject put(MathObject key, MathObject value) {
+        TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
+        for(int i=0;i<objects.length;i++){
+            if(objects[i]!=null&&!objects[i].equals(Real.Int.ZERO)){
+                map.put(Real.from(i),objects[i]);
+            }
+        }
+        map.put(key,value);
+        return FiniteMap.from(map);
     }
 
     @Override

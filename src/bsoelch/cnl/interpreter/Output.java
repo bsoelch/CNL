@@ -24,8 +24,8 @@ class Output implements Action {
         this.type=type;
         if(isNumber){
             switch (type){
-                case OUT_FLAG_FIXED_POINT:
-                case OUT_FLAG_FLOAT:break;
+                case OUT_FLAG_FIXED_POINT_APPROX:
+                case OUT_FLAG_FLOAT_APPROX:break;
                 default:precision=Real.Int.ZERO;
             }
         }
@@ -59,7 +59,7 @@ class Output implements Action {
                     return value;
                 }
                 case OUT_FLAG_FIXED_POINT_EXACT:
-                case OUT_FLAG_FIXED_POINT:{//fixed Point
+                case OUT_FLAG_FIXED_POINT_APPROX:{//fixed Point
                     System.out.print(value.getValue()
                             .toStringFixedPoint(base, precision, useSmallBase));
                     if(newLine)
@@ -67,7 +67,7 @@ class Output implements Action {
                     return value;
                 }
                 case OUT_FLAG_FLOAT_EXACT:
-                case OUT_FLAG_FLOAT:{//floating Point
+                case OUT_FLAG_FLOAT_APPROX:{//floating Point
                     System.out.print(value.getValue()
                             .toStringFloat(base, precision, useSmallBase));
                     if(newLine)
@@ -134,8 +134,8 @@ class Output implements Action {
             }
             switch (type){
                 case OUT_FLAG_FRACTION:return ret;
-                case OUT_FLAG_FIXED_POINT:return ret+"_FIXED_APPROX";
-                case OUT_FLAG_FLOAT:return ret+"_FLOAT_APPROX";
+                case OUT_FLAG_FIXED_POINT_APPROX:return ret+"_FIXED_APPROX";
+                case OUT_FLAG_FLOAT_APPROX:return ret+"_FLOAT_APPROX";
                 case OUT_FLAG_FIXED_POINT_EXACT:return ret+"_FIXED";
                 case OUT_FLAG_FLOAT_EXACT:return ret+"_FLOAT";
                 default:throw new IllegalArgumentException("Illegal output-Flag:"+type);

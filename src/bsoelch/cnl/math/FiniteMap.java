@@ -23,8 +23,9 @@ public abstract class FiniteMap extends MathObject {
             }
         }
         //remove zero-entries as all nonexistent entries are mapped to 0 by default
-        map.entrySet().removeIf(e->e.getValue().equals(Real.Int.ZERO));
-        if(map.isEmpty()){
+        boolean removed=map.entrySet().removeIf(e->e.getValue().equals(Real.Int.ZERO));
+        //noinspection ConstantConditions (isTuple can be false if elements were removed)
+        if(map.isEmpty()&&!(removed&& isTuple)){
             return Tuple.EMPTY_MAP;
         }else{
             if(isTuple){//tuple detection
@@ -93,6 +94,38 @@ public abstract class FiniteMap extends MathObject {
             public FiniteSet values() {
                 return FiniteSet.from(value);
             }
+
+            @Override
+            public MathObject firstKey() {
+                return keys.getFirst();
+            }
+            @Override
+            public MathObject firstValue() {
+                return value;
+            }
+            @Override
+            public MathObject lastKey() {
+                return keys.getLast();
+            }
+            @Override
+            public MathObject lastValue() {
+                return value;
+            }
+
+            @Override
+            public MathObject insert(MathObject newKey) {
+                return constantMap(FiniteSet.unite(keys,FiniteSet.from(newKey)),value);
+            }
+            @Override
+            public MathObject put(MathObject key, MathObject newValue) {
+                TreeMap<MathObject,MathObject> newMap=new TreeMap<>(MathObject::compare);
+                for(MathObject o:keys){
+                    newMap.put(o,value);
+                }
+                newMap.put(key, newValue);
+                return FiniteMap.from(newMap);
+            }
+
             @Override
             public MathObject evaluateAt(MathObject a) {
                 if(keys.contains(a))
@@ -193,6 +226,11 @@ public abstract class FiniteMap extends MathObject {
 
     public abstract FiniteSet values();
 
+    public abstract MathObject firstKey();
+    public abstract MathObject firstValue();
+    public abstract MathObject lastKey();
+    public abstract MathObject lastValue();
+
     public FiniteSet asSet() {
         TreeSet<MathObject> pairs=new TreeSet<>(MathObject::compare);
         for (Iterator<Pair> it = mapIterator(); it.hasNext(); ) {
@@ -284,5 +322,8 @@ public abstract class FiniteMap extends MathObject {
     public abstract boolean isTuple();
 
     public abstract MathObject evaluateAt(MathObject a);
+
+    public abstract MathObject insert(MathObject value);
+    public abstract MathObject put(MathObject key,MathObject value);
 
 }

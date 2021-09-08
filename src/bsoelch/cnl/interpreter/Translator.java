@@ -515,10 +515,10 @@ public class Translator {
                         type=OUT_FLAG_FLOAT_EXACT;
                     }break;
                     case "_FIXED_APPROX":{
-                        type=OUT_FLAG_FIXED_POINT;
+                        type= OUT_FLAG_FIXED_POINT_APPROX;
                     }break;
                     case "_FLOAT_APPROX":{
-                        type=OUT_FLAG_FLOAT;
+                        type= OUT_FLAG_FLOAT_APPROX;
                     }break;
                     default:
                         throw new IllegalArgumentException("Unexpected NumberType:"+str);

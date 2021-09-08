@@ -181,6 +181,13 @@ public final class FiniteSet extends MathObject implements Iterable<MathObject>{
         return FiniteMap.from(objects);
     }
 
+    public MathObject getFirst(){
+        return contents.first();
+    }
+    public MathObject getLast(){
+        return contents.first();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
