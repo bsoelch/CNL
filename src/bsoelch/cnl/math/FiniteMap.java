@@ -7,6 +7,8 @@ import java.util.function.Function;
 
 public abstract class FiniteMap extends MathObject {
     FiniteMap(){}//package private constructor
+    /**Creates a new FiniteMap containing the Elements given by mapData,
+     * automatically detects Tuples and converts the Data if necessary*/
     public static FiniteMap from(Map<? extends MathObject,? extends MathObject> mapData){
         //copy data to TreeMap
         TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
@@ -54,18 +56,21 @@ public abstract class FiniteMap extends MathObject {
 
     public static FiniteMap forEach(FiniteMap m1, FiniteMap m2, BiFunction<MathObject, MathObject, MathObject> f) {
         TreeMap<MathObject,MathObject> entries=new TreeMap<>(MathObject::compare);
-        for (Iterator<Pair> it = m1.mapIterator(); it.hasNext(); ) {
-            Pair p = it.next();
-            if(m2.isKey(p.a)){
-                entries.put(p.a,f.apply(p.b,m2.evaluateAt(p.a)));
+        Iterator<Pair> it1 = m1.mapIterator();
+        Iterator<Pair> it2 = m2.mapIterator();
+        Pair next1=it1.hasNext()?it1.next():null;
+        Pair next2=it2.hasNext()?it2.next():null;
+        while(next1!=null||next2!=null){
+            if(next2==null||(next1!=null&&MathObject.compare(next1.a,next2.a)<0)){
+                entries.put(next1.a,f.apply(next1.b,Real.Int.ZERO));
+                next1=it1.hasNext()?it1.next():null;
+            }else if(next1 == null || MathObject.compare(next1.a, next2.a) > 0){
+                entries.put(next2.a,f.apply(Real.Int.ZERO,next2.b));
+                next2=it2.hasNext()?it2.next():null;
             }else{
-                entries.put(p.a,f.apply(p.b,Real.Int.ZERO));
-            }
-        }
-        for (Iterator<Pair> it = m2.mapIterator(); it.hasNext(); ) {
-            Pair p = it.next();
-            if(!m1.isKey(p.a)){
-                entries.put(p.a,f.apply(Real.Int.ZERO,p.b));
+                entries.put(next1.a,f.apply(next1.b,next2.b));
+                next1=it1.hasNext()?it1.next():null;
+                next2=it2.hasNext()?it2.next():null;
             }
         }
         return from(entries);
@@ -111,6 +116,26 @@ public abstract class FiniteMap extends MathObject {
             public MathObject lastValue() {
                 return value;
             }
+            @Override
+            public FiniteMap removeFirst() {
+                return constantMap(keys.removeFirst(),value);
+            }
+            @Override
+            public FiniteMap removeLast() {
+                return constantMap(keys.removeLast(),value);
+            }
+            @Override
+            public FiniteMap headMap(MathObject last, boolean include) {
+                return constantMap(keys.headSet(last, include),value);
+            }
+            @Override
+            public FiniteMap tailMap(MathObject first, boolean include) {
+                return constantMap(keys.tailSet(first, include),value);
+            }
+            @Override
+            public FiniteMap range(MathObject first, boolean includeFirst, MathObject last, boolean includeLast) {
+                return constantMap(keys.range(first, includeFirst, last, includeLast),value);
+            }
 
             @Override
             public MathObject insert(MathObject newKey) {
@@ -146,6 +171,14 @@ public abstract class FiniteMap extends MathObject {
                 }
                 return true;
             }
+
+            @Override
+            public Tuple asTuple() {
+                MathObject[] values=new MathObject[keys.size()];
+                Arrays.fill(values,value);
+                return Tuple.create(values);
+            }
+
             @Override
             public boolean isMatrix() {
                 return isTuple()&&value instanceof FiniteMap&&((FiniteMap) value).isNumericTuple();
@@ -230,6 +263,11 @@ public abstract class FiniteMap extends MathObject {
     public abstract MathObject firstValue();
     public abstract MathObject lastKey();
     public abstract MathObject lastValue();
+    public abstract FiniteMap removeFirst();
+    public abstract FiniteMap removeLast();
+    public abstract FiniteMap headMap(MathObject last,boolean include);
+    public abstract FiniteMap tailMap(MathObject first,boolean include);
+    public abstract FiniteMap range(MathObject first,boolean includeFirst,MathObject last,boolean includeLast);
 
     public FiniteSet asSet() {
         TreeSet<MathObject> pairs=new TreeSet<>(MathObject::compare);
@@ -239,6 +277,7 @@ public abstract class FiniteMap extends MathObject {
         }
         return FiniteSet.from(pairs);
     }
+    public abstract Tuple asTuple();
 
     private Iterator<Pair> wrapItr(Iterator<MathObject> keyItr){
         return new Iterator<Pair>() {
@@ -304,10 +343,6 @@ public abstract class FiniteMap extends MathObject {
                     .append(e.b.intsAsString());
         }
         return sb.append('}').toString();
-    }
-
-    public boolean isKey(MathObject key) {
-        return domain().contains(key);
     }
 
     /**true is this Map is a (sparse) Matrix

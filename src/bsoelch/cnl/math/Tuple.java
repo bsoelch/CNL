@@ -47,10 +47,7 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
         public MathObject get(int i) {
             return Real.Int.ZERO;
         }
-        @Override
-        public boolean isKey(MathObject key) {
-            return false;
-        }
+
         @Override
         public FiniteMap forEach(Function<MathObject, MathObject> f) {
             return this;
@@ -75,6 +72,29 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
         @Override
         public MathObject put(MathObject key, MathObject value) {
             return FiniteMap.from(Collections.singletonMap(key, value));
+        }
+        @Override
+        public MathObject insert(MathObject value, int index) {
+            if(index<0)
+                throw new ArithmeticException("Negative index in Tuple");
+            return FiniteMap.createTuple(Collections.singletonMap(Real.from(index),value),BigInteger.valueOf(index+1));
+        }
+        @Override
+        public FiniteMap remove(int index) {
+            return this;
+        }
+
+        @Override
+        public FiniteMap headMap(MathObject last, boolean include) {
+            return this;
+        }
+        @Override
+        public FiniteMap tailMap(MathObject first, boolean include) {
+            return this;
+        }
+        @Override
+        public FiniteMap range(MathObject first, boolean includeFirst, MathObject last, boolean includeLast) {
+            return this;
         }
 
         @Override
@@ -149,6 +169,16 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
     @Override
     public MathObject insert(MathObject value) {
         return MathObject.tupleConcat(this,create(new MathObject[]{value}));
+    }
+    public abstract MathObject insert(MathObject value,int index);
+    public abstract FiniteMap remove(int index);
+    @Override
+    public FiniteMap removeFirst() {
+        return remove(0);
+    }
+    @Override
+    public FiniteMap removeLast() {
+        return remove(length()-1);
     }
 
     /**Iterator of the subsection from start (included) to end (excluded)*/
@@ -302,6 +332,11 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
         return true;
     }
 
+    @Override
+    public Tuple asTuple() {
+        return this;
+    }
+
     public boolean isFullTuple(){
         return true;
     }
@@ -442,6 +477,56 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
         @Override
         public MathObject get(int i) {
             return evaluateAt(Real.from(i));
+        }
+
+        @Override
+        public MathObject insert(MathObject value, int index) {
+            if(index<0)
+                throw new ArithmeticException("Negative index in Tuple");
+            TreeMap<MathObject,MathObject> newMap=new TreeMap<>(MathObject::compare);
+            MathObject realIndex=Real.from(index);
+            newMap.put(realIndex,value);
+            for (Iterator<Pair> it = map.mapIterator(); it.hasNext(); ) {
+                Pair e = it.next();
+                if(MathObject.compare(e.a,realIndex)<0){
+                    newMap.put(e.a,e.b);
+                }else{
+                    newMap.put(MathObject.add(e.a,Real.Int.ONE),e.b);
+                }
+            }
+            return FiniteMap.createTuple(newMap,length.add(BigInteger.ONE).max(BigInteger.valueOf(index+1)));
+        }
+        @Override
+        public FiniteMap remove(int index) {
+            if(index<0)
+                throw new ArithmeticException("Negative index in Tuple");
+            if(BigInteger.valueOf(index).compareTo(length)>=0)
+                return this;
+            TreeMap<MathObject,MathObject> newMap=new TreeMap<>(MathObject::compare);
+            MathObject realIndex=Real.from(index);
+            for (Iterator<Pair> it = map.mapIterator(); it.hasNext(); ) {
+                Pair e = it.next();
+                if (!e.a.equals(realIndex)) {
+                    if (MathObject.compare(e.a, realIndex) < 0) {
+                        newMap.put(e.a, e.b);
+                    } else {
+                        newMap.put(MathObject.subtract(e.a, Real.Int.ONE), e.b);
+                    }
+                }
+            }
+            return FiniteMap.createTuple(newMap,length.subtract(BigInteger.ONE));
+        }
+        @Override
+        public FiniteMap headMap(MathObject last, boolean include) {
+            return map.headMap(last, include);
+        }
+        @Override
+        public FiniteMap tailMap(MathObject first, boolean include) {
+            return map.tailMap(first, include);
+        }
+        @Override
+        public FiniteMap range(MathObject first, boolean includeFirst, MathObject last, boolean includeLast) {
+            return map.range(first, includeFirst, last, includeLast);
         }
 
         @Override

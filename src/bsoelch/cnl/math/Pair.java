@@ -30,10 +30,7 @@ public final class Pair extends Tuple{
         return FiniteSet.from(keys);
     }
 
-    @Override
-    public boolean isKey(MathObject key) {
-        return key.equals(Real.Int.ZERO)||key.equals(Real.Int.ONE);
-    }
+
 
     @Override
     public FiniteSet values() {
@@ -82,6 +79,82 @@ public final class Pair extends Tuple{
         map.put(Real.Int.ZERO,a);
         map.put(Real.Int.ONE,b);
         map.put(key,value);
+        return FiniteMap.from(map);
+    }
+    @Override
+    public MathObject insert(MathObject value, int index) {
+        if(index<0)
+            throw new ArithmeticException("Negative index in Tuple");
+        TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
+        map.put(Real.from(index),value);
+        map.put(index>0?Real.Int.ZERO:Real.Int.ONE,a);
+        map.put(index>1?Real.Int.ONE:Real.from(2),b);
+        return FiniteMap.from(map);
+    }
+    @Override
+    public FiniteMap remove(int index) {
+        if(index<0)
+            throw new ArithmeticException("Negative index in Tuple");
+        TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
+        map.put(index>0?Real.Int.ZERO:Real.Int.ONE,a);
+        map.put(index>1?Real.Int.ONE:Real.from(2),b);
+        map.remove(Real.from(index));
+        return FiniteMap.from(map);
+    }
+    @Override
+    public FiniteMap headMap(MathObject last, boolean include) {
+        TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
+        int c = MathObject.compare(last, Real.Int.ONE);
+        if(c>0||(include&&c==0)){
+            map.put(Real.Int.ZERO,a);
+            map.put(Real.Int.ONE,b);
+        }else {
+            c = MathObject.compare(last, Real.Int.ZERO);
+            if (c > 0 || (include && c == 0)) {
+                map.put(Real.Int.ZERO, a);
+            }
+        }
+        return FiniteMap.from(map);
+    }
+    @Override
+    public FiniteMap tailMap(MathObject first, boolean include) {
+        TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
+        int c = MathObject.compare(first, Real.Int.ZERO);
+        if(c<0||(include&&c==0)){
+            map.put(Real.Int.ZERO,a);
+            map.put(Real.Int.ONE,b);
+        }else {
+            c = MathObject.compare(first, Real.Int.ONE);
+            if (c < 0 || (include && c == 0)) {
+                map.put(Real.Int.ONE, b);
+            }
+        }
+        return FiniteMap.from(map);
+    }
+    @Override
+    public FiniteMap range(MathObject first, boolean includeFirst, MathObject last, boolean includeLast) {
+        TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
+        int c = MathObject.compare(first, Real.Int.ZERO);
+        if(c<0||(includeFirst&&c==0)){
+            c = MathObject.compare(last, Real.Int.ONE);
+            if(c>0||(includeLast&&c==0)){
+                map.put(Real.Int.ZERO,a);
+                map.put(Real.Int.ONE,b);
+            }else {
+                c = MathObject.compare(last, Real.Int.ZERO);
+                if (c > 0 || (includeLast && c == 0)) {
+                    map.put(Real.Int.ZERO, a);
+                }
+            }
+        }else {
+            c = MathObject.compare(first, Real.Int.ONE);
+            if (c < 0 || (includeFirst && c == 0)) {
+                c = MathObject.compare(last, Real.Int.ONE);
+                if (c > 0 || (includeLast && c == 0)) {
+                    map.put(Real.Int.ONE, b);
+                }
+            }
+        }
         return FiniteMap.from(map);
     }
 

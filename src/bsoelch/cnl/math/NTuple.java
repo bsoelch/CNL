@@ -2,10 +2,7 @@ package bsoelch.cnl.math;
 
 
 import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.Objects;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.function.Function;
 
 final class NTuple extends Tuple{
@@ -58,6 +55,102 @@ final class NTuple extends Tuple{
         map.put(key,value);
         return FiniteMap.from(map);
     }
+    @Override
+    public MathObject insert(MathObject value, int index) {
+        if(index<0)
+            throw new ArithmeticException("Negative index in Tuple");
+        if(index<= objects.length){
+            MathObject[] newValues=new MathObject[objects.length+1];
+            System.arraycopy(objects,0,newValues,0,index);
+            newValues[index]=value;
+            System.arraycopy(objects,index,newValues,index+1,objects.length-index);
+            return Tuple.create(newValues);
+        }else if(index<Tuple.SPARSE_FACTOR* objects.length){
+            MathObject[] newValues=new MathObject[index+1];
+            System.arraycopy(objects,0,newValues,0,objects.length);
+            newValues[index]=value;
+            return Tuple.create(newValues);
+        }else{
+            TreeMap<MathObject,MathObject> newMap=new TreeMap<>(MathObject::compare);
+            MathObject realIndex=Real.from(index);
+            newMap.put(realIndex,value);
+            for (int i=0;i<objects.length;i++) {
+                newMap.put(Real.from(i),objects[i]);
+            }
+            return FiniteMap.createTuple(newMap,BigInteger.valueOf(index+1));
+        }
+    }
+    @Override
+    public FiniteMap remove(int index) {
+        if(index<0)
+            throw new ArithmeticException("Negative index in Tuple");
+        if(index<objects.length){
+            MathObject[] newValues=new MathObject[objects.length-1];
+            System.arraycopy(objects,0,newValues,0,index);
+            System.arraycopy(objects,index+1,newValues,index,objects.length-index-1);
+            return Tuple.create(newValues);
+        }else{
+            return this;
+        }
+    }
+
+
+
+    /**first Integer in this range that is greater that o
+     * @param allowEq if true it is allowed that the returned index may be equal to o*/
+    private int nextIndex(MathObject o, boolean allowEq) {
+        int l=0,r=objects.length,c;
+        do{
+            c=(l+r)/2;
+            int cp = MathObject.compare(o, Real.from(c));
+            if(cp ==0){
+                r= allowEq ?c:c+1;
+                break;
+            }else if(cp >0){
+                l=c;
+            }else{
+                r=c;
+            }
+        }while (l-r>1);
+        return r;
+    }
+    @Override
+    public FiniteMap headMap(MathObject last, boolean include) {
+        if(MathObject.compare(last,Real.Int.ZERO)<0)
+            return EMPTY_MAP;
+        if(MathObject.compare(last,Real.from(objects.length))>0)
+            return this;
+        int i = nextIndex(last, !include);
+        MathObject[] newData=new MathObject[i];
+        System.arraycopy(objects,0,newData,0,i);
+        return Tuple.create(newData);
+    }
+
+    @Override
+    public FiniteMap tailMap(MathObject first, boolean include) {
+        if(MathObject.compare(first,Real.Int.ZERO)<0)
+            return this;
+        if(MathObject.compare(first,Real.from(objects.length))>0)
+            return EMPTY_MAP;
+        int i = nextIndex(first, include);
+        MathObject[] newData=new MathObject[objects.length];
+        System.arraycopy(objects,i,newData,i,objects.length-i);
+        return Tuple.create(newData);
+    }
+    @Override
+    public FiniteMap range(MathObject first, boolean includeFirst, MathObject last, boolean includeLast) {
+        if(MathObject.compare(last,first)<0)
+            return EMPTY_MAP;
+        if(MathObject.compare(last,Real.Int.ZERO)<0)
+            return EMPTY_MAP;
+        if(MathObject.compare(first,Real.from(objects.length))>0)
+            return EMPTY_MAP;
+        int start = nextIndex(first, includeFirst);
+        int end = nextIndex(last, !includeFirst);
+        MathObject[] newData=new MathObject[end];
+        System.arraycopy(objects,start,newData,start,end-start);
+        return Tuple.create(newData);
+    }
 
     @Override
     public MathObject[] toArray() {
@@ -92,14 +185,7 @@ final class NTuple extends Tuple{
         return FiniteSet.from(objects);
     }
 
-    @Override
-    public boolean isKey(MathObject key) {
-        if(key instanceof Real.Int){
-            BigInteger value=((Real.Int) key).num();
-            return value.compareTo(BigInteger.ZERO) >= 0 && value.compareTo(BigInteger.valueOf(objects.length)) < 0;
-        }
-        return false;
-    }
+
 
     @Override
     public MathObject evaluateAt(MathObject a) {
@@ -151,9 +237,13 @@ final class NTuple extends Tuple{
     }
     private String toString(Function<MathObject,String> objectToString){
         StringBuilder sb=new StringBuilder("[");
+        boolean first=true;
         for(MathObject o:objects){
-            if(sb.length()>1)
+            if(first){
+                first=false;
+            }else{
                 sb.append(", ");
+            }
             if(!o.equals(Real.Int.ZERO)) {
                 sb.append(objectToString.apply(o));
             }

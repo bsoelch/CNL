@@ -12,10 +12,7 @@ public final class FiniteMapImpl extends FiniteMap {
         this.map=new TreeMap<>(map);
     }
 
-    @Override
-    public boolean isKey(MathObject key) {
-        return map.containsKey(key);
-    }
+
 
     @Override
     public int size() {
@@ -46,6 +43,34 @@ public final class FiniteMapImpl extends FiniteMap {
     @Override
     public MathObject lastValue() {
         return map.lastEntry().getValue();
+    }
+    @Override
+    public FiniteMap removeFirst() {
+        TreeMap<MathObject,MathObject> newMap=new TreeMap<>(MathObject::compare);
+        newMap.putAll(map);
+        newMap.remove(newMap.firstKey());
+        return FiniteMap.from(newMap);
+    }
+    @Override
+    public FiniteMap removeLast() {
+        TreeMap<MathObject,MathObject> newMap=new TreeMap<>(MathObject::compare);
+        newMap.putAll(map);
+        newMap.remove(newMap.lastKey());
+        return FiniteMap.from(newMap);
+    }
+    @Override
+    public FiniteMap headMap(MathObject last, boolean include) {
+        return FiniteMap.from(map.headMap(last, include));
+    }
+    @Override
+    public FiniteMap tailMap(MathObject first, boolean include) {
+        return FiniteMap.from(map.tailMap(first, include));
+    }
+    @Override
+    public FiniteMap range(MathObject first, boolean includeFirst, MathObject last, boolean includeLast) {
+        if(MathObject.compare(last,first)<0)
+            return Tuple.EMPTY_MAP;
+        return FiniteMap.from(map.subMap(first, includeFirst, last, includeLast));
     }
 
     private Iterator<Pair> wrapIterator(Iterator<Map.Entry<MathObject, MathObject>> mapItr){
@@ -125,6 +150,28 @@ public final class FiniteMapImpl extends FiniteMap {
         return true;
     }
 
+    @Override
+    public Tuple asTuple() {
+        TreeMap<Real.Int,MathObject> tuple=new TreeMap<>();
+        BigInteger maxElement=BigInteger.ZERO;
+        int offSet=0;
+        Real.Int key;
+        for(Map.Entry<MathObject, MathObject> e:map.entrySet()){
+            key=e.getKey().numericValue().realPart().round(FLOOR);
+            if(key.compareTo(Real.Int.ZERO)<0){
+                key=Real.from(offSet++);
+            }else{
+                key=(Real.Int)Real.add(key,Real.from(offSet));
+                if(tuple.containsKey(key)){
+                    offSet++;
+                    key=(Real.Int) Real.add(key,Real.Int.ONE);
+                }
+            }
+            tuple.put(key,e.getValue());
+            maxElement=key.num();
+        }
+        return FiniteMap.createTuple(tuple,maxElement.add(BigInteger.ONE));
+    }
 
     @Override
     public MathObject evaluateAt(MathObject a) {

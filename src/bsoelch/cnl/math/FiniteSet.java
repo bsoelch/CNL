@@ -181,11 +181,38 @@ public final class FiniteSet extends MathObject implements Iterable<MathObject>{
         return FiniteMap.from(objects);
     }
 
+    public Tuple asTuple() {
+        return Tuple.create(contents.toArray(new MathObject[0]));
+    }
+
     public MathObject getFirst(){
         return contents.first();
     }
     public MathObject getLast(){
         return contents.first();
+    }
+    public FiniteSet removeFirst(){
+        TreeSet<MathObject> newContents=new TreeSet<>(MathObject::compare);
+        newContents.addAll(contents);
+        newContents.remove(newContents.first());
+        return from(newContents);
+    }
+    public FiniteSet removeLast(){
+        TreeSet<MathObject> newContents=new TreeSet<>(MathObject::compare);
+        newContents.addAll(contents);
+        newContents.remove(newContents.last());
+        return from(newContents);
+    }
+    public FiniteSet headSet(MathObject slice,boolean include){
+        return from(contents.headSet(slice,include));
+    }
+    public FiniteSet tailSet(MathObject slice,boolean include){
+        return from(contents.tailSet(slice,include));
+    }
+    public FiniteSet range(MathObject first,boolean includeFirst,MathObject last,boolean includeLast){
+        if(MathObject.compare(last,first)<0)
+            return EMPTY_SET;
+        return from(contents.subSet(first,includeFirst,last,includeLast));
     }
 
     @Override
