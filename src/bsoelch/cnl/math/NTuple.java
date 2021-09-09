@@ -160,7 +160,7 @@ final class NTuple extends Tuple{
             }else{
                 r=c;
             }
-        }while (l-r>1);
+        }while (r-l>1);
         return r;
     }
     @Override

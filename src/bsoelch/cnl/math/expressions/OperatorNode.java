@@ -33,6 +33,7 @@ public class OperatorNode implements ExpressionNode{
         if(operator== ID){
             return params[0];
         }
+        //addLater? simplify IF <val> <expr> <expr>
         NAryInfo nAryInfo=nAryInfo(operator);
         if(nAryInfo!=null&&nAryInfo.isAssociative){//simplify associative n-ary operators
             ArrayList<MathObject> objects=new ArrayList<>(params.length);

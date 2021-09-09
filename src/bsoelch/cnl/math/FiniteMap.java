@@ -15,7 +15,7 @@ public abstract class FiniteMap extends MathObject {
         TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
         map.putAll(mapData);
         //test map for Tuple structure
-        boolean isTuple=true;
+        boolean isTuple=true;//addLater? better rules for auto-wrapping of Tuples
         BigInteger length=null;
         for(MathObject k:map.keySet()){
             if(k instanceof Real.Int&&((Real.Int) k).num().signum()>=0){

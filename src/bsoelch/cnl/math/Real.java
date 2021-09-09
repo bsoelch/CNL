@@ -88,6 +88,18 @@ public abstract class Real extends NumericValue {
     static public Real divide(Real a, Real b) {
         return from(a.num().multiply(b.den()), a.den().multiply(b.num()));
     }
+    static public Real[] divideAndRemainder(Real a, Real b) {
+        Real div=divide(a,b),intDiv=div.round(FLOOR);
+        return new Real[]{intDiv,multiply(subtract(div,intDiv),b)};
+    }
+    static public Real gcd(Real a, Real b) {
+        if (a.isInt() && b.isInt()) {
+            return from(a.num().gcd(b.num()));
+        } else {
+            //gcd(a/b,c/d)->gcd(ad,bc)/bd
+            return from(a.num().multiply(b.den()).gcd(b.num().multiply(a.den())),a.den().multiply(b.den()));
+        }
+    }
 
     static public Int concat(Real a, Real b) {
         return from(stringAsBigInt(bigIntAsString(a.round(MathObject.FLOOR).num())+bigIntAsString(b.round(MathObject.FLOOR).num())));

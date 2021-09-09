@@ -382,11 +382,15 @@ public class Constants {
                 //multiplies A and B (element-wise)
                 OperatorInfo mult=declareBinaryOperator("MULTIPLY",MODIFY_ARG0_ROOT, MathObject::multiply, 0);
                 //divides A by B (element-wise)
-                declareBinaryOperator("DIVIDE",MODIFY_ARG0_ROOT, MathObject::divide, 0);//addLater INT_DIVIDE
-                //calculates A mod B (element-wise)
-                declareBinaryOperator("MODULO",MODIFY_ARG0_ROOT, MathObject::mod, 0);
+                declareBinaryOperator("DIVIDE",MODIFY_ARG0_ROOT, MathObject::divide, 0);
+                //calculates the int-value (floor A/B if both real otherwise round A/B) of A divided by B (element-wise)
+                declareBinaryOperator("INT_DIV",MODIFY_ARG0_ROOT,
+                        (a,b)->MathObject.deepCombineNumbers(a,b,(x, y)-> NumericValue.divideAndRemainder(x,y)[0]), 0);
+                //calculates the remainder of A divided by B (element-wise)
+                declareBinaryOperator("REMAINDER",MODIFY_ARG0_ROOT,
+                        (a,b)->MathObject.deepCombineNumbers(a,b,(x, y)-> NumericValue.divideAndRemainder(x,y)[1]), 0);
                 //shortcut of A+Bi (to simplify creation of complex numbers)
-                declareBinaryOperator(COMPLEX,MODIFY_ARG0_NEVER,(a,b)->MathObject.deepCombine(a,b,
+                declareBinaryOperator(COMPLEX,MODIFY_ARG0_NEVER,(a,b)->MathObject.deepCombineNumbers(a,b,
                         (l,r)->NumericValue.add(l, NumericValue.multiply(r, Complex.I))), 0);
                 //2-norm of the given MathObject
                 declareUnaryOperator("SQUARE_ABS",MODIFY_ARG0_ROOT, MathObject::sqAbs, 0);
@@ -396,10 +400,11 @@ public class Constants {
                 declareUnaryOperator("IMAGINARY_PART",MODIFY_ARG0_ROOT, a->MathObject.deepReplaceNumbers(a, NumericValue::imaginaryPart), 0);
                 //complex conjugate of A (element-wise)
                 declareUnaryOperator("CONJUGATE",MODIFY_ARG0_ROOT, a->MathObject.deepReplaceNumbers(a, NumericValue::conjugate), 0);
-                //replaces A with with the Ath variable in the current context
-                declareRuntimeOperator(DYNAMIC_VAR,1);
+
                 //9bit operators
 
+                //replaces A with with the Ath variable in the current context
+                declareRuntimeOperator(DYNAMIC_VAR,1);
                 //bitwise logical-and of A and floor B (element-wise)
                 OperatorInfo and=declareBinaryOperator("AND",MODIFY_ARG0_ROOT, MathObject::floorAnd, 0);
                 //bitwise logical-or of A and floor B (element-wise)
@@ -440,12 +445,12 @@ public class Constants {
                 //replaces A with a simpler Fraction with distance to A at most real B
                 declareBinaryOperator("APPROX",MODIFY_ARG0_ROOT,
                         (a,b)-> MathObject.deepReplaceNumbers(a, e->e.approx(b.numericValue().realPart())), 0);
-                //trinary if-Operator isTrue(args[0])? args[1] :args[2]
-                declareOperator("IF", 3, false, MODIFY_ARG0_NEVER, (args)->
-                            MathObject.isTrue(args[0])?args[1]:args[2],OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
 
                 //13bit Operators
 
+                //trinary if-Operator isTrue(args[0])? args[1] :args[2]
+                declareOperator("IF", 3, false, MODIFY_ARG0_NEVER, (args)->
+                        MathObject.isTrue(args[0])?args[1]:args[2],OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                 //A <sup>floor real B</sup> (element-wise)
                 declareBinaryOperator("POW",MODIFY_ARG0_ROOT, MathObject::pow, 0);
                 //replaces all fractions in A with their numerator
@@ -457,9 +462,21 @@ public class Constants {
                 //replaces all reals in A with their sign
                 declareUnaryOperator("SGN",MODIFY_ARG0_ROOT,
                         (a)-> MathObject.deepReplaceNumbers(a,NumericValue::signum), 0);
-                //GCD,LCM
+                //returns a Pair q,r with A=q*B+r and  sqrAbs r < sqrAbs B (element-wise)
+                declareBinaryOperator("DIV_REM",MODIFY_ARG0_ROOT,
+                        (a,b)-> MathObject.deepCombine(a,b,(x, y)->{
+                            NumericValue[] tmp=NumericValue.divideAndRemainder(x,y);
+                            return new Pair(tmp[0],tmp[1]);
+                        }), 0);
+                //greatest common divisor of A and B (element-wise)
+                declareBinaryOperator("GCD",MODIFY_ARG0_ROOT,
+                        (a,b)-> MathObject.deepCombineNumbers(a,b,NumericValue::gcd), 0);
+                //least common multiple of A and B (element-wise)
+                declareBinaryOperator("LCM",MODIFY_ARG0_ROOT,
+                        (a,b)-> MathObject.deepCombineNumbers(a,b,NumericValue::lcm), 0);
 
-                //CONCAT_BINARY
+                //addLater MIN_MAX
+                // CONCAT_BINARY
 
                 //A (+) B with a/b(+)c/d=(a+c)/(b+d) (element-wise)
                 declareBinaryOperator("F_ADD",MODIFY_ARG0_ROOT, MathObject::fAdd, 0);
@@ -514,6 +531,15 @@ public class Constants {
                         info.addShortCut(unEval);
                         info.addShortCut(biEval);
                     }
+                    //evaluates the lambda-expression A with the elements of the Tuple B as arguments
+                    declareBinaryOperator("TUPLE_EVAL",MODIFY_ARG0_NEVER,
+                            (a,b) -> {
+                                if(a instanceof LambdaExpression){
+                                    return ((LambdaExpression)a).evaluate(MathObject.asTuple(b).toArray());
+                                }else{
+                                    return a;
+                                }
+                            }, OperatorInfo.LAMBDA_FLAG_ALLOW_ALL);
                     //replaces all elements to the given MathObject with a their result in the given LambdaFunction
                     declareBinaryOperator("REPLACE_ALL",MODIFY_ARG0_NEVER,
                             (a,b) -> {
@@ -648,6 +674,8 @@ public class Constants {
 
                     //STRING_CHARS <str>
                     //STRING_SPLIT <str> <regex>
+                    //STRING_FILTER
+                    //STRING_JOIN
 
                     //REGEX_...
                 }
@@ -843,6 +871,14 @@ public class Constants {
                     //all elements of args[0] with key between args[1] and args[2] (both excluded)
                     declareOperator("RANGE_BETWEEN",3,false,MODIFY_ARG0_ROOT,
                             (args)->MathObject.range(args[0],args[1],false,args[2],false), 0);
+                    //Pair of all elements of A with key <= B and all elements of A with key > B
+                    declareBinaryOperator("SPLIT_ABOVE",MODIFY_ARG0_ROOT,
+                            (l,r)->new Pair(MathObject.slice(l,r,true,true),MathObject.slice(l,r,false,false)),
+                            OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
+                    //Pair of all elements of A with key < B and all elements of A with key >= B
+                    declareBinaryOperator("SPLIT_BELOW",MODIFY_ARG0_ROOT,
+                            (l,r)->new Pair(MathObject.slice(l,r,false,true),MathObject.slice(l,r,true,false)),
+                            OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     //returns A without its first element
                     declareUnaryOperator("REMOVE_FIRST",MODIFY_ARG0_ROOT,
                             (s)-> MathObject.removeEnd(s,true), 0);

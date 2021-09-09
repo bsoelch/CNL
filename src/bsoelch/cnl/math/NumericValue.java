@@ -160,6 +160,54 @@ public abstract class NumericValue extends MathObject implements Comparable<Nume
             throw new IllegalArgumentException("Unexpected Scalar-class:"+a.getClass());
         }
     }
+    /**given q,r with a=q*b+r and sqrAbs(r)<sqrAbs(b),
+     * if both a and b are real number q=floor a/b otherwise q=round a/b */
+    public static NumericValue[] divideAndRemainder(NumericValue a, NumericValue b){
+        if(a instanceof Real&&b instanceof Real){
+            return Real.divideAndRemainder((Real)a,(Real)b);
+        }else {
+            NumericValue div=divide(a,b),intDiv=div.round(ROUND);
+            return new NumericValue[]{intDiv,multiply(subtract(div,intDiv),b)};
+        }
+    }
+    /**gcd of a and b*/
+    public static NumericValue gcd(NumericValue a, NumericValue b){
+        if(a instanceof Real&&b instanceof Real){
+            return Real.gcd((Real)a,(Real)b);
+        }else {//gcd for gaussian integers
+            Real commonDen=Real.from(a.realPart().den().multiply(a.imaginaryPart().den())
+                    .multiply(b.realPart().den()).multiply(b.imaginaryPart().den()));
+            a=multiply(a,commonDen);
+            b=multiply(b,commonDen);//ensure that a,b are (gaussian-)integers
+            if(a.sqAbs().compareTo(b.sqAbs())<0){
+                NumericValue tmp=a;
+                a=b;
+                b=tmp;
+            }//a>b
+            NumericValue[] divRem=divideAndRemainder(a,b);
+            while (!divRem[1].equals(Real.Int.ZERO)){
+                a=b;
+                b=divRem[1];
+                divRem=divideAndRemainder(a,b);
+            }
+            //adjust signs
+            if(b.realPart().num().signum()<0){
+                if(b.imaginaryPart().num().signum()<0){
+                    b=b.negate();//-a-bi -> a+bi
+                }else{
+                    b=divide(b,Complex.I);//-a+bi -> b+ai
+                }
+            }else if(b.imaginaryPart().num().signum()<0){
+                b=multiply(b,Complex.I);//a-bi -> b+ai
+            }
+            return divide(b,commonDen);
+        }
+    }
+    /**lcm of a and b (ab/gcd(a,b)*/
+    public static NumericValue lcm(NumericValue a, NumericValue b){
+        return divide(multiply(a,b),gcd(a,b));
+    }
+
 
     /**a&floor b*/
     public static NumericValue floorAnd(NumericValue a, NumericValue b) {
@@ -322,10 +370,6 @@ public abstract class NumericValue extends MathObject implements Comparable<Nume
         return a.compareTo(b)>=0?a:b;
     }
 
-
-    public static NumericValue mod(NumericValue l, NumericValue r){
-        return subtract(l, multiply(r, divide(l,r).round(FLOOR)));
-    }
     public static NumericValue pow(NumericValue l, NumericValue r){
         if(r instanceof Real.Int){
             return powBigInt(l,((Real.Int)r).num());

@@ -80,7 +80,7 @@ public final class Pair extends Tuple{
         map.put(Real.Int.ZERO,a);
         map.put(Real.Int.ONE,b);
         map.put(key,value);
-        return FiniteMap.from(map);
+        return FiniteMap.from(map);//addLater replace usages of .from with .createTuple
     }
     @Override
     public MathObject insert(MathObject value, int index) {

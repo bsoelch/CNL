@@ -8,6 +8,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.math.BigInteger;
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -246,16 +247,59 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
         }
     }
     public static MathObject deepCombine(MathObject l, MathObject r,
-                                         BinaryOperator<NumericValue> scalarOperation){
+                                                BiFunction<NumericValue,NumericValue,MathObject> combine){
+        if(l instanceof Matrix)
+            l=((Matrix) l).asMap();
+        if(r instanceof Matrix)
+            r=((Matrix) r).asMap();
+        if(l instanceof NumericValue){
+            if(r instanceof NumericValue){
+                return combine.apply((NumericValue) l,((NumericValue)r));
+            }else if(r instanceof FiniteSet){
+                MathObject finalL = l;
+                return FiniteSet.replace((FiniteSet) r, o-> deepCombine(finalL,o,combine));
+            }else if(r instanceof FiniteMap){
+                MathObject finalL1 = l;
+                return ((FiniteMap) r).replace(o-> deepCombine(finalL1,o,combine));
+            }else{
+                throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
+            }
+        }else if(l instanceof FiniteSet){
+            if(r instanceof NumericValue||r instanceof FiniteMap){
+                MathObject finalR = r;
+                return FiniteSet.replace((FiniteSet) l, o-> deepCombine(o, finalR,combine));
+            }else if(r instanceof FiniteSet){
+                return FiniteSet.combineAll((FiniteSet) l,(FiniteSet) r, (a, b)-> deepCombine(a,b,combine));
+            }else{
+                throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
+            }
+        }else if(l instanceof FiniteMap){
+            if(r instanceof NumericValue){
+                MathObject finalR1 = r;
+                return ((FiniteMap) l).replace(o-> deepCombine(o, finalR1,combine));
+            }else if(r instanceof FiniteSet){
+                MathObject finalL2 = l;
+                return FiniteSet.replace((FiniteSet) r, o-> deepCombine(finalL2,o,combine));
+            }else if(r instanceof FiniteMap){
+                return FiniteMap.combineAll((FiniteMap) l,(FiniteMap) r, (a, b)-> deepCombine(a,b,combine));
+            }else{
+                throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
+            }
+        }else{
+            throw new IllegalArgumentException("Unexpected MathObject:"+l.getClass());
+        }
+    }
+    public static MathObject deepCombineNumbers(MathObject l, MathObject r,
+                                                BinaryOperator<NumericValue> scalarOperation){
         if(l instanceof NumericValue){
             if(r instanceof NumericValue){
                 return scalarOperation.apply((NumericValue) l,((NumericValue)r));
             }else if(r instanceof Matrix){
                 return ((Matrix) r).applyToAll(e->scalarOperation.apply((NumericValue)l,e));
             }else if(r instanceof FiniteSet){
-                return FiniteSet.replace((FiniteSet) r, o-> deepCombine(l,o,scalarOperation));
+                return FiniteSet.replace((FiniteSet) r, o-> deepCombineNumbers(l,o,scalarOperation));
             }else if(r instanceof FiniteMap){
-                return ((FiniteMap) r).replace(o-> deepCombine(l,o,scalarOperation));
+                return ((FiniteMap) r).replace(o-> deepCombineNumbers(l,o,scalarOperation));
             }else{
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
@@ -265,27 +309,27 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
             }else if(r instanceof Matrix){
                 return Matrix.combine((Matrix) l,(Matrix) r,scalarOperation);
             }else if(r instanceof FiniteSet){
-                return FiniteSet.replace((FiniteSet) r, o-> deepCombine(l,o,scalarOperation));
+                return FiniteSet.replace((FiniteSet) r, o-> deepCombineNumbers(l,o,scalarOperation));
             }else if(r instanceof FiniteMap){
-                return ((FiniteMap) r).replace(o-> deepCombine(l,o,scalarOperation));
+                return ((FiniteMap) r).replace(o-> deepCombineNumbers(l,o,scalarOperation));
             }else{
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
         }else if(l instanceof FiniteSet){
             if(r instanceof NumericValue||r instanceof Matrix||r instanceof FiniteMap){
-                return FiniteSet.replace((FiniteSet) l, o-> deepCombine(o,r,scalarOperation));
+                return FiniteSet.replace((FiniteSet) l, o-> deepCombineNumbers(o,r,scalarOperation));
             }else if(r instanceof FiniteSet){
-                return FiniteSet.combineAll((FiniteSet) l,(FiniteSet) r, (a, b)-> deepCombine(a,b,scalarOperation));
+                return FiniteSet.combineAll((FiniteSet) l,(FiniteSet) r, (a, b)-> deepCombineNumbers(a,b,scalarOperation));
             }else{
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
         }else if(l instanceof FiniteMap){
             if(r instanceof NumericValue||r instanceof Matrix){
-                return ((FiniteMap) l).replace(o-> deepCombine(o,r,scalarOperation));
+                return ((FiniteMap) l).replace(o-> deepCombineNumbers(o,r,scalarOperation));
             }else if(r instanceof FiniteSet){
-                return FiniteSet.replace((FiniteSet) r, o-> deepCombine(l,o,scalarOperation));
+                return FiniteSet.replace((FiniteSet) r, o-> deepCombineNumbers(l,o,scalarOperation));
             }else if(r instanceof FiniteMap){
-                return FiniteMap.combineAll((FiniteMap) l,(FiniteMap) r, (a, b)-> deepCombine(a,b,scalarOperation));
+                return FiniteMap.combineAll((FiniteMap) l,(FiniteMap) r, (a, b)-> deepCombineNumbers(a,b,scalarOperation));
             }else{
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
@@ -438,10 +482,10 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
     }
 
     public static MathObject add(MathObject l, MathObject r) {
-        return deepCombine(l,r, NumericValue::add);
+        return deepCombineNumbers(l,r, NumericValue::add);
     }
     public static MathObject subtract(MathObject l, MathObject r) {
-        return deepCombine(l,r, NumericValue::subtract);
+        return deepCombineNumbers(l,r, NumericValue::subtract);
     }
     public static MathObject negate(MathObject o) {
         return deepReplaceNumbers(o, e->e.negate());
@@ -449,7 +493,7 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
 
 
     public static MathObject multiply(MathObject l, MathObject r) {
-        return deepCombine(l,r, NumericValue::multiply);
+        return deepCombineNumbers(l,r, NumericValue::multiply);
     }
 
     public static Real sqAbs(MathObject o) {
@@ -482,30 +526,27 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
 
 
     public static MathObject divide(MathObject l, MathObject r) {
-        return deepCombine(l,r, NumericValue::divide);
+        return deepCombineNumbers(l,r, NumericValue::divide);
     }
 
-    public static MathObject mod(MathObject l, MathObject r) {
-        return deepCombine(l,r, NumericValue::mod);
-    }
     public static MathObject pow(MathObject l, MathObject r) {
-        return deepCombine(l,r, NumericValue::pow);
+        return deepCombineNumbers(l,r, NumericValue::pow);
     }
     public static MathObject round(MathObject o, int mode) {
         return deepReplaceNumbers(o, e->e.round(mode));
     }
 
     public static MathObject floorAnd(MathObject l, MathObject r) {
-        return deepCombine(l,r, NumericValue::floorAnd);
+        return deepCombineNumbers(l,r, NumericValue::floorAnd);
     }
     public static MathObject floorOr(MathObject l, MathObject r) {
-        return deepCombine(l,r, NumericValue::floorOr);
+        return deepCombineNumbers(l,r, NumericValue::floorOr);
     }
     public static MathObject floorXor(MathObject l, MathObject r) {
-        return deepCombine(l,r, NumericValue::floorXor);
+        return deepCombineNumbers(l,r, NumericValue::floorXor);
     }
     public static MathObject floorAndNot(MathObject l, MathObject r) {
-        return deepCombine(l,r, NumericValue::floorAndNot);
+        return deepCombineNumbers(l,r, NumericValue::floorAndNot);
     }
 
     /**@param l Left operand (maps will be converted to their set representation)
@@ -598,10 +639,10 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
         return FiniteSet.product(sets);
     }
     public static MathObject fAdd(MathObject l, MathObject r) {
-        return deepCombine(l,r, NumericValue::fAdd);
+        return deepCombineNumbers(l,r, NumericValue::fAdd);
     }
     public static MathObject strConcat(MathObject l, MathObject r) {
-        return deepCombine(l,r, NumericValue::strConcat);
+        return deepCombineNumbers(l,r, NumericValue::strConcat);
     }
 
     public static MathObject min(MathObject l, MathObject r) {
@@ -1564,6 +1605,26 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
                 base= Real.bigIntFromString(baseStr,Real.digitBase).num();
                 str=str.substring(tmp+1);
             }
+            int iCount=0;
+            boolean has_i=base.compareTo(Constants.MAX_INT)<0&&base.intValueExact()<Real.DIGITS.indexOf("i");
+            boolean has_I=base.compareTo(Constants.MAX_INT)<0&&base.intValueExact()<Real.DIGITS.indexOf("I");
+            if(has_i||has_I){
+                int i=str.length()-1;
+                for(;i>=0;i--){
+                    if(has_i&&str.charAt(i)=='i'){
+                        iCount++;
+                    }else if(has_I&&str.charAt(i)=='I'){
+                        iCount++;
+                    }else{
+                        break;
+                    }
+                }
+                str=str.substring(0,i+1);
+                if(iCount>0&&str.length()==0){
+                    str="1";
+                }
+                iCount=iCount%4;
+            }
             if(safeMode){
                 str = removeIllegalCharacters(base, str, true);
             }else{
@@ -1571,7 +1632,14 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
                 if(str.isEmpty())
                     throw new IllegalArgumentException("empty input String in numberFromString");
             }
-            return Real.bigIntFromString(str, base);
+            Real real=Real.bigIntFromString(str, base);
+            switch (iCount){
+                case 0:return real;
+                case 1:return Complex.from(Real.Int.ZERO,real);
+                case 2:return real.negate();
+                case 3:return Complex.from(Real.Int.ZERO,real.negate());
+                default:throw new RuntimeException("Unexpected iCount:"+iCount);
+            }
         }
 
         @NotNull
