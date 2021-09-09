@@ -5,6 +5,7 @@ import java.math.BigInteger;
 import java.util.Objects;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 
 public final class Pair extends Tuple{
@@ -157,6 +158,50 @@ public final class Pair extends Tuple{
         }
         return FiniteMap.from(map);
     }
+    @Override
+    public FiniteMap remove(MathObject value) {
+        TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
+        if(!a.equals(value))
+            map.put(Real.Int.ZERO,a);
+        if(!b.equals(value))
+            map.put(Real.Int.ONE,a);
+        return FiniteMap.from(map);
+    }
+    @Override
+    public Tuple tupleRemove(MathObject value) {
+        TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
+        int len=0;
+        if(!a.equals(value)){
+            map.put(Real.Int.ZERO,a);
+            len++;
+            if(!b.equals(value)) {
+                map.put(Real.Int.ONE, a);
+                len++;
+            }
+        }else if(!b.equals(value)){
+            map.put(Real.Int.ZERO,a);
+            len++;
+        }
+        return FiniteMap.createTuple(map,BigInteger.valueOf(len));
+    }
+    @Override
+    public FiniteMap removeKey(MathObject key) {
+        TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
+        if(!Real.Int.ZERO.equals(key))
+            map.put(Real.Int.ZERO,a);
+        if(!Real.Int.ONE.equals(key))
+            map.put(Real.Int.ONE,a);
+        return FiniteMap.from(map);
+    }
+    @Override
+    public MathObject removeIf(BinaryOperator<MathObject> condition) {
+        TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
+        if(!MathObject.isTrue(condition.apply(Real.Int.ZERO,a)))
+            map.put(Real.Int.ZERO,a);
+        if(!MathObject.isTrue(condition.apply(Real.Int.ONE,b)))
+            map.put(Real.Int.ONE,a);
+        return FiniteMap.from(map);
+    }
 
     @Override
     public MathObject[] toArray() {
@@ -172,7 +217,7 @@ public final class Pair extends Tuple{
     }
 
     @Override
-    public FiniteMap forEach(Function<MathObject, MathObject> f) {
+    public FiniteMap replace(Function<MathObject, MathObject> f) {
         return new Pair(f.apply(a),f.apply(b));
     }
 

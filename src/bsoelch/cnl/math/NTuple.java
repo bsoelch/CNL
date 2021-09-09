@@ -3,6 +3,7 @@ package bsoelch.cnl.math;
 
 import java.math.BigInteger;
 import java.util.*;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 
 final class NTuple extends Tuple{
@@ -94,7 +95,55 @@ final class NTuple extends Tuple{
         }
     }
 
-
+    @Override
+    public FiniteMap remove(MathObject value) {
+        MathObject[] newValues=new MathObject[objects.length];
+        for(int i=0;i<objects.length;i++){
+            if(objects[i].equals(value)){
+                newValues[i] = Real.Int.ZERO;
+            }else {
+                newValues[i] = objects[i];
+            }
+        }
+        return Tuple.create(Arrays.copyOf(newValues,objects.length));
+    }
+    @Override
+    public Tuple tupleRemove(MathObject value) {
+        MathObject[] newValues=new MathObject[objects.length];
+        int removed=0;
+        for(int i=0;i<objects.length;i++){
+            if(objects[i].equals(value)){
+                removed++;
+            }else {
+                newValues[i - removed] = objects[i];
+            }
+        }
+        return Tuple.create(Arrays.copyOf(newValues,objects.length-removed));
+    }
+    @Override
+    public FiniteMap removeKey(MathObject key) {
+        MathObject[] newValues=new MathObject[objects.length];
+        for(int i=0;i<objects.length;i++){
+            if(Real.from(i).equals(key)){
+                newValues[i] = Real.Int.ZERO;
+            }else {
+                newValues[i] = objects[i];
+            }
+        }
+        return Tuple.create(Arrays.copyOf(newValues,objects.length));
+    }
+    @Override
+    public FiniteMap removeIf(BinaryOperator<MathObject> condition) {
+        MathObject[] newValues=new MathObject[objects.length];
+        for(int i=0;i<objects.length;i++){
+            if(MathObject.isTrue(condition.apply(Real.from(i),objects[i]))){
+                newValues[i] = Real.Int.ZERO;
+            }else {
+                newValues[i] = objects[i];
+            }
+        }
+        return Tuple.create(Arrays.copyOf(newValues,objects.length));
+    }
 
     /**first Integer in this range that is greater that o
      * @param allowEq if true it is allowed that the returned index may be equal to o*/
@@ -163,7 +212,7 @@ final class NTuple extends Tuple{
     }
 
     @Override
-    public Tuple forEach(Function<MathObject, MathObject> f) {
+    public Tuple replace(Function<MathObject, MathObject> f) {
         MathObject[] newObjects=new MathObject[objects.length];
         for(int i=0;i<objects.length;i++)
             newObjects[i]=f.apply(objects[i]);

@@ -78,14 +78,14 @@ public final class FiniteSet extends MathObject implements Iterable<MathObject>{
         return from(newContents);
     }
 
-    public static FiniteSet forEach(FiniteSet s, Function<MathObject, MathObject> f){
+    public static FiniteSet replace(FiniteSet s, Function<MathObject, MathObject> f){
         HashSet<MathObject> newContents=new HashSet<>();
         for (MathObject o : s) {
             newContents.add(f.apply(o));
         }
         return from(newContents);
     }
-    public static FiniteSet forEachPair(FiniteSet s1, FiniteSet s2, BiFunction<MathObject, MathObject, MathObject> f){
+    public static FiniteSet combineAll(FiniteSet s1, FiniteSet s2, BiFunction<MathObject, MathObject, MathObject> f){
         HashSet<MathObject> newContents=new HashSet<>();
         for (MathObject o1 : s1) {
             for (MathObject o2 : s2) {
@@ -213,6 +213,12 @@ public final class FiniteSet extends MathObject implements Iterable<MathObject>{
         if(MathObject.compare(last,first)<0)
             return EMPTY_SET;
         return from(contents.subSet(first,includeFirst,last,includeLast));
+    }
+    public FiniteSet removeIf(Function<MathObject,MathObject> condition){
+        TreeSet<MathObject> newContents=new TreeSet<>(MathObject::compare);
+        newContents.addAll(contents);
+        newContents.removeIf(e->MathObject.isTrue(condition.apply(e)));
+        return from(newContents);
     }
 
     @Override

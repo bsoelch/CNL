@@ -35,6 +35,40 @@ public abstract class NumericValue extends MathObject implements Comparable<Nume
     /**simplified approximation of this NumericValue with an error of at most precision*/
     public abstract NumericValue approx(Real precision);
 
+
+
+    /**element-wise numerator of real and imaginary part */
+    public static NumericValue numerators(NumericValue a){
+        if(a instanceof Real){
+            return ((Real) a).numerator();
+        }else if(a instanceof Complex){
+            return Complex.from(a.realPart().numerator(),a.imaginaryPart().numerator());
+        }else{
+            throw new IllegalArgumentException("Unexpected Scalar-class:"+a.getClass());
+        }
+    }
+    /**element-wise denominator of real and imaginary part */
+    public static NumericValue denominators(NumericValue a){
+        if(a instanceof Real){
+            return ((Real) a).denominator();
+        }else if(a instanceof Complex){
+            return Complex.from(a.realPart().denominator(),a.imaginaryPart().denominator());
+        }else{
+            throw new IllegalArgumentException("Unexpected Scalar-class:"+a.getClass());
+        }
+    }
+    /**element-wise signum of real and imaginary part
+     * (true signum would need a square roots which may not be representable as fractions)*/
+    public static NumericValue signum(NumericValue a){
+        if(a instanceof Real){
+            return ((Real) a).signum();
+        }else if(a instanceof Complex){
+            return Complex.from(a.realPart().signum(),a.imaginaryPart().signum());
+        }else{
+            throw new IllegalArgumentException("Unexpected Scalar-class:"+a.getClass());
+        }
+    }
+
     public static NumericValue not(NumericValue e){
         return e.equals(Real.Int.ZERO)?Real.Int.ONE:Real.Int.ZERO;
     }

@@ -1,6 +1,7 @@
 package bsoelch.cnl.interpreter;
 
 import bsoelch.cnl.math.MathObject;
+import bsoelch.cnl.math.NumericValue;
 import bsoelch.cnl.math.Real;
 import org.jetbrains.annotations.NotNull;
 
@@ -9,11 +10,25 @@ import java.math.BigInteger;
 public interface Context extends Action {
     @NotNull Context getChild(BigInteger id);
 
-    @NotNull MathObject getVar(MathObject id);//addLater: multi-var Access? (getVar({1,2}) => {VAR1,VAR2})
+    @NotNull MathObject getVar(NumericValue id);
+    default @NotNull MathObject getVar(MathObject id) {
+        if(id instanceof NumericValue){
+            return getVar((NumericValue)id);
+        }else{
+            return MathObject.deepReplace(id, this::getVar);
+        }
+    }
 
-    boolean hasVar(MathObject id);
+    boolean hasVar(NumericValue id);
 
-    void putVar(MathObject id, MathObject value);
+    void putVar(NumericValue id, MathObject value);
+    default void putVar(MathObject id, MathObject value) {
+        if(id instanceof NumericValue){
+            putVar((NumericValue) id,value);
+        }else{
+            MathObject.deepForEach(id,e->putVar(e,value));
+        }
+    }
 
     @NotNull Function getFunction(BigInteger id);
 

@@ -3,6 +3,7 @@ package bsoelch.cnl.math;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.function.BiFunction;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 
 public abstract class FiniteMap extends MathObject {
@@ -54,7 +55,7 @@ public abstract class FiniteMap extends MathObject {
         }
     }
 
-    public static FiniteMap forEach(FiniteMap m1, FiniteMap m2, BiFunction<MathObject, MathObject, MathObject> f) {
+    public static FiniteMap combineAll(FiniteMap m1, FiniteMap m2, BiFunction<MathObject, MathObject, MathObject> f) {
         TreeMap<MathObject,MathObject> entries=new TreeMap<>(MathObject::compare);
         Iterator<Pair> it1 = m1.mapIterator();
         Iterator<Pair> it2 = m2.mapIterator();
@@ -82,7 +83,7 @@ public abstract class FiniteMap extends MathObject {
     public static FiniteMap constantMap(FiniteSet keys, MathObject value) {
         return value.equals(Real.Int.ZERO)?Tuple.EMPTY_MAP:new FiniteMap() {
             @Override
-            public FiniteMap forEach(Function<MathObject, MathObject> f) {
+            public FiniteMap replace(Function<MathObject, MathObject> f) {
                 return constantMap(keys,f.apply(value));
             }
 
@@ -149,6 +150,27 @@ public abstract class FiniteMap extends MathObject {
                 }
                 newMap.put(key, newValue);
                 return FiniteMap.from(newMap);
+            }
+
+            @Override
+            public MathObject remove(MathObject toRemove) {
+                return constantMap(FiniteSet.difference(keys,FiniteSet.from(toRemove)),value);
+            }
+            @Override
+            public MathObject removeKey(MathObject key) {
+                return remove(key);
+            }
+            @Override
+            public MathObject removeIf(BinaryOperator<MathObject> condition) {
+                return constantMap(keys.removeIf(e->condition.apply(e,Real.Int.ONE)),value);
+            }
+            @Override
+            public Tuple nonzeroElements() {
+                if(value.equals(Real.Int.ZERO)){
+                    return Tuple.EMPTY_MAP;
+                }else{
+                    return asTuple();
+                }
             }
 
             @Override
@@ -253,11 +275,33 @@ public abstract class FiniteMap extends MathObject {
     /**Number of (non-zero) values in this map*/
     public abstract int size();
 
-    public abstract FiniteMap forEach(Function<MathObject, MathObject> f);
+    public abstract FiniteMap replace(Function<MathObject, MathObject> f);
 
     public abstract FiniteSet domain();
 
     public abstract FiniteSet values();
+
+    public abstract MathObject evaluateAt(MathObject a);
+
+    /**true is this Map is a (sparse) Tuple
+     * i.e all Keys are non-negative integers*/
+    public abstract boolean isTuple();
+    /**true is this Map is a (sparse) Matrix
+     * i.e all Keys are non-negative integers and all
+     * Values are mapping non-negative Integers to NumericValues*/
+    public abstract boolean isMatrix();
+    /**true is this Map is a (sparse) Tuple and all Values are NumericValues*/
+    public abstract boolean isNumericTuple();
+
+    public FiniteSet asSet() {
+        TreeSet<MathObject> pairs=new TreeSet<>(MathObject::compare);
+        for (Iterator<Pair> it = mapIterator(); it.hasNext(); ) {
+            Pair p = it.next();
+            pairs.add(p);
+        }
+        return FiniteSet.from(pairs);
+    }
+    public abstract Tuple asTuple();
 
     public abstract MathObject firstKey();
     public abstract MathObject firstValue();
@@ -269,15 +313,13 @@ public abstract class FiniteMap extends MathObject {
     public abstract FiniteMap tailMap(MathObject first,boolean include);
     public abstract FiniteMap range(MathObject first,boolean includeFirst,MathObject last,boolean includeLast);
 
-    public FiniteSet asSet() {
-        TreeSet<MathObject> pairs=new TreeSet<>(MathObject::compare);
-        for (Iterator<Pair> it = mapIterator(); it.hasNext(); ) {
-            Pair p = it.next();
-            pairs.add(p);
-        }
-        return FiniteSet.from(pairs);
-    }
-    public abstract Tuple asTuple();
+    public abstract MathObject insert(MathObject value);
+    public abstract MathObject put(MathObject key,MathObject value);
+
+    public abstract MathObject remove(MathObject value);
+    public abstract MathObject removeKey(MathObject key);
+    public abstract MathObject removeIf(BinaryOperator<MathObject> condition);
+    public abstract Tuple nonzeroElements();
 
     private Iterator<Pair> wrapItr(Iterator<MathObject> keyItr){
         return new Iterator<Pair>() {
@@ -345,20 +387,5 @@ public abstract class FiniteMap extends MathObject {
         return sb.append('}').toString();
     }
 
-    /**true is this Map is a (sparse) Matrix
-     * i.e all Keys are non-negative integers and all
-     * Values are mapping non-negative Integers to NumericValues*/
-    public abstract boolean isMatrix();
-    /**true is this Map is a (sparse) Tuple and all Values are NumericValues*/
-    public abstract boolean isNumericTuple();
-
-    /**true is this Map is a (sparse) Tuple
-     * i.e all Keys are non-negative integers*/
-    public abstract boolean isTuple();
-
-    public abstract MathObject evaluateAt(MathObject a);
-
-    public abstract MathObject insert(MathObject value);
-    public abstract MathObject put(MathObject key,MathObject value);
 
 }

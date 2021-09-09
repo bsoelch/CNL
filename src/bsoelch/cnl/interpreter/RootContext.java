@@ -2,6 +2,7 @@ package bsoelch.cnl.interpreter;
 
 import bsoelch.cnl.BitRandomAccessStream;
 import bsoelch.cnl.math.MathObject;
+import bsoelch.cnl.math.NumericValue;
 import bsoelch.cnl.math.Real;
 import org.jetbrains.annotations.NotNull;
 
@@ -11,7 +12,7 @@ import java.util.HashMap;
 
 class RootContext implements Context {
     private final HashMap<BigInteger, Context> children = new HashMap<>();
-    private final HashMap<MathObject, MathObject> vars = new HashMap<>();
+    private final HashMap<NumericValue, MathObject> vars = new HashMap<>();
     private final HashMap<BigInteger, Function> functions = new HashMap<>();
 
     private final ArgumentData fData;
@@ -32,7 +33,7 @@ class RootContext implements Context {
 
     @Override
     @NotNull
-    public MathObject getVar(MathObject id) {
+    public MathObject getVar(NumericValue id) {
         id=id.numericValue();
         MathObject value = vars.get(id);
         if (value == null)
@@ -41,13 +42,13 @@ class RootContext implements Context {
     }
 
     @Override
-    public boolean hasVar(MathObject id) {
+    public boolean hasVar(NumericValue id) {
         id=id.numericValue();
         return vars.containsKey(id);
     }
 
     @Override
-    public void putVar(MathObject id, MathObject value) {
+    public void putVar(NumericValue id, MathObject value) {
         id=id.numericValue();
         vars.put(id, value);
     }

@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.util.*;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 
 public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
@@ -49,7 +50,7 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
         }
 
         @Override
-        public FiniteMap forEach(Function<MathObject, MathObject> f) {
+        public FiniteMap replace(Function<MathObject, MathObject> f) {
             return this;
         }
         @Override
@@ -94,6 +95,26 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
         }
         @Override
         public FiniteMap range(MathObject first, boolean includeFirst, MathObject last, boolean includeLast) {
+            return this;
+        }
+        @Override
+        public MathObject remove(MathObject value) {
+            return this;
+        }
+        @Override
+        public Tuple tupleRemove(MathObject value) {
+            return this;
+        }
+        @Override
+        public MathObject removeKey(MathObject key) {
+            return this;
+        }
+        @Override
+        public MathObject removeIf(BinaryOperator<MathObject> condition) {
+            return this;
+        }
+        @Override
+        public Tuple nonzeroElements() {
             return this;
         }
 
@@ -172,6 +193,13 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
     }
     public abstract MathObject insert(MathObject value,int index);
     public abstract FiniteMap remove(int index);
+    public abstract Tuple tupleRemove(MathObject value);
+    @Override
+    public Tuple nonzeroElements() {
+        return tupleRemove(Real.Int.ZERO);
+    }
+    //addLater? tupleRemoveIf
+
     @Override
     public FiniteMap removeFirst() {
         return remove(0);
@@ -378,8 +406,8 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
         }
 
         @Override
-        public FiniteMap forEach(Function<MathObject, MathObject> f) {
-            return map.forEach(f);
+        public FiniteMap replace(Function<MathObject, MathObject> f) {
+            return map.replace(f);
         }
 
         @Override
@@ -527,6 +555,37 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
         @Override
         public FiniteMap range(MathObject first, boolean includeFirst, MathObject last, boolean includeLast) {
             return map.range(first, includeFirst, last, includeLast);
+        }
+        @Override
+        public MathObject remove(MathObject value) {
+            return map.remove(value);
+        }
+        @Override
+        public Tuple tupleRemove(MathObject value) {
+            if(value.equals(Real.Int.ZERO)){
+                return map.nonzeroElements();
+            }else {
+                TreeMap<MathObject, MathObject> newMap = new TreeMap<>(MathObject::compare);
+                Real.Int removed = Real.Int.ZERO;
+                for (Iterator<Pair> it = map.mapIterator(); it.hasNext(); ) {
+                    Pair e = it.next();
+                    if (e.b.equals(value)) {
+                        removed = (Real.Int) Real.add(removed, Real.Int.ONE);
+                    } else {
+                        newMap.put(MathObject.subtract(e.a, removed), e.b);
+                    }
+                }
+                return FiniteMap.createTuple(newMap, length.subtract(removed.num()));
+            }
+        }
+
+        @Override
+        public MathObject removeKey(MathObject key) {
+            return map.removeKey(key);
+        }
+        @Override
+        public MathObject removeIf(BinaryOperator<MathObject> condition) {
+            return map.removeIf(condition);
         }
 
         @Override

@@ -4,10 +4,12 @@ import bsoelch.cnl.Constants;
 import bsoelch.cnl.math.expressions.ExpressionNode;
 import bsoelch.cnl.math.expressions.LambdaVariable;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.math.BigInteger;
 import java.util.*;
 import java.util.function.BinaryOperator;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**Root of all MathObjects*/
@@ -71,7 +73,7 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
     }
 
     public static MathObject not(MathObject o) {
-        return deepForEachElement(o,NumericValue::not);
+        return deepReplaceNumbers(o,NumericValue::not);
     }
 
     /**@return the boolean value of the supplied MathObject,
@@ -128,17 +130,31 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
             throw new IllegalArgumentException("Unexpected MathObject:"+o.getClass());
         }
     }
-    //addLater? non-zerosAsTuple
+    public static Tuple nonzeroElements(MathObject o) {
+        if(o instanceof LambdaExpression)
+            o=o.asMathObject();
+        if(o instanceof Matrix)
+            o=((Matrix) o).asMap();
+        if(o instanceof NumericValue){
+            return Tuple.create(new MathObject[]{o});
+        }else if(o instanceof FiniteSet){
+            return ((FiniteSet)o).asTuple();
+        }else if(o instanceof FiniteMap){
+            return ((FiniteMap)o).nonzeroElements();
+        }else{
+            throw new IllegalArgumentException("Unexpected MathObject:"+o.getClass());
+        }
+    }
 
-    public static MathObject deepForEachElement(MathObject o, Function<NumericValue, NumericValue> scalarFunction){
+    public static MathObject deepReplaceNumbers(MathObject o, Function<NumericValue, NumericValue> scalarFunction){
         if(o instanceof NumericValue){
             return scalarFunction.apply((NumericValue) o);
         }else if(o instanceof Matrix){
             return ((Matrix) o).applyToAll(scalarFunction);
         }else if(o instanceof FiniteSet){
-            return FiniteSet.forEach((FiniteSet) o, e-> deepForEachElement(e,scalarFunction));
+            return FiniteSet.replace((FiniteSet) o, e-> deepReplaceNumbers(e,scalarFunction));
         }else if(o instanceof FiniteMap){
-            return ((FiniteMap) o).forEach(e-> deepForEachElement(e,scalarFunction));
+            return ((FiniteMap) o).replace(e-> deepReplaceNumbers(e,scalarFunction));
         }else{
             throw new IllegalArgumentException("Unexpected MathObject:"+o.getClass());
         }
@@ -149,9 +165,9 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
         if(o instanceof NumericValue){
             return scalarFunction.apply((NumericValue) o);
         }else if(o instanceof FiniteSet){
-            return FiniteSet.forEach((FiniteSet) o, e-> deepReplace(e,scalarFunction));
+            return FiniteSet.replace((FiniteSet) o, e-> deepReplace(e,scalarFunction));
         }else if(o instanceof FiniteMap){
-            return ((FiniteMap) o).forEach(e-> deepReplace(e,scalarFunction));
+            return ((FiniteMap) o).replace(e-> deepReplace(e,scalarFunction));
         }else{
             throw new IllegalArgumentException("Unexpected MathObject:"+o.getClass());
         }
@@ -162,22 +178,69 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
         if(o instanceof NumericValue){
             return replace.apply(o);
         }else if(o instanceof FiniteSet){
-            return FiniteSet.forEach((FiniteSet) o,replace);
+            return FiniteSet.replace((FiniteSet) o,replace);
         }else if(o instanceof FiniteMap){
-            return ((FiniteMap) o).forEach(replace);
+            return ((FiniteMap) o).replace(replace);
         }else{
             throw new IllegalArgumentException("Unexpected MathObject:"+o.getClass());
         }
     }
+    public static void forEachElement(MathObject o, Consumer<MathObject> action){
+        if(o instanceof NumericValue){
+            action.accept(o);
+        }else if(o instanceof Matrix){
+            for(NumericValue e:(Matrix) o){
+                action.accept(e);
+            }
+        }else if(o instanceof FiniteSet){
+            for(MathObject e:(FiniteSet)o){
+                action.accept(e);
+            }
+        }else if(o instanceof Tuple){
+            for(MathObject e:(Tuple)o){
+                action.accept(e);
+            }
+        }else if(o instanceof FiniteMap){
+            for(MathObject e:((FiniteMap) o).values()){
+                action.accept(e);
+            }
+        }else{
+            throw new IllegalArgumentException("Unexpected MathObject:"+o.getClass());
+        }
+    }
+    public static void deepForEach(MathObject o, Consumer<NumericValue> action){
+        if(o instanceof NumericValue){
+            action.accept((NumericValue) o);
+        }else if(o instanceof Matrix){
+            for(NumericValue e:(Matrix) o){
+                action.accept(e);
+            }
+        }else if(o instanceof FiniteSet){
+            for(MathObject e:(FiniteSet)o){
+                deepForEach(e,action);
+            }
+        }else if(o instanceof Tuple){
+            for(MathObject e:(Tuple)o){
+                deepForEach(e,action);
+            }
+        }else if(o instanceof FiniteMap){
+            for(MathObject e:((FiniteMap) o).values()){
+                deepForEach(e,action);
+            }
+        }else{
+            throw new IllegalArgumentException("Unexpected MathObject:"+o.getClass());
+        }
+    }
+
     public static MathObject mapAll(MathObject o, Function<MathObject, MathObject> replace){
         if(o instanceof Matrix)
             o=((Matrix) o).asMap();
         if(o instanceof NumericValue){
             return replace.apply(o);
         }else if(o instanceof FiniteSet){
-            return FiniteSet.forEach((FiniteSet) o,e->new Pair(e,replace.apply(e))).asMap();
+            return FiniteSet.replace((FiniteSet) o, e->new Pair(e,replace.apply(e))).asMap();
         }else if(o instanceof FiniteMap){
-            return ((FiniteMap) o).forEach(replace);
+            return ((FiniteMap) o).replace(replace);
         }else{
             throw new IllegalArgumentException("Unexpected MathObject:"+o.getClass());
         }
@@ -190,9 +253,9 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
             }else if(r instanceof Matrix){
                 return ((Matrix) r).applyToAll(e->scalarOperation.apply((NumericValue)l,e));
             }else if(r instanceof FiniteSet){
-                return FiniteSet.forEach((FiniteSet) r, o-> deepCombine(l,o,scalarOperation));
+                return FiniteSet.replace((FiniteSet) r, o-> deepCombine(l,o,scalarOperation));
             }else if(r instanceof FiniteMap){
-                return ((FiniteMap) r).forEach(o-> deepCombine(l,o,scalarOperation));
+                return ((FiniteMap) r).replace(o-> deepCombine(l,o,scalarOperation));
             }else{
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
@@ -200,29 +263,29 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
             if(r instanceof NumericValue){
                 return ((Matrix) l).applyToAll(e->scalarOperation.apply(e,(NumericValue)r));
             }else if(r instanceof Matrix){
-                return Matrix.forEach((Matrix) l,(Matrix) r,scalarOperation);
+                return Matrix.combine((Matrix) l,(Matrix) r,scalarOperation);
             }else if(r instanceof FiniteSet){
-                return FiniteSet.forEach((FiniteSet) r, o-> deepCombine(l,o,scalarOperation));
+                return FiniteSet.replace((FiniteSet) r, o-> deepCombine(l,o,scalarOperation));
             }else if(r instanceof FiniteMap){
-                return ((FiniteMap) r).forEach(o-> deepCombine(l,o,scalarOperation));
+                return ((FiniteMap) r).replace(o-> deepCombine(l,o,scalarOperation));
             }else{
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
         }else if(l instanceof FiniteSet){
             if(r instanceof NumericValue||r instanceof Matrix||r instanceof FiniteMap){
-                return FiniteSet.forEach((FiniteSet) l, o-> deepCombine(o,r,scalarOperation));
+                return FiniteSet.replace((FiniteSet) l, o-> deepCombine(o,r,scalarOperation));
             }else if(r instanceof FiniteSet){
-                return FiniteSet.forEachPair((FiniteSet) l,(FiniteSet) r, (a,b)-> deepCombine(a,b,scalarOperation));
+                return FiniteSet.combineAll((FiniteSet) l,(FiniteSet) r, (a, b)-> deepCombine(a,b,scalarOperation));
             }else{
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
         }else if(l instanceof FiniteMap){
             if(r instanceof NumericValue||r instanceof Matrix){
-                return ((FiniteMap) l).forEach(o-> deepCombine(o,r,scalarOperation));
+                return ((FiniteMap) l).replace(o-> deepCombine(o,r,scalarOperation));
             }else if(r instanceof FiniteSet){
-                return FiniteSet.forEach((FiniteSet) r, o-> deepCombine(l,o,scalarOperation));
+                return FiniteSet.replace((FiniteSet) r, o-> deepCombine(l,o,scalarOperation));
             }else if(r instanceof FiniteMap){
-                return FiniteMap.forEach((FiniteMap) l,(FiniteMap) r, (a,b)-> deepCombine(a,b,scalarOperation));
+                return FiniteMap.combineAll((FiniteMap) l,(FiniteMap) r, (a, b)-> deepCombine(a,b,scalarOperation));
             }else{
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
@@ -241,37 +304,67 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
                 return combine.apply(l,r);
             }else if(r instanceof FiniteSet){
                 MathObject finalL = l;
-                return FiniteSet.forEach((FiniteSet) r, o-> combine.apply(finalL,o));
+                return FiniteSet.replace((FiniteSet) r, o-> combine.apply(finalL,o));
             }else if(r instanceof FiniteMap){
                 MathObject finalL1 = l;
-                return ((FiniteMap) r).forEach(o-> combine.apply(finalL1,o));
+                return ((FiniteMap) r).replace(o-> combine.apply(finalL1,o));
             }else{
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
         }else if(l instanceof FiniteSet){
             if(r instanceof NumericValue){
                 MathObject finalR = r;
-                return FiniteSet.forEach((FiniteSet) l, o-> combine.apply(o, finalR));
+                return FiniteSet.replace((FiniteSet) l, o-> combine.apply(o, finalR));
             }else if(r instanceof FiniteSet){
-                return FiniteSet.forEachPair((FiniteSet) l,(FiniteSet) r, combine);
+                return FiniteSet.combineAll((FiniteSet) l,(FiniteSet) r, combine);
             }else if(r instanceof FiniteMap){
-                return FiniteSet.forEachPair((FiniteSet) l,((FiniteMap) r).asSet(), (a,b)->combine.apply(a,((Pair)b).b));
+                return FiniteSet.combineAll((FiniteSet) l,((FiniteMap) r).asSet(), (a, b)->combine.apply(a,((Pair)b).b));
             }else{
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
         }else if(l instanceof FiniteMap){
             if(r instanceof NumericValue){
                 MathObject finalR1 = r;
-                return ((FiniteMap) l).forEach(o->combine.apply(o, finalR1));
+                return ((FiniteMap) l).replace(o->combine.apply(o, finalR1));
             }else if(r instanceof FiniteSet){
-                return FiniteSet.forEachPair(((FiniteMap) l).asSet(),(FiniteSet) r,  (a,b)->combine.apply(((Pair)a).b,b));
+                return FiniteSet.combineAll(((FiniteMap) l).asSet(),(FiniteSet) r,  (a, b)->combine.apply(((Pair)a).b,b));
             }else if(r instanceof FiniteMap){
-                return FiniteMap.forEach((FiniteMap) l,(FiniteMap) r, combine);
+                return FiniteMap.combineAll((FiniteMap) l,(FiniteMap) r, combine);
             }else{
                 throw new IllegalArgumentException("Unexpected MathObject:"+r.getClass());
             }
         }else{
             throw new IllegalArgumentException("Unexpected MathObject:"+l.getClass());
+        }
+    }
+
+    /**reduces a set/map with a binary operation
+     * @param target the targeted MathObject
+     * @param prev result of the previous operation (for deep reduce) or null is the is the first operation in the reduction
+     * @param reduce the reduction function
+     * @param isDeep if true the reduction goes recursive through all contained sets/maps*/
+    public static MathObject reduce(MathObject target,@Nullable MathObject prev,BinaryOperator<MathObject> reduce,boolean isDeep){
+        if(target instanceof Matrix)
+            target=((Matrix) target).asMap();
+        if(target instanceof NumericValue){
+            return prev==null?target:reduce.apply(prev,target);
+        }else if(target instanceof FiniteSet){
+            for(MathObject e:(FiniteSet)target){
+                prev=prev==null?e:(isDeep?reduce(target,prev,reduce,true):reduce.apply(prev,e));
+            }
+            return prev;
+        }else if(target instanceof Tuple){
+            for(MathObject e:(Tuple) target){
+                prev=prev==null?e:(isDeep?reduce(target,prev,reduce,true):reduce.apply(prev,e));
+            }
+            return prev;
+        }else if(target instanceof FiniteMap){
+            for(MathObject e:((FiniteMap) target).values()){
+                prev=prev==null?e:(isDeep?reduce(target,prev,reduce,true):reduce.apply(prev,e));
+            }
+            return prev;
+        }else{
+            throw new IllegalArgumentException("Unexpected MathObject:"+target.getClass());
         }
     }
 
@@ -351,7 +444,7 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
         return deepCombine(l,r, NumericValue::subtract);
     }
     public static MathObject negate(MathObject o) {
-        return deepForEachElement(o, e->e.negate());
+        return deepReplaceNumbers(o, e->e.negate());
     }
 
 
@@ -399,7 +492,7 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
         return deepCombine(l,r, NumericValue::pow);
     }
     public static MathObject round(MathObject o, int mode) {
-        return deepForEachElement(o, e->e.round(mode));
+        return deepReplaceNumbers(o, e->e.round(mode));
     }
 
     public static MathObject floorAnd(MathObject l, MathObject r) {
@@ -519,6 +612,14 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
     }
 
     public static Tuple tupleConcat(MathObject a,MathObject b) {
+        //convert Maps to Tuples
+        if(a instanceof FiniteMap){
+            a=((FiniteMap) a).asTuple();
+        }//no else
+        if(b instanceof FiniteMap){
+            b=((FiniteMap) b).asTuple();
+        }
+
         int l,s;
         if(a instanceof Tuple){
             l=((Tuple) a).length();
@@ -595,7 +696,7 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
         }
     }
     /**gets the domain or range element of a given MathObject*/
-    public static MathObject domainOrRange(MathObject source, boolean domain){
+    public static FiniteSet domainOrRange(MathObject source, boolean domain){
         if(source instanceof LambdaExpression)
             source=source.asMathObject();
         //no else
@@ -603,9 +704,9 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
             source=((Matrix) source).asMap();
         //no else
         if(source instanceof NumericValue){
-            return FiniteSet.from(domain?source:Real.Int.ONE);
+            return FiniteSet.from(source);
         }else if(source instanceof FiniteSet){
-            return domain?source:FiniteSet.from(Real.Int.ONE);
+            return (FiniteSet)source;
         }else if(source instanceof FiniteMap){
             return domain?((FiniteMap) source).domain():((FiniteMap) source).values();
         }else{
@@ -694,6 +795,11 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
      * @param includeFrom true if elements equal to from are allowed
      * @param includeTo true if elements equal to to are allowed*/
     public static MathObject range(MathObject source, MathObject from, boolean includeFrom, MathObject to, boolean includeTo) {
+        if(compare(from,to)>0){//swap if from>to
+            MathObject tmp=to;
+            to=from;
+            from=tmp;
+        }
         if(source instanceof LambdaExpression)
             source=source.asMathObject();
         //no else
@@ -725,6 +831,61 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
             return first?((FiniteSet) source).removeFirst():((FiniteSet) source).removeLast();
         }else if(source instanceof FiniteMap){
             return first?((FiniteMap) source).removeFirst():((FiniteMap) source).removeLast();
+        }else{
+            throw new IllegalArgumentException("Unexpected MathObject:"+source.getClass());
+        }
+    }
+    /**removes all occurrences of value in the given MathObject,
+     * @param isKey if true the removed elements is selected by key instead of value*/
+    public static MathObject remove(MathObject source,MathObject value,boolean isKey){
+        if(source instanceof LambdaExpression)
+            source=source.asMathObject();
+        //no else
+        if(source instanceof Matrix)
+            source=((Matrix) source).asMap();
+        //no else
+        if(source instanceof NumericValue){
+            return FiniteSet.difference(FiniteSet.from(source),FiniteSet.from(value));
+        }else if(source instanceof FiniteSet){
+            return difference(source,FiniteSet.from(value));
+        }else if(source instanceof FiniteMap){
+            return isKey?((FiniteMap) source).removeKey(value):((FiniteMap) source).remove(value);
+        }else{
+            throw new IllegalArgumentException("Unexpected MathObject:"+source.getClass());
+        }
+    }
+    /**removes all values in source that satisfy the given condition*/
+    public static MathObject removeIf(MathObject source,Function<MathObject,MathObject> condition){
+        if(source instanceof LambdaExpression)
+            source=source.asMathObject();
+        //no else
+        if(source instanceof Matrix)
+            source=((Matrix) source).asMap();
+        //no else
+        if(source instanceof NumericValue){
+            return isTrue(condition.apply(source))?FiniteSet.EMPTY_SET:FiniteSet.from(source);
+        }else if(source instanceof FiniteSet){
+            return ((FiniteSet) source).removeIf(condition);
+        }else if(source instanceof FiniteMap){
+            return ((FiniteMap) source).removeIf((k,v)->condition.apply(v));
+        }else{
+            throw new IllegalArgumentException("Unexpected MathObject:"+source.getClass());
+        }
+    }
+    /**removes all (key,value) pairs in source that satisfy the given condition*/
+    public static MathObject removeIfMap(MathObject source,BinaryOperator<MathObject> condition){
+        if(source instanceof LambdaExpression)
+            source=source.asMathObject();
+        //no else
+        if(source instanceof Matrix)
+            source=((Matrix) source).asMap();
+        //no else
+        if(source instanceof NumericValue){
+            return isTrue(condition.apply(source,Real.Int.ONE))?FiniteSet.EMPTY_SET:FiniteSet.from(source);
+        }else if(source instanceof FiniteSet){
+            return ((FiniteSet) source).removeIf(e->condition.apply(e,Real.Int.ONE));
+        }else if(source instanceof FiniteMap){
+            return ((FiniteMap) source).removeIf(condition);
         }else{
             throw new IllegalArgumentException("Unexpected MathObject:"+source.getClass());
         }

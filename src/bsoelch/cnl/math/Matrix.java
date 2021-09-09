@@ -136,7 +136,7 @@ public final class Matrix extends MathObject implements Iterable<NumericValue> {
         return new Matrix(FiniteMap.from(rows),ret.length(),maxLength);
     }
 
-    public static Matrix forEach(Matrix a,Matrix b, BiFunction<NumericValue, NumericValue, NumericValue> f){
+    public static Matrix combine(Matrix a, Matrix b, BiFunction<NumericValue, NumericValue, NumericValue> f){
         MutableTuple<MutableTuple<NumericValue>> dataA=a.toMutableTuple(),dataB=b.toMutableTuple();
         if(f.apply(Real.Int.ZERO,Real.Int.ZERO).equals(Real.Int.ZERO)){
             dataA.ensureLength(dataB.length());

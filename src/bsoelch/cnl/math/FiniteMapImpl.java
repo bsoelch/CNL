@@ -2,6 +2,7 @@ package bsoelch.cnl.math;
 
 import java.math.BigInteger;
 import java.util.*;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 
 public final class FiniteMapImpl extends FiniteMap {
@@ -58,6 +59,51 @@ public final class FiniteMapImpl extends FiniteMap {
         newMap.remove(newMap.lastKey());
         return FiniteMap.from(newMap);
     }
+
+    @Override
+    public MathObject insert(MathObject value) {
+        TreeMap<MathObject,MathObject> newMap=new TreeMap<>(MathObject::compare);
+        NumericValue maxKey=null;
+        for(Map.Entry<MathObject, MathObject> e:map.entrySet()){
+            if(maxKey==null){
+                maxKey=e.getKey().numericValue();
+            }else{
+                maxKey=NumericValue.max(maxKey,e.getKey().numericValue());
+            }
+            newMap.put(e.getKey(),e.getValue());
+        }
+        newMap.put(NumericValue.add(maxKey,Real.Int.ONE),value);
+        return FiniteMap.from(newMap);
+    }
+    @Override
+    public MathObject put(MathObject key, MathObject value) {
+        TreeMap<MathObject,MathObject> newMap=new TreeMap<>(MathObject::compare);
+        newMap.putAll(map);
+        newMap.put(key, value);
+        return FiniteMap.from(newMap);
+    }
+    @Override
+    public MathObject remove(MathObject value) {
+        TreeMap<MathObject,MathObject> newMap=new TreeMap<>(MathObject::compare);
+        newMap.putAll(map);
+        newMap.values().remove(value);
+        return FiniteMap.from(newMap);
+    }
+    @Override
+    public MathObject removeKey(MathObject key) {
+        TreeMap<MathObject,MathObject> newMap=new TreeMap<>(MathObject::compare);
+        newMap.putAll(map);
+        newMap.remove(key);
+        return FiniteMap.from(newMap);
+    }
+    @Override
+    public MathObject removeIf(BinaryOperator<MathObject> condition) {
+        TreeMap<MathObject,MathObject> newMap=new TreeMap<>(MathObject::compare);
+        newMap.putAll(map);
+        newMap.entrySet().removeIf(e->MathObject.isTrue(condition.apply(e.getKey(),e.getValue())));
+        return FiniteMap.from(newMap);
+    }
+
     @Override
     public FiniteMap headMap(MathObject last, boolean include) {
         return FiniteMap.from(map.headMap(last, include));
@@ -172,6 +218,13 @@ public final class FiniteMapImpl extends FiniteMap {
         }
         return FiniteMap.createTuple(tuple,maxElement.add(BigInteger.ONE));
     }
+    @Override
+    public Tuple nonzeroElements() {
+        TreeMap<MathObject,MathObject> elements=new TreeMap<>(MathObject::compare);
+        elements.putAll(map);
+        elements.entrySet().removeIf(e->e.getKey().equals(Real.Int.ZERO));
+        return Tuple.create(elements.values().toArray(new MathObject[0]));
+    }
 
     @Override
     public MathObject evaluateAt(MathObject a) {
@@ -180,30 +233,7 @@ public final class FiniteMapImpl extends FiniteMap {
     }
 
     @Override
-    public MathObject insert(MathObject value) {
-        TreeMap<MathObject,MathObject> newMap=new TreeMap<>(MathObject::compare);
-        NumericValue maxKey=null;
-        for(Map.Entry<MathObject, MathObject> e:map.entrySet()){
-            if(maxKey==null){
-                maxKey=e.getKey().numericValue();
-            }else{
-                maxKey=NumericValue.max(maxKey,e.getKey().numericValue());
-            }
-            newMap.put(e.getKey(),e.getValue());
-        }
-        newMap.put(NumericValue.add(maxKey,Real.Int.ONE),value);
-        return FiniteMap.from(newMap);
-    }
-    @Override
-    public MathObject put(MathObject key, MathObject value) {
-        TreeMap<MathObject,MathObject> newMap=new TreeMap<>(MathObject::compare);
-        newMap.putAll(map);
-        newMap.put(key, value);
-        return FiniteMap.from(newMap);
-    }
-
-    @Override
-    public FiniteMap forEach(Function<MathObject, MathObject> f) {
+    public FiniteMap replace(Function<MathObject, MathObject> f) {
         HashMap<MathObject, MathObject> newElements=new HashMap<>(map.size());
         for(Map.Entry<MathObject, MathObject> e:map.entrySet()){
             newElements.put(e.getKey(),f.apply(e.getValue()));

@@ -3,6 +3,7 @@ package bsoelch.cnl.interpreter;
 import bsoelch.cnl.BitRandomAccessStream;
 import bsoelch.cnl.Constants;
 import bsoelch.cnl.math.MathObject;
+import bsoelch.cnl.math.NumericValue;
 import bsoelch.cnl.math.Real;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -18,7 +19,7 @@ class VarPointer implements ValuePointer {
     private final boolean isStatic;
     private boolean active = true;
 
-    VarPointer(Context env, @Nullable MathObject id) {
+    VarPointer(Context env, @Nullable NumericValue id) {
         myEnv = env;
         this.varId = id;
         isStatic = (id != null);
@@ -36,7 +37,7 @@ class VarPointer implements ValuePointer {
     @Override
     public boolean acceptsArg(int flags) {//allow second argument if root or empty and in var-chain
         return requiresArg() || ((active && (flags & Interpreter.FLAG_ROOT) == Interpreter.FLAG_ROOT) ||
-                (isStatic && ((flags & Interpreter.FLAG_VAR_DECLARATION_CHAIN) == Interpreter.FLAG_VAR_DECLARATION_CHAIN && !myEnv.hasVar(varId))));
+                (isStatic && ((flags & Interpreter.FLAG_VAR_DECLARATION_CHAIN) == Interpreter.FLAG_VAR_DECLARATION_CHAIN && !myEnv.hasVar((NumericValue) varId))));
     }
 
     public void setValue(MathObject newValue) {

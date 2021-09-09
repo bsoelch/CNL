@@ -230,8 +230,15 @@ public abstract class Real extends NumericValue {
     }
 
     public abstract BigInteger num();
-
     public abstract BigInteger den();
+
+    public abstract Real signum();
+    public Real numerator(){
+        return from(num());
+    }
+    public Real denominator(){
+        return from(den());
+    }
 
     @Override
     public final Real realPart() {
@@ -283,13 +290,26 @@ public abstract class Real extends NumericValue {
         }
 
         @Override
+        public Real signum() {
+            return from(value.signum());
+        }
+        @Override
         public BigInteger num() {
             return value;
         }
 
         @Override
+        public Real numerator() {
+            return super.numerator();
+        }
+        @Override
         public BigInteger den() {
             return BigInteger.ONE;
+        }
+
+        @Override
+        public Real denominator() {
+            return ONE;
         }
 
         @Override
@@ -384,6 +404,11 @@ public abstract class Real extends NumericValue {
         private Fraction(BigInteger a, BigInteger b) {
             this.a = a;
             this.b = b;
+        }
+
+        @Override
+        public Real signum() {
+            return from(a.signum());
         }
 
         @Override
