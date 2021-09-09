@@ -46,7 +46,7 @@ final class NTuple extends Tuple{
         return Tuple.create(newValues);
     }
     @Override
-    public MathObject put(MathObject key, MathObject value) {
+    public FiniteMap put(MathObject key, MathObject value) {
         TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
         for(int i=0;i<objects.length;i++){
             if(objects[i]!=null&&!objects[i].equals(Real.Int.ZERO)){
@@ -54,10 +54,10 @@ final class NTuple extends Tuple{
             }
         }
         map.put(key,value);
-        return FiniteMap.from(map);
+        return FiniteMap.from(map, FiniteMap.TUPLE_WRAP_ZERO_TERMINATED);
     }
     @Override
-    public MathObject insert(MathObject value, int index) {
+    public Tuple insert(MathObject value, int index) {
         if(index<0)
             throw new ArithmeticException("Negative index in Tuple");
         if(index<= objects.length){
@@ -78,7 +78,7 @@ final class NTuple extends Tuple{
             for (int i=0;i<objects.length;i++) {
                 newMap.put(Real.from(i),objects[i]);
             }
-            return FiniteMap.createTuple(newMap,BigInteger.valueOf(index+1));
+            return FiniteMap.createTuple(newMap,index+1);
         }
     }
     @Override
@@ -130,7 +130,7 @@ final class NTuple extends Tuple{
                 newValues[i] = objects[i];
             }
         }
-        return Tuple.create(Arrays.copyOf(newValues,objects.length));
+        return Tuple.create(newValues);
     }
     @Override
     public FiniteMap removeIf(BinaryOperator<MathObject> condition) {
@@ -142,7 +142,7 @@ final class NTuple extends Tuple{
                 newValues[i] = objects[i];
             }
         }
-        return Tuple.create(Arrays.copyOf(newValues,objects.length));
+        return Tuple.create(newValues);
     }
 
     /**first Integer in this range that is greater that o

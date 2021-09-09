@@ -277,7 +277,7 @@ class MutableTuple<T> implements Iterable<MutableTuple.TupleEntry<T>>{
             for(Map.Entry<Integer, T> e:data.entrySet()){
                 mapData.put(Real.from(e.getKey()),(MathObject)e.getValue());
             }
-            return FiniteMap.createTuple(mapData, BigInteger.valueOf(length));
+            return FiniteMap.createTuple(mapData, length);
         }
     }
 }

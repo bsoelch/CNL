@@ -14,7 +14,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**Root of all MathObjects*/
-public abstract class MathObject implements ExpressionNode {//addLater? iterators
+public abstract class MathObject implements ExpressionNode {//addLater? ElementView -> view one ELement of set/map
     MathObject(){}//package private constructor to ensure that there are no MathObject classes outside this package
 
     public static int FLOOR = -1;
@@ -713,7 +713,7 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
             }else{
                 mapData.put(offset,a);
             }
-            return FiniteMap.createTuple(mapData,BigInteger.valueOf(l));
+            return FiniteMap.createTuple(mapData,l);
         }
     }
 
@@ -1476,7 +1476,7 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
                                         parts.set(i - 1, new ValueNode(new Pair(l, r)));
                                     }else{
                                         parts.set(i - 1, new ValueNode(FiniteMap
-                                                .from(Collections.singletonMap(l, r))));
+                                                .from(Collections.singletonMap(l, r), FiniteMap.TUPLE_WRAP_ZERO_TERMINATED)));
                                     }
                                     i--;//update position
                                 } else {
@@ -1485,7 +1485,7 @@ public abstract class MathObject implements ExpressionNode {//addLater? iterator
                                             new ValueNode(new Pair(FiniteSet.EMPTY_SET, r)));
                                     }else{
                                         parts.set(i,new ValueNode(FiniteMap
-                                                .from(Collections.singletonMap(FiniteSet.EMPTY_SET, r))));
+                                                .from(Collections.singletonMap(FiniteSet.EMPTY_SET, r), FiniteMap.TUPLE_WRAP_ZERO_TERMINATED)));
 
                                     }
                                 }

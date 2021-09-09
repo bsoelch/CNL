@@ -16,13 +16,13 @@ import static bsoelch.cnl.Constants.*;
 class VarPointer implements ValuePointer {
     private final Context myEnv;
     private MathObject varId;
-    private final boolean isStatic;
+    private final boolean forceWrite;
     private boolean active = true;
 
-    VarPointer(Context env, @Nullable NumericValue id) {
+    VarPointer(Context env, @Nullable NumericValue id,boolean forceWrite) {
         myEnv = env;
         this.varId = id;
-        isStatic = (id != null);
+        this.forceWrite=forceWrite;
     }
 
     public @NotNull MathObject getValue() {
@@ -31,13 +31,12 @@ class VarPointer implements ValuePointer {
 
     @Override
     public boolean requiresArg() {
-        return varId == null;
+        return varId == null||(forceWrite&&active);
     }
 
     @Override
-    public boolean acceptsArg(int flags) {//allow second argument if root or empty and in var-chain
-        return requiresArg() || ((active && (flags & Interpreter.FLAG_ROOT) == Interpreter.FLAG_ROOT) ||
-                (isStatic && ((flags & Interpreter.FLAG_VAR_DECLARATION_CHAIN) == Interpreter.FLAG_VAR_DECLARATION_CHAIN && !myEnv.hasVar((NumericValue) varId))));
+    public boolean acceptsArg(int flags) {//allow second argument if root
+        return requiresArg() || (active &&(forceWrite||(flags & Interpreter.FLAG_ROOT) == Interpreter.FLAG_ROOT));
     }
 
     public void setValue(MathObject newValue) {
@@ -57,12 +56,18 @@ class VarPointer implements ValuePointer {
     @Override
     public void writeTo(BitRandomAccessStream target) throws IOException {
         if(varId!=null&&varId instanceof Real.Int &&((Real.Int) varId).compareTo(Real.Int.ZERO)>=0){//dynamic var
-            target.write(new long[]{HEADER_VAR}, 0, HEADER_VAR_LENGTH);
-            target.writeBigInt(((Real.Int) varId).num(), VAR_INT_HEADER, VAR_INT_BLOCK
+            if(forceWrite){
+                target.write(new long[]{HEADER_OPERATOR}, 0, HEADER_OPERATOR_LENGTH);
+                target.writeBigInt(BigInteger.valueOf(Operators.byName(Operators.WRITE_VAR).id),
+                        Constants.OPERATOR_INT_HEADER,Constants.OPERATOR_INT_BLOCK,Constants.OPERATOR_INT_BIG_BLOCK);
+            }else {
+                target.write(new long[]{HEADER_VAR}, 0, HEADER_VAR_LENGTH);
+            }
+            target.writeBigInt(((Real.Int)varId).num(), VAR_INT_HEADER, VAR_INT_BLOCK
                     , VAR_INT_BIG_BLOCK);
         }else {
             target.write(new long[]{HEADER_OPERATOR}, 0, HEADER_OPERATOR_LENGTH);
-            target.writeBigInt(BigInteger.valueOf(Operators.byName(Operators.DYNAMIC_VAR).id),
+            target.writeBigInt(BigInteger.valueOf(Operators.byName(forceWrite?Operators.WRITE_DYNAMIC_VAR:Operators.DYNAMIC_VAR).id),
                     Constants.OPERATOR_INT_HEADER,Constants.OPERATOR_INT_BLOCK,Constants.OPERATOR_INT_BIG_BLOCK);
             if(varId!=null){
                 Translator.writeValue(target, varId);
@@ -73,9 +78,9 @@ class VarPointer implements ValuePointer {
     @Override
     public String stringRepresentation() {
         if(varId!=null&&varId instanceof Real.Int&&((Real.Int) varId).compareTo(Real.Int.ZERO)>=0){
-            return "VAR" + varId;
+            return forceWrite?Operators.WRITE_VAR:"VAR" + varId;
         }else {
-            String ret="DYNAMIC_VAR";
+            String ret=forceWrite?Operators.WRITE_DYNAMIC_VAR:Operators.DYNAMIC_VAR;
             if(varId!=null){
                 ret+=" ("+varId.toString()+")";
             }

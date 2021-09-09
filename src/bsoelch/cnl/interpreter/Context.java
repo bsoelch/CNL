@@ -41,7 +41,7 @@ public interface Context extends Action {
 
     @Override
     default boolean acceptsArg(int flags) {
-        return true;//tell interpreter, that line is not yet finished
+        return true;//returns true to simplify code in interpreter
     }
 
     @Override

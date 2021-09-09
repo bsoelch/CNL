@@ -292,6 +292,7 @@ public class Main {
                         main=source+".cnls";
                     }
                 }
+                //addlater move FileManagement to Translator
                 try (Reader read=new InputStreamReader(new FileInputStream(fileFromPath(source)),StandardCharsets.UTF_8)){
                     compile(read, fileFromPath(main));
                 }catch (IOException io){

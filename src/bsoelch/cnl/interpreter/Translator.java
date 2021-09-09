@@ -185,13 +185,19 @@ public class Translator {
                 if(isRef&&(operatorInfo.needsEnvironment()||operatorInfo.isRuntimeOperator()))
                     throw new IllegalArgumentException("Cannot create OperatorReference from: "+operatorInfo.name);
                 if(operatorInfo.isRuntimeOperator()){
-                    if (operatorInfo.name.equals(Operators.DYNAMIC_VAR)) {
-                        return new VarPointer(context, null);
-                    } else if (operatorInfo.name.equals(Operators.CALL_FUNCTION)) {
-                        BigInteger fId=code.readBigInt(FUNCTION_ID_INT_HEADER,FUNCTION_ID_INT_BLOCK,FUNCTION_ID_INT_BIG_BLOCK);
-                        return new CallFunction(context,fId);
-                    } else{
-                        throw new IllegalArgumentException("Unknown Dynamic Operator: "+operatorInfo.name);
+                    switch (operatorInfo.name) {
+                        case Operators.DYNAMIC_VAR:
+                            return new VarPointer(context, null, false);
+                        case Operators.WRITE_DYNAMIC_VAR:
+                            return new VarPointer(context, null, true);
+                        case Operators.WRITE_VAR:
+                            BigInteger varId = code.readBigInt(VAR_INT_HEADER, VAR_INT_BLOCK, VAR_INT_BIG_BLOCK);
+                            return new VarPointer(context, Real.from(varId), true);
+                        case Operators.CALL_FUNCTION:
+                            BigInteger fId = code.readBigInt(FUNCTION_ID_INT_HEADER, FUNCTION_ID_INT_BLOCK, FUNCTION_ID_INT_BIG_BLOCK);
+                            return new CallFunction(context, fId);
+                        default:
+                            throw new IllegalArgumentException("Unknown Dynamic Operator: " + operatorInfo.name);
                     }
                 } else if(operatorInfo.isNary){
                     BigInteger numArgs=code.readBigInt(NARY_INT_HEADER,NARY_INT_BLOCK,NARY_INT_BIG_BLOCK);
@@ -210,7 +216,7 @@ public class Translator {
             }
             case HEADER_VAR:{
                 BigInteger id = code.readBigInt(VAR_INT_HEADER, VAR_INT_BLOCK, VAR_INT_BIG_BLOCK);
-                return new VarPointer(context, Real.from(id));//addLater caching
+                return new VarPointer(context, Real.from(id),false);//addLater caching
             }
             case HEADER_INT:{
                 BigInteger value = code.readBigInt(INT_HEADER, INT_BLOCK, INT_BIG_BLOCK);
@@ -531,7 +537,7 @@ public class Translator {
             BigInteger id = new BigInteger(str.substring(3));
             if(id.signum()==-1)
                 throw new IllegalArgumentException("Negative Id");
-            return new VarPointer(context,Real.from(id));
+            return new VarPointer(context,Real.from(id),false);
         }else if(str.length()>3&&str.toUpperCase(Locale.ROOT).startsWith("ARG")){//Function Argument
             BigInteger id = new BigInteger(str.substring(3));
             if(id.signum()==-1)
@@ -607,7 +613,9 @@ public class Translator {
                     if (counts.length > 1) {
                         throw new UnsupportedOperationException("Multidimensional N-ary not yet supported");
                     } else {
-                        if (operatorInfo.name.equals(Operators.CALL_FUNCTION)) {
+                        if(operatorInfo.name.equals(Operators.WRITE_VAR)) {
+                            return new VarPointer(context, Real.from(new BigInteger(counts[0])),true);
+                        } else if(operatorInfo.name.equals(Operators.CALL_FUNCTION)) {
                             return new CallFunction(context, new BigInteger(counts[0]));
                         } else if (!operatorInfo.isNary) {
                             throw new IllegalArgumentException("N-ary arguments for non N-ary operator");
@@ -641,13 +649,23 @@ public class Translator {
                         }
                     }
                 }
-            }else{//nary without args -> exactly minArgs arguments
+            }else{//operator without n-ary args -> exactly minArgs arguments
                 Operators.OperatorInfo operatorInfo = Operators.byNameOrNull(str.toUpperCase(Locale.ROOT));
                 if(operatorInfo!=null) {
                     if(isRef){
                         return createOperatorReference(operatorInfo,operatorInfo.minArgs);
                     }else {
-                        return new Operator(operatorInfo, executionEnvironment);
+                        if(operatorInfo.isRuntimeOperator()){
+                            if(operatorInfo.name.equals(Operators.DYNAMIC_VAR)) {
+                                return new VarPointer(context, null,false);
+                            }else if(operatorInfo.name.equals(Operators.WRITE_DYNAMIC_VAR)) {
+                                return new VarPointer(context, null,true);
+                            }else{
+                                throw new IllegalArgumentException("unexpected name for runtime-operator:"+operatorInfo);
+                            }
+                        }else {
+                            return new Operator(operatorInfo, executionEnvironment);
+                        }
                     }
                 }
             }
@@ -805,10 +823,10 @@ public class Translator {
                 target.writeBigInt(BigInteger.valueOf(CONSTANT_EMPTY_MAP),Constants.CONSTANTS_INT_HEADER
                         ,Constants.CONSTANTS_INT_BLOCK,Constants.CONSTANTS_INT_BIG_BLOCK);
             }else{
-                Operators.OperatorInfo opNewMap=Operators.byName(Operators.NEW_MAP);
+                Operators.OperatorInfo opNewMap=Operators.byName(value instanceof Tuple?Operators.SPARSE_TUPLE:Operators.NEW_MAP);
                 Operators.NAryInfo nAryInfo=Operators.nAryInfo(opNewMap);
                 if(nAryInfo==null)
-                    throw new RuntimeException("No NAryInfo for N-Ary operator:"+opNewMap);
+                    throw new RuntimeException("No NAryInfo for N-Ary operator:"+opNewMap.name);
                 Operators.OperatorInfo replace=nAryInfo.getShortCut(2*size);
                 target.write(new long[]{HEADER_OPERATOR}, 0, HEADER_OPERATOR_LENGTH);
                 if (replace != null) {

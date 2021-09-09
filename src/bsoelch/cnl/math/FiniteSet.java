@@ -178,7 +178,7 @@ public final class FiniteSet extends MathObject implements Iterable<MathObject>{
                 objects.put(e.getKey(),FiniteSet.from(e.getValue()));
             }
         }
-        return FiniteMap.from(objects);
+        return FiniteMap.from(objects, FiniteMap.TUPLE_WRAP_ZERO_TERMINATED);
     }
 
     public Tuple asTuple() {

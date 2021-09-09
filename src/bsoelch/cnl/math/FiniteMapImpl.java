@@ -8,7 +8,7 @@ import java.util.function.Function;
 public final class FiniteMapImpl extends FiniteMap {
     final TreeMap<MathObject, MathObject> map;
 
-    /**constructor of FiniteMapImpl, this method should only be called from {@link FiniteMap#from(Map)}*/
+    /**constructor of FiniteMapImpl, this method should only be called from {@link FiniteMap#from(Map, int)}*/
     FiniteMapImpl(Map<? extends MathObject, MathObject> map) {
         this.map=new TreeMap<>(map);
     }
@@ -50,14 +50,14 @@ public final class FiniteMapImpl extends FiniteMap {
         TreeMap<MathObject,MathObject> newMap=new TreeMap<>(MathObject::compare);
         newMap.putAll(map);
         newMap.remove(newMap.firstKey());
-        return FiniteMap.from(newMap);
+        return FiniteMap.from(newMap, TUPLE_WRAP_NONE);
     }
     @Override
     public FiniteMap removeLast() {
         TreeMap<MathObject,MathObject> newMap=new TreeMap<>(MathObject::compare);
         newMap.putAll(map);
         newMap.remove(newMap.lastKey());
-        return FiniteMap.from(newMap);
+        return FiniteMap.from(newMap, TUPLE_WRAP_NONE);
     }
 
     @Override
@@ -73,50 +73,50 @@ public final class FiniteMapImpl extends FiniteMap {
             newMap.put(e.getKey(),e.getValue());
         }
         newMap.put(NumericValue.add(maxKey,Real.Int.ONE),value);
-        return FiniteMap.from(newMap);
+        return FiniteMap.from(newMap, TUPLE_WRAP_NONE);
     }
     @Override
-    public MathObject put(MathObject key, MathObject value) {
+    public FiniteMap put(MathObject key, MathObject value) {
         TreeMap<MathObject,MathObject> newMap=new TreeMap<>(MathObject::compare);
         newMap.putAll(map);
         newMap.put(key, value);
-        return FiniteMap.from(newMap);
+        return FiniteMap.from(newMap, TUPLE_WRAP_NONE);
     }
     @Override
-    public MathObject remove(MathObject value) {
+    public FiniteMap remove(MathObject value) {
         TreeMap<MathObject,MathObject> newMap=new TreeMap<>(MathObject::compare);
         newMap.putAll(map);
         newMap.values().remove(value);
-        return FiniteMap.from(newMap);
+        return FiniteMap.from(newMap, TUPLE_WRAP_NONE);
     }
     @Override
-    public MathObject removeKey(MathObject key) {
+    public FiniteMap removeKey(MathObject key) {
         TreeMap<MathObject,MathObject> newMap=new TreeMap<>(MathObject::compare);
         newMap.putAll(map);
         newMap.remove(key);
-        return FiniteMap.from(newMap);
+        return FiniteMap.from(newMap, TUPLE_WRAP_NONE);
     }
     @Override
-    public MathObject removeIf(BinaryOperator<MathObject> condition) {
+    public FiniteMap removeIf(BinaryOperator<MathObject> condition) {
         TreeMap<MathObject,MathObject> newMap=new TreeMap<>(MathObject::compare);
         newMap.putAll(map);
         newMap.entrySet().removeIf(e->MathObject.isTrue(condition.apply(e.getKey(),e.getValue())));
-        return FiniteMap.from(newMap);
+        return FiniteMap.from(newMap, TUPLE_WRAP_NONE);
     }
 
     @Override
     public FiniteMap headMap(MathObject last, boolean include) {
-        return FiniteMap.from(map.headMap(last, include));
+        return FiniteMap.from(map.headMap(last, include), TUPLE_WRAP_NONE);
     }
     @Override
     public FiniteMap tailMap(MathObject first, boolean include) {
-        return FiniteMap.from(map.tailMap(first, include));
+        return FiniteMap.from(map.tailMap(first, include), TUPLE_WRAP_NONE);
     }
     @Override
     public FiniteMap range(MathObject first, boolean includeFirst, MathObject last, boolean includeLast) {
         if(MathObject.compare(last,first)<0)
             return Tuple.EMPTY_MAP;
-        return FiniteMap.from(map.subMap(first, includeFirst, last, includeLast));
+        return FiniteMap.from(map.subMap(first, includeFirst, last, includeLast), TUPLE_WRAP_NONE);
     }
 
     private Iterator<Pair> wrapIterator(Iterator<Map.Entry<MathObject, MathObject>> mapItr){
@@ -150,14 +150,6 @@ public final class FiniteMapImpl extends FiniteMap {
     @Override
     public Iterator<Pair> mapIterator() {
         return wrapIterator(map.entrySet().iterator());
-    }
-    @Override
-    public Iterator<Pair> headIterator(MathObject slice,boolean inclusive) {
-        return wrapIterator(map.headMap(slice,inclusive).entrySet().iterator());
-    }
-    @Override
-    public Iterator<Pair> tailIterator(MathObject slice,boolean inclusive) {
-        return wrapIterator(map.tailMap(slice,inclusive).entrySet().iterator());
     }
 
     @Override
@@ -216,7 +208,7 @@ public final class FiniteMapImpl extends FiniteMap {
             tuple.put(key,e.getValue());
             maxElement=key.num();
         }
-        return FiniteMap.createTuple(tuple,maxElement.add(BigInteger.ONE));
+        return FiniteMap.createTuple(tuple,maxElement.intValueExact()+1);
     }
     @Override
     public Tuple nonzeroElements() {
@@ -233,12 +225,12 @@ public final class FiniteMapImpl extends FiniteMap {
     }
 
     @Override
-    public FiniteMap replace(Function<MathObject, MathObject> f) {
+    public FiniteMapImpl replace(Function<MathObject, MathObject> f) {
         HashMap<MathObject, MathObject> newElements=new HashMap<>(map.size());
         for(Map.Entry<MathObject, MathObject> e:map.entrySet()){
             newElements.put(e.getKey(),f.apply(e.getValue()));
         }
-        return FiniteMap.from(newElements);
+        return (FiniteMapImpl)FiniteMap.from(newElements, TUPLE_WRAP_NONE);
     }
 
     @Override

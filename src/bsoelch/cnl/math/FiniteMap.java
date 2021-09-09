@@ -8,18 +8,20 @@ import java.util.function.Function;
 
 public abstract class FiniteMap extends MathObject {
     FiniteMap(){}//package private constructor
+    public static final int TUPLE_WRAP_NONE=-1,TUPLE_WRAP_ZERO_TERMINATED=0,TUPLE_WRAP_ALL=1;
     /**Creates a new FiniteMap containing the Elements given by mapData,
      * automatically detects Tuples and converts the Data if necessary*/
-    public static FiniteMap from(Map<? extends MathObject,? extends MathObject> mapData){
+    public static FiniteMap from(Map<? extends MathObject, ? extends MathObject> mapData, int tupleWrapMode){
         //copy data to TreeMap
         TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
         map.putAll(mapData);
         //test map for Tuple structure
-        boolean isTuple=true;//addLater? better rules for auto-wrapping of Tuples
+        boolean isTuple=true,zeroTerminated=false;
         BigInteger length=null;
         for(MathObject k:map.keySet()){
             if(k instanceof Real.Int&&((Real.Int) k).num().signum()>=0){
                 length=length==null?((Real.Int) k).num():length.max(((Real.Int) k).num());
+                zeroTerminated=map.get(k).equals(Real.Int.ZERO);
             }else{
                 isTuple=false;
                 break;
@@ -27,12 +29,12 @@ public abstract class FiniteMap extends MathObject {
         }
         //remove zero-entries as all nonexistent entries are mapped to 0 by default
         boolean removed=map.entrySet().removeIf(e->e.getValue().equals(Real.Int.ZERO));
-        //noinspection ConstantConditions (isTuple can be false if elements were removed)
-        if(map.isEmpty()&&!(removed&& isTuple)){
+        isTuple&=((tupleWrapMode==TUPLE_WRAP_ALL)||(tupleWrapMode==TUPLE_WRAP_ZERO_TERMINATED&&zeroTerminated));
+        if(map.isEmpty()&&!(removed&&isTuple)){
             return Tuple.EMPTY_MAP;
         }else{
             if(isTuple){//tuple detection
-                return createTuple(map, length==null?BigInteger.ZERO:length.add(BigInteger.ONE));
+                return createTuple(map, length==null?0:(length.intValueExact()+1));
             }else {
                 return new FiniteMapImpl(map);
             }
@@ -41,9 +43,9 @@ public abstract class FiniteMap extends MathObject {
 
     /**creates a Tuple of the given length from the supplied map<br>
      * !!! this method does not preform any checks on the data in the map!!! */
-    static Tuple createTuple(Map<? extends MathObject, MathObject> map, BigInteger length) {
-        if(length.compareTo(BigInteger.valueOf(Tuple.SPARSE_FACTOR* map.size()))<0){
-            MathObject[] tupleData=new MathObject[length.intValueExact()];
+    static Tuple createTuple(Map<? extends MathObject, MathObject> map, int length) {
+        if(length<Tuple.SPARSE_FACTOR* map.size()){
+            MathObject[] tupleData=new MathObject[length];
             for(int i = 0; i< tupleData.length; i++){
                 tupleData[i]= map.get(Real.from(i));
                 if(tupleData[i]==null)
@@ -74,7 +76,8 @@ public abstract class FiniteMap extends MathObject {
                 next2=it2.hasNext()?it2.next():null;
             }
         }
-        return from(entries);
+        //tuple length is ensured through behavior of mapIterator on Tuples
+        return from(entries,(m1 instanceof Tuple&&m2 instanceof Tuple)?TUPLE_WRAP_ALL:TUPLE_WRAP_ZERO_TERMINATED);
     }
 
     public static FiniteMap indicatorMap(FiniteSet s) {
@@ -143,25 +146,25 @@ public abstract class FiniteMap extends MathObject {
                 return constantMap(FiniteSet.unite(keys,FiniteSet.from(newKey)),value);
             }
             @Override
-            public MathObject put(MathObject key, MathObject newValue) {
+            public FiniteMap put(MathObject key, MathObject newValue) {
                 TreeMap<MathObject,MathObject> newMap=new TreeMap<>(MathObject::compare);
                 for(MathObject o:keys){
                     newMap.put(o,value);
                 }
                 newMap.put(key, newValue);
-                return FiniteMap.from(newMap);
+                return FiniteMap.from(newMap, TUPLE_WRAP_NONE);
             }
 
             @Override
-            public MathObject remove(MathObject toRemove) {
+            public FiniteMap remove(MathObject toRemove) {
                 return constantMap(FiniteSet.difference(keys,FiniteSet.from(toRemove)),value);
             }
             @Override
-            public MathObject removeKey(MathObject key) {
+            public FiniteMap removeKey(MathObject key) {
                 return remove(key);
             }
             @Override
-            public MathObject removeIf(BinaryOperator<MathObject> condition) {
+            public FiniteMap removeIf(BinaryOperator<MathObject> condition) {
                 return constantMap(keys.removeIf(e->condition.apply(e,Real.Int.ONE)),value);
             }
             @Override
@@ -275,6 +278,7 @@ public abstract class FiniteMap extends MathObject {
     /**Number of (non-zero) values in this map*/
     public abstract int size();
 
+    /**replaces all values in this map with their result under the given map f*/
     public abstract FiniteMap replace(Function<MathObject, MathObject> f);
 
     public abstract FiniteSet domain();
@@ -314,11 +318,11 @@ public abstract class FiniteMap extends MathObject {
     public abstract FiniteMap range(MathObject first,boolean includeFirst,MathObject last,boolean includeLast);
 
     public abstract MathObject insert(MathObject value);
-    public abstract MathObject put(MathObject key,MathObject value);
+    public abstract FiniteMap put(MathObject key,MathObject value);
 
-    public abstract MathObject remove(MathObject value);
-    public abstract MathObject removeKey(MathObject key);
-    public abstract MathObject removeIf(BinaryOperator<MathObject> condition);
+    public abstract FiniteMap remove(MathObject value);
+    public abstract FiniteMap removeKey(MathObject key);
+    public abstract FiniteMap removeIf(BinaryOperator<MathObject> condition);
     public abstract Tuple nonzeroElements();
 
     private Iterator<Pair> wrapItr(Iterator<MathObject> keyItr){
@@ -353,12 +357,7 @@ public abstract class FiniteMap extends MathObject {
     public Iterator<Pair> mapIterator(){
         return wrapItr(domain().iterator());
     }
-    public Iterator<Pair> tailIterator(MathObject slice, boolean inclusive) {
-        return wrapItr(domain().tailIterator(slice,inclusive));
-    }
-    public Iterator<Pair> headIterator(MathObject slice, boolean inclusive) {
-        return wrapItr(domain().headIterator(slice,inclusive));
-    }
+
     /**Iterator over the non-zero values in this map*/
     public Iterator<MathObject> valueIterator(){
         return new Iterator<MathObject>() {

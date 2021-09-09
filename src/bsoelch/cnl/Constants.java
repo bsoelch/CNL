@@ -3,6 +3,7 @@ package bsoelch.cnl;
 import bsoelch.cnl.interpreter.ExecutionEnvironment;
 import bsoelch.cnl.math.*;
 import bsoelch.cnl.math.expressions.LambdaVariable;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
@@ -218,13 +219,18 @@ public class Constants {
     public static class Operators {
 
 
+
         private Operators(){}
         public static final int MODIFY_ARG0_ALWAYS=1, MODIFY_ARG0_ROOT=0,MODIFY_ARG0_NEVER=-1;
 
         /** -A */
         public static final String NEGATE = "NEG";
+        /**Var:N := A*/
+        public static final String WRITE_VAR = "WRITE_VAR";
         /**Var[A]*/
         public static final String DYNAMIC_VAR = "DYNAMIC_VAR";
+        /**Var[A] := B*/
+        public static final String WRITE_DYNAMIC_VAR = "WRITE_DYNAMIC_VAR";
         /**A+Bi*/
         public static final String COMPLEX = "CMPLX";
         /**calls function [A]*/
@@ -235,6 +241,8 @@ public class Constants {
         public static final String NEW_TUPLE = "NEW_TUPLE";
         /**creates a new map for the following elements, with each pair of two consecutive Elements being a key-value pair (nary, minArgs: 4)*/
         public static final String NEW_MAP = "NEW_MAP";
+        /**creates a new sparse-tuple for the following elements, with each pair of two consecutive Elements being a key-value pair (nary, minArgs: 2)*/
+        public static final String SPARSE_TUPLE = "SPARSE_TUPLE";
 
         public static final OperatorInfo ID=new OperatorInfo(-1,"ID",MODIFY_ARG0_NEVER,false,1,args->args[0], OperatorInfo.LAMBDA_FLAG_ALLOW_ALL);
 
@@ -355,6 +363,7 @@ public class Constants {
                 operatorsInitialized=true;
                 //3bit Operators
 
+                //addLater? optional shortName for Operators
                 //negates A (element-wise)
                 declareUnaryOperator(NEGATE,MODIFY_ARG0_ROOT, MathObject::negate, 0);
                 //replaces A with !A (1 if A==0 else 0) (element-wise)
@@ -364,25 +373,25 @@ public class Constants {
                 //inverts A (element-wise)
                 declareUnaryOperator("INV",MODIFY_ARG0_ROOT, a->MathObject.deepReplaceNumbers(a, NumericValue::invert), 0);
                 //returns 1 if A and B are equal 0 otherwise
-                declareBinaryOperator("EQUAL",MODIFY_ARG0_NEVER,
+                declareBinaryOperator("EQ",MODIFY_ARG0_NEVER,
                         (a,b)-> a.equals(b)? Real.Int.ONE:Real.Int.ZERO, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                 //returns 1 if A and B are not equal 0 otherwise
-                declareBinaryOperator("NOT_EQUAL",MODIFY_ARG0_NEVER,
+                declareBinaryOperator("NE",MODIFY_ARG0_NEVER,
                         (a,b)-> a.equals(b)?Real.Int.ZERO:Real.Int.ONE, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                 //returns 1 if A > B, 0 otherwise
-                declareBinaryOperator("GREATER_THAN",MODIFY_ARG0_NEVER,
+                declareBinaryOperator("GT",MODIFY_ARG0_NEVER,
                                 (a,b)-> MathObject.compare(a,b)>0?Real.Int.ONE:Real.Int.ZERO, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                 //returns 1 if A >= B, 0 otherwise
-                declareBinaryOperator("GREATER_EQUAL",MODIFY_ARG0_NEVER,
+                declareBinaryOperator("GE",MODIFY_ARG0_NEVER,
                                 (a,b)-> MathObject.compare(a,b)>=0?Real.Int.ONE:Real.Int.ZERO, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                 //adds A and B (element-wise)
                 OperatorInfo add=declareBinaryOperator("ADD",MODIFY_ARG0_ROOT, MathObject::add, 0);
                 //subtracts B from A (element-wise)
-                declareBinaryOperator("SUBTRACT",MODIFY_ARG0_ROOT, MathObject::subtract, 0);
+                declareBinaryOperator("SUBT",MODIFY_ARG0_ROOT, MathObject::subtract, 0);
                 //multiplies A and B (element-wise)
-                OperatorInfo mult=declareBinaryOperator("MULTIPLY",MODIFY_ARG0_ROOT, MathObject::multiply, 0);
+                OperatorInfo mult=declareBinaryOperator("MULT",MODIFY_ARG0_ROOT, MathObject::multiply, 0);
                 //divides A by B (element-wise)
-                declareBinaryOperator("DIVIDE",MODIFY_ARG0_ROOT, MathObject::divide, 0);
+                declareBinaryOperator("DIV",MODIFY_ARG0_ROOT, MathObject::divide, 0);
                 //calculates the int-value (floor A/B if both real otherwise round A/B) of A divided by B (element-wise)
                 declareBinaryOperator("INT_DIV",MODIFY_ARG0_ROOT,
                         (a,b)->MathObject.deepCombineNumbers(a,b,(x, y)-> NumericValue.divideAndRemainder(x,y)[0]), 0);
@@ -393,18 +402,18 @@ public class Constants {
                 declareBinaryOperator(COMPLEX,MODIFY_ARG0_NEVER,(a,b)->MathObject.deepCombineNumbers(a,b,
                         (l,r)->NumericValue.add(l, NumericValue.multiply(r, Complex.I))), 0);
                 //2-norm of the given MathObject
-                declareUnaryOperator("SQUARE_ABS",MODIFY_ARG0_ROOT, MathObject::sqAbs, 0);
+                declareUnaryOperator("SQ_ABS",MODIFY_ARG0_ROOT, MathObject::sqAbs, 0);
                 //real part of A (element-wise)
-                declareUnaryOperator("REAL_PART",MODIFY_ARG0_ROOT, a->MathObject.deepReplaceNumbers(a, NumericValue::realPart), 0);
+                declareUnaryOperator("RE",MODIFY_ARG0_ROOT, a->MathObject.deepReplaceNumbers(a, NumericValue::realPart), 0);
                 //imaginary part of A (element-wise)
-                declareUnaryOperator("IMAGINARY_PART",MODIFY_ARG0_ROOT, a->MathObject.deepReplaceNumbers(a, NumericValue::imaginaryPart), 0);
+                declareUnaryOperator("IM",MODIFY_ARG0_ROOT, a->MathObject.deepReplaceNumbers(a, NumericValue::imaginaryPart), 0);
                 //complex conjugate of A (element-wise)
-                declareUnaryOperator("CONJUGATE",MODIFY_ARG0_ROOT, a->MathObject.deepReplaceNumbers(a, NumericValue::conjugate), 0);
+                declareUnaryOperator("CONJ",MODIFY_ARG0_ROOT, a->MathObject.deepReplaceNumbers(a, NumericValue::conjugate), 0);
 
                 //9bit operators
 
-                //replaces A with with the Ath variable in the current context
-                declareRuntimeOperator(DYNAMIC_VAR,1);
+                //writes A to a variable an returns A
+                declareRuntimeOperator(WRITE_VAR,1);
                 //bitwise logical-and of A and floor B (element-wise)
                 OperatorInfo and=declareBinaryOperator("AND",MODIFY_ARG0_ROOT, MathObject::floorAnd, 0);
                 //bitwise logical-or of A and floor B (element-wise)
@@ -487,6 +496,10 @@ public class Constants {
                                 (a)-> Real.from(a.numericValue().realPart()
                                         .num().abs().bitLength()
                                         - a.numericValue().realPart().den().bitLength()), 0);
+                //replaces A with with the Ath variable in the current context
+                declareRuntimeOperator(DYNAMIC_VAR,1);
+                //writes B to Var[A] returns B
+                declareRuntimeOperator(WRITE_DYNAMIC_VAR,1);
                 //LambdaExpressions
                 {
                     //binds all free vars in A
@@ -762,23 +775,23 @@ public class Constants {
                         NAryInfo info=new NAryInfo(Tuple.EMPTY_MAP,newTuple,false,false);
                         info.addShortCut(newTuple1);
                         info.addShortCut(newPair);
+                        //creates a SparseTuple from the given MapObject, with each 2 consecutive arguments being a key-value pair
+                        OperatorInfo sparseTuple=declareOperator(SPARSE_TUPLE, 2, true, MODIFY_ARG0_ROOT,
+                                (args)->{
+                                    HashMap<MathObject, MathObject> map = constructMapFromArgs(args);
+                                    return FiniteMap.from(map, FiniteMap.TUPLE_WRAP_ALL);
+                                }, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
+                        new NAryInfo(Tuple.EMPTY_MAP,sparseTuple,false,false);
                     }
                     {
                         //returns the map {A->B}
                         OperatorInfo newMap1=declareBinaryOperator("SINGLETON_MAP",MODIFY_ARG0_ROOT,
-                                (k,v)->FiniteMap.from(Collections.singletonMap(k,v)), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
+                                (k,v)->FiniteMap.from(Collections.singletonMap(k,v), FiniteMap.TUPLE_WRAP_NONE), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                         //creates a Map from the given MapObject, with each 2 consecutive arguments being a key-value pair
                         OperatorInfo newMap=declareOperator(NEW_MAP, 4, true, MODIFY_ARG0_ROOT,
                                 (args)->{
-                                    if(args.length%2==1)
-                                        throw new IllegalArgumentException("NEW_MAP needs an even Number of Arguments");
-                                    HashMap<MathObject, MathObject> map=new HashMap<>(args.length/2);
-                                    for(int i=0;i<args.length;i+=2){
-                                        if(map.put(args[i],args[i+1])!=null){
-                                            throw new IllegalArgumentException("duplicate key in NEW_MAP: "+args[i]);
-                                        }
-                                    }
-                                    return FiniteMap.from(map);
+                                    HashMap<MathObject, MathObject> map = constructMapFromArgs(args);
+                                    return FiniteMap.from(map, FiniteMap.TUPLE_WRAP_NONE);
                                 }, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                         NAryInfo info=new NAryInfo(Tuple.EMPTY_MAP,newMap,false,false);
                         info.addShortCut(newMap1);
@@ -1431,6 +1444,19 @@ public class Constants {
                 //? GUI
 
             }
+        }
+
+        @NotNull
+        private static HashMap<MathObject, MathObject> constructMapFromArgs(MathObject[] args) {
+            if (args.length % 2 == 1)
+                throw new IllegalArgumentException("NEW_MAP needs an even Number of Arguments");
+            HashMap<MathObject, MathObject> map = new HashMap<>(args.length / 2);
+            for (int i = 0; i < args.length; i += 2) {
+                if (map.put(args[i], args[i + 1]) != null) {
+                    throw new IllegalArgumentException("duplicate key in NEW_MAP: " + args[i]);
+                }
+            }
+            return map;
         }
 
 

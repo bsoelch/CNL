@@ -74,7 +74,7 @@ public final class Matrix extends MathObject implements Iterable<NumericValue> {
                 rows.put(rowNumber, row);
                 maxLength=Math.max(maxLength,row.length());
             }
-            return new Matrix(FiniteMap.from(rows),maxRow+1,maxLength);
+            return new Matrix(FiniteMap.from(rows, FiniteMap.TUPLE_WRAP_ALL),maxRow+1,maxLength);
         }else{
             throw new RuntimeException("Unexpected MathObject class:"+o.getClass());
         }
@@ -120,7 +120,7 @@ public final class Matrix extends MathObject implements Iterable<NumericValue> {
                     values.put(lastKey, e.b.numericValue());
                 }
             }
-            return FiniteMap.createTuple(values,lastKey.num());
+            return FiniteMap.createTuple(values,lastKey.num().intValueExact()+1);
         }else{
             throw new RuntimeException("Unexpected MathObject class:"+row.getClass());
         }
@@ -133,7 +133,7 @@ public final class Matrix extends MathObject implements Iterable<NumericValue> {
             rows.put(Real.from(row.index),row.value.toTuple());
             maxLength=Math.max(maxLength,row.value.length());
         }
-        return new Matrix(FiniteMap.from(rows),ret.length(),maxLength);
+        return new Matrix(FiniteMap.from(rows, FiniteMap.TUPLE_WRAP_ALL),ret.length(),maxLength);
     }
 
     public static Matrix combine(Matrix a, Matrix b, BiFunction<NumericValue, NumericValue, NumericValue> f){

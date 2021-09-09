@@ -2,6 +2,7 @@ package bsoelch.cnl.math;
 
 import java.lang.reflect.Array;
 import java.math.BigInteger;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -75,76 +76,70 @@ public final class Pair extends Tuple{
         return Tuple.create(newValues);
     }
     @Override
-    public MathObject put(MathObject key, MathObject value) {
+    public FiniteMap put(MathObject key, MathObject value) {
         TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
         map.put(Real.Int.ZERO,a);
         map.put(Real.Int.ONE,b);
         map.put(key,value);
-        return FiniteMap.from(map);//addLater replace usages of .from with .createTuple
+        return FiniteMap.from(map, FiniteMap.TUPLE_WRAP_ZERO_TERMINATED);
     }
     @Override
-    public MathObject insert(MathObject value, int index) {
+    public Tuple insert(MathObject value, int index) {
         if(index<0)
             throw new ArithmeticException("Negative index in Tuple");
         TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
         map.put(Real.from(index),value);
         map.put(index>0?Real.Int.ZERO:Real.Int.ONE,a);
-        map.put(index>1?Real.Int.ONE:Real.from(2),b);
-        return FiniteMap.from(map);
+        map.put(index>1?Real.Int.ONE:Real.Int.TWO,b);
+        return FiniteMap.createTuple(map,Math.max(3,index+1));
     }
     @Override
     public FiniteMap remove(int index) {
         if(index<0)
             throw new ArithmeticException("Negative index in Tuple");
         TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
-        map.put(index>0?Real.Int.ZERO:Real.Int.ONE,a);
-        map.put(index>1?Real.Int.ONE:Real.from(2),b);
+        map.put(Real.Int.ZERO,a);
+        map.put(Real.Int.ONE,b);
         map.remove(Real.from(index));
-        return FiniteMap.from(map);
+        return FiniteMap.createTuple(map,map.size());
     }
     @Override
     public FiniteMap headMap(MathObject last, boolean include) {
-        TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
         int c = MathObject.compare(last, Real.Int.ONE);
         if(c>0||(include&&c==0)){
-            map.put(Real.Int.ZERO,a);
-            map.put(Real.Int.ONE,b);
+            return this;
         }else {
             c = MathObject.compare(last, Real.Int.ZERO);
             if (c > 0 || (include && c == 0)) {
-                map.put(Real.Int.ZERO, a);
+                return Tuple.create(new MathObject[]{a});
             }
+            return Tuple.EMPTY_MAP;
         }
-        return FiniteMap.from(map);
     }
     @Override
     public FiniteMap tailMap(MathObject first, boolean include) {
-        TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
         int c = MathObject.compare(first, Real.Int.ZERO);
         if(c<0||(include&&c==0)){
-            map.put(Real.Int.ZERO,a);
-            map.put(Real.Int.ONE,b);
+            return this;
         }else {
             c = MathObject.compare(first, Real.Int.ONE);
             if (c < 0 || (include && c == 0)) {
-                map.put(Real.Int.ONE, b);
+                return FiniteMap.from(Collections.singletonMap(Real.Int.ONE, b), TUPLE_WRAP_NONE);
             }
+            return Tuple.EMPTY_MAP;
         }
-        return FiniteMap.from(map);
     }
     @Override
     public FiniteMap range(MathObject first, boolean includeFirst, MathObject last, boolean includeLast) {
-        TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
         int c = MathObject.compare(first, Real.Int.ZERO);
         if(c<0||(includeFirst&&c==0)){
             c = MathObject.compare(last, Real.Int.ONE);
             if(c>0||(includeLast&&c==0)){
-                map.put(Real.Int.ZERO,a);
-                map.put(Real.Int.ONE,b);
+                return this;
             }else {
                 c = MathObject.compare(last, Real.Int.ZERO);
                 if (c > 0 || (includeLast && c == 0)) {
-                    map.put(Real.Int.ZERO, a);
+                    return Tuple.create(new MathObject[]{a});
                 }
             }
         }else {
@@ -152,55 +147,69 @@ public final class Pair extends Tuple{
             if (c < 0 || (includeFirst && c == 0)) {
                 c = MathObject.compare(last, Real.Int.ONE);
                 if (c > 0 || (includeLast && c == 0)) {
-                    map.put(Real.Int.ONE, b);
+                    return FiniteMap.from(Collections.singletonMap(Real.Int.ONE, b), TUPLE_WRAP_NONE);
                 }
             }
         }
-        return FiniteMap.from(map);
+        return Tuple.EMPTY_MAP;
     }
     @Override
     public FiniteMap remove(MathObject value) {
-        TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
-        if(!a.equals(value))
-            map.put(Real.Int.ZERO,a);
-        if(!b.equals(value))
-            map.put(Real.Int.ONE,a);
-        return FiniteMap.from(map);
+        if(a.equals(value)) {
+            if(b.equals(value)){
+                return Tuple.EMPTY_MAP;
+            }else{
+                return FiniteMap.from(Collections.singletonMap(Real.Int.ONE,b), TUPLE_WRAP_NONE);
+            }
+        }else{
+            if(b.equals(value)){
+                return Tuple.create(new MathObject[]{a});
+            }else{
+                return this;
+            }
+        }
     }
     @Override
     public Tuple tupleRemove(MathObject value) {
-        TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
-        int len=0;
-        if(!a.equals(value)){
-            map.put(Real.Int.ZERO,a);
-            len++;
-            if(!b.equals(value)) {
-                map.put(Real.Int.ONE, a);
-                len++;
+        if(a.equals(value)) {
+            if(b.equals(value)){
+                return Tuple.EMPTY_MAP;
+            }else{
+                return Tuple.create(new MathObject[]{b});
             }
-        }else if(!b.equals(value)){
-            map.put(Real.Int.ZERO,a);
-            len++;
+        }else{
+            if(b.equals(value)){
+                return Tuple.create(new MathObject[]{a});
+            }else{
+                return this;
+            }
         }
-        return FiniteMap.createTuple(map,BigInteger.valueOf(len));
     }
     @Override
     public FiniteMap removeKey(MathObject key) {
-        TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
-        if(!Real.Int.ZERO.equals(key))
-            map.put(Real.Int.ZERO,a);
-        if(!Real.Int.ONE.equals(key))
-            map.put(Real.Int.ONE,a);
-        return FiniteMap.from(map);
+        if(Real.Int.ZERO.equals(key)) {
+            return FiniteMap.from(Collections.singletonMap(Real.Int.ONE,b), TUPLE_WRAP_NONE);
+        }else if(Real.Int.ONE.equals(key)){
+            return Tuple.create(new MathObject[]{a});
+        }else{
+            return this;
+        }
     }
     @Override
-    public MathObject removeIf(BinaryOperator<MathObject> condition) {
-        TreeMap<MathObject,MathObject> map=new TreeMap<>(MathObject::compare);
-        if(!MathObject.isTrue(condition.apply(Real.Int.ZERO,a)))
-            map.put(Real.Int.ZERO,a);
-        if(!MathObject.isTrue(condition.apply(Real.Int.ONE,b)))
-            map.put(Real.Int.ONE,a);
-        return FiniteMap.from(map);
+    public FiniteMap removeIf(BinaryOperator<MathObject> condition) {
+        if(MathObject.isTrue(condition.apply(Real.Int.ZERO,a))) {
+            if(MathObject.isTrue(condition.apply(Real.Int.ONE,b))){
+                return Tuple.EMPTY_MAP;
+            }else{
+                return FiniteMap.from(Collections.singletonMap(Real.Int.ONE,b), TUPLE_WRAP_NONE);
+            }
+        }else{
+            if(MathObject.isTrue(condition.apply(Real.Int.ONE,b))){
+                return Tuple.create(new MathObject[]{a});
+            }else{
+                return this;
+            }
+        }
     }
 
     @Override

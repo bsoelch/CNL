@@ -2,6 +2,7 @@ package bsoelch.cnl.interpreter;
 
 import bsoelch.cnl.BitRandomAccessFile;
 import bsoelch.cnl.BitRandomAccessStream;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,9 +20,7 @@ public class ExecutionEnvironment {
     }
 
     public BitRandomAccessStream fileAt(String path) throws IOException{
-        if(path.startsWith(".")){
-           path=rootDir.getAbsolutePath()+File.separator+path.substring(1);
-        }//no else
+        path = toAbsolutePath(path);
         BitRandomAccessStream cached=openFiles.get(path);
         if (cached == null) {
             cached = new BitRandomAccessFile(new File(path), "rw");
@@ -31,15 +30,18 @@ public class ExecutionEnvironment {
     }
 
     public void closeFileAt(String path) throws IOException {
-        if(path.startsWith(".")){
-            path=rootDir.getAbsolutePath()+path.substring(1);
-        }//no else
+        path = toAbsolutePath(path);
         BitRandomAccessStream file=openFiles.remove(path);
         if(file!=null){
             file.close();
         }
     }
 
+    @NotNull
+    private String toAbsolutePath(String path) {
+        path = rootDir.getAbsolutePath() + File.separator + path;
+        return path;
+    }
 
 
 }
