@@ -37,7 +37,8 @@ public class Main {
         System.out.println();
         if(argCount>0) {
             System.out.println("Input Program Arguments:");
-            try (Scanner scan = new Scanner(System.in)) {
+            //closeable scanner that does not close System.in
+            try (Scanner scan = new Scanner(new BufferedInputStream(System.in){public void close(){}})) {
                 for (int i = 0; i < args.length; i++) {
                     System.out.print("arg" + i + ": ");
                     try {
@@ -83,13 +84,13 @@ public class Main {
         }
     }
     public static String readUnicodeChar(){
-            //read one codepoint
-            char read = nextChar();
-            if(Character.isHighSurrogate(read)){
-                char low = nextChar();
-                return new String(new char[]{read,low});
-            }
-            return ""+read;
+        //read one codepoint
+        char read = nextChar();
+        if(Character.isHighSurrogate(read)){
+            char low = nextChar();
+            return new String(new char[]{read,low});
+        }
+        return ""+read;
     }
 
     public static String readWord(){

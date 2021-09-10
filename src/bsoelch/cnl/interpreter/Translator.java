@@ -716,6 +716,10 @@ public class Translator {
                     return context.COUNT;
                 case "I":
                     return I;
+                case "EMPTY_SET":
+                    return wrap(FiniteSet.EMPTY_SET);
+                case "EMPTY_MAP":
+                    return wrap(Tuple.EMPTY_MAP);
                 case "EXIT":
                     return EXIT;
                 //Import/Environment in ROOT
@@ -974,7 +978,7 @@ public class Translator {
                             test.flatStep();//flatRun Imports
                         try {
                             a = nextAction(source, null, test.programEnvironment(), test.executionEnvironment(), test.isTopLayer());
-                        } catch (IllegalArgumentException | UnsupportedOperationException e) {
+                        } catch (IllegalArgumentException | UnsupportedOperationException| IndexOutOfBoundsException e) {
                             throw new SyntaxError(test, e);
                         } catch (ArithmeticException e) {
                             throw new CNL_RuntimeException(test, e);
@@ -1037,7 +1041,7 @@ public class Translator {
                             test.flatStep();//flatRun Imports
                         try {
                             a = nextAction(source, test.programEnvironment(), test.executionEnvironment(), test.isTopLayer());
-                        } catch (UnsupportedOperationException | IllegalArgumentException e) {
+                        } catch (UnsupportedOperationException | IllegalArgumentException| IndexOutOfBoundsException e) {
                             throw new SyntaxError(test, e);
                         }
                         test.stepInternal(a, false);//flat run code to detect syntax errors

@@ -29,7 +29,7 @@ public class Operator implements Action {
 
     public ValuePointer preformOperation(int flags) {
         if (requiresArg())
-            throw new IllegalStateException("Missing Argument");
+            throw new IllegalStateException("Missing Argument for Operator:"+operatorInfo.name);
         MathObject res;
         MathObject[] values=new MathObject[args.length];
         for(int i=0;i<args.length;i++)

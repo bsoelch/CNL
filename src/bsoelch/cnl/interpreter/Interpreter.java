@@ -85,6 +85,7 @@ public class Interpreter implements Closeable {
 
     private ArrayDeque<Action> actionStack=new ArrayDeque<>();
     private StringBuilder currentLine=new StringBuilder();
+    private String prevLine;
 
     public Interpreter(File codeFile, @Nullable MathObject[] args, boolean forceRunLibs) throws IOException {
         this(args, true, codeFile, forceRunLibs);
@@ -155,7 +156,7 @@ public class Interpreter implements Closeable {
             public String next() {
                 if(first){
                     first=false;
-                    return currentLine.toString();
+                    return currentLine.length()==0?prevLine:currentLine.toString();
                 }else{
                     return itr.next().currentLine;
                 }
@@ -192,7 +193,7 @@ public class Interpreter implements Closeable {
         }
         try {
             return stepInternal(a, doBranching);
-        }catch (IllegalArgumentException|IllegalStateException e){
+        }catch (IllegalArgumentException|IllegalStateException| IndexOutOfBoundsException e){
             throw new SyntaxError(this,e);
         }catch (ArithmeticException e){
             throw new CNL_RuntimeException(this,e);
@@ -200,8 +201,11 @@ public class Interpreter implements Closeable {
     }
 
     boolean stepInternal(Action a,boolean doBranching) throws IOException, SyntaxError {
-        if(actionStack.isEmpty())//clear line
+        if(actionStack.isEmpty()) {//clear line
+            prevLine = currentLine.toString();
             currentLine.setLength(0);
+        }
+        currentLine.append(a.stringRepresentation()).append(' ');
         if(a == Translator.EOF|| a == Translator.EXIT){
             return exit(doBranching);
         }else if(a instanceof RunIn){//Unwrap RunIn
@@ -220,7 +224,7 @@ public class Interpreter implements Closeable {
                                 case BRACKET_FLAG_IF_NE:
                                 case BRACKET_FLAG_ELIF_EQ:
                                 case BRACKET_FLAG_ELIF_NE: {
-                                    ((LoopInfo) top).state = BRACKET_FLAG_ELSE;
+                                    ((LoopInfo) top).state = ((BracketDeclaration) a).type;
                                     if(doBranching) {
                                         skipTo(SKIP_END_IF, 1);
                                         removeBracket();
@@ -337,9 +341,9 @@ public class Interpreter implements Closeable {
                                         throw new SyntaxError(this,"Unexpected ELSE-statement");
                                 }//inherit environment from parent
                                 addToStack(a, true);
-                                break;
+                                return;
                             }
-                        }else{
+                        }else if(stepType!=SKIP_END_IF){
                             throw new SyntaxError(this,"Unexpected ELSE-statement");
                         }
                     }break;
@@ -374,8 +378,10 @@ public class Interpreter implements Closeable {
 
     private void exitFunction(FunctionInfo function, boolean doBranching) throws IOException, SyntaxError {
         BracketInfo env = removeBracket();
-        if (env != function) {//close all brackets
-            throw new RuntimeException("brackets and callStack out of sync");
+        while (env != function) {//close all brackets
+            if(brackets.isEmpty())
+                throw new RuntimeException("brackets and callStack out of sync");
+            env = removeBracket();
         }
         actionStack= function.prevStack;//exit function
         currentLine = new StringBuilder(function.currentLine);
@@ -389,7 +395,9 @@ public class Interpreter implements Closeable {
     private boolean exit(boolean doBranching) throws IOException, SyntaxError {
         evaluateStack(true,doBranching);
         if(callStack.size()>0){
-            exitFunction(callStack.removeLast(),doBranching);
+            if(doBranching) {//exit functions on exit only when in branching mode
+                exitFunction(callStack.removeLast(), true);
+            }
             return true;
         }else if(importReturnStack.size()>0){
             importDejaVu.remove(code.getSourceId());//remove from dejaVu stack after closing
@@ -427,7 +435,6 @@ public class Interpreter implements Closeable {
 
     private void addToStack(Action action, boolean doBranching) throws IOException, SyntaxError {
         actionStack.add(action);
-        currentLine.append(action.stringRepresentation()).append(' ');
         evaluateStack(false,doBranching);//simplify after adding
     }
 

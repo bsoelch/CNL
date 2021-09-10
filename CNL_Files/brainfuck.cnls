@@ -1,0 +1,54 @@
+CNLS:1
+%ARG0 -> filename in Local dir of file to run
+
+VAR0 0 %Pointer
+VAR2 EMPTY_MAP %Stack
+
+%Skip to ]
+NEW_FUNC:1,0[ %FileName
+    VAR1 1
+    [
+        VAR0 FILE_READ_BYTE ARG0
+        [? GT 0 VAR0
+            -1
+            EXIT
+        |? EQ VAR0 ']'
+            [! DEC VAR1
+               0
+               EXIT  %matching closing Bracket
+            ]
+        |? EQ VAR0 '['
+            INC VAR1
+        ]
+    ]? 1
+]
+
+[.? 1    %Main Loop
+    VAR1 FILE_READ_BYTE ARG0
+    [? GT 0 VAR1
+        EXIT                                                        %End of File
+    |? EQ VAR1 '+'
+        RUN_IN:0 REMAINDER INC DYNAMIC_VAR RUN_ROOT VAR0 256        %Increment Cell (mod 256)
+    |? EQ VAR1 '-'
+        RUN_IN:0 REMAINDER DEC DYNAMIC_VAR RUN_ROOT VAR0 256        %Decrement Cell (mod 256)
+    |? EQ VAR1 '<'
+        DEC VAR0                                                    %Decrement Pointer
+    |? EQ VAR1 '>'
+        INC VAR0                                                    %Increment Pointer
+    |? EQ VAR1 '.'
+        RUN_IN:0 OUT_STR DYNAMIC_VAR RUN_ROOT VAR0                  %Write Char
+    |? EQ VAR1 ','
+        RUN_IN:0 WRITE_DYNAMIC_VAR RUN_ROOT VAR0 IN_CHAR            %Read Char
+    |? EQ VAR1 '['
+        VAR2 TUPLE_CONCAT VAR2 DEC FILE_BYTE_POS ARG0               %Save position to stack
+        [! RUN_IN:0 DYNAMIC_VAR RUN_ROOT VAR0                       %Skip if zero
+            CALL:0 ARG0
+        ]
+    |? EQ VAR1 ']'
+        VAR3 GET_LAST VAR2                                          %Pop position from stack
+        VAR2 REMOVE_LAST VAR2
+        [? RUN_IN:0 DYNAMIC_VAR RUN_ROOT VAR0                       %Jump if nonzero
+            FILE_GOTO_BYTE ARG0 VAR3
+        ]
+    ]
+]
