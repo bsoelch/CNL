@@ -224,7 +224,7 @@ public class Constants {
         public static final int MODIFY_ARG0_ALWAYS=1, MODIFY_ARG0_ROOT=0,MODIFY_ARG0_NEVER=-1;
 
         /** -A */
-        public static final String NEGATE = "NEG";
+        public static final String NEGATE = "NEGATE";
         /**Var:N := A*/
         public static final String WRITE_VAR = "WRITE_VAR";
         /**Var[A]*/
@@ -232,9 +232,11 @@ public class Constants {
         /**Var[A] := B*/
         public static final String WRITE_DYNAMIC_VAR = "WRITE_DYNAMIC_VAR";
         /**A+Bi*/
-        public static final String COMPLEX = "CMPLX";
+        public static final String COMPLEX = "COMPLEX";
         /**calls function [A]*/
         public static final String CALL_FUNCTION = "CALL";
+        /**trinary if operator A?B:C*/
+        public static final String IF = "IF";
         /**creates a new set for the following elements (nary, minArgs: 3)*/
         public static final String NEW_SET = "NEW_SET";
         /**creates a new Tuple for the following elements (nary, minArgs: 3)*/
@@ -363,147 +365,145 @@ public class Constants {
                 operatorsInitialized=true;
                 //3bit Operators
 
-                //addLater? optional shortName for Operators
                 //negates A (element-wise)
-                declareUnaryOperator(NEGATE,MODIFY_ARG0_ROOT, MathObject::negate, 0);
+                declareUnaryOperator(NEGATE, "NEG", MODIFY_ARG0_ROOT, MathObject::negate, 0);
                 //replaces A with !A (1 if A==0 else 0) (element-wise)
-                declareUnaryOperator("NOT",MODIFY_ARG0_ROOT, MathObject::not, 0);
+                declareUnaryOperator("NOT", null, MODIFY_ARG0_ROOT, MathObject::not, 0);
                 //7bit operators
 
                 //inverts A (element-wise)
-                declareUnaryOperator("INV",MODIFY_ARG0_ROOT, a->MathObject.deepReplaceNumbers(a, NumericValue::invert), 0);
+                declareUnaryOperator("INVERT", "INV", MODIFY_ARG0_ROOT, a->MathObject.deepReplaceNumbers(a, NumericValue::invert), 0);
                 //returns 1 if A and B are equal 0 otherwise
-                declareBinaryOperator("EQ",MODIFY_ARG0_NEVER,
+                declareBinaryOperator("EQUAL", "EQ", MODIFY_ARG0_NEVER,
                         (a,b)-> a.equals(b)? Real.Int.ONE:Real.Int.ZERO, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                 //returns 1 if A and B are not equal 0 otherwise
-                declareBinaryOperator("NE",MODIFY_ARG0_NEVER,
+                declareBinaryOperator("NOT_EQUAL", "NE", MODIFY_ARG0_NEVER,
                         (a,b)-> a.equals(b)?Real.Int.ZERO:Real.Int.ONE, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                 //returns 1 if A > B, 0 otherwise
-                declareBinaryOperator("GT",MODIFY_ARG0_NEVER,
+                declareBinaryOperator("GREATER_THAN", "GT", MODIFY_ARG0_NEVER,
                                 (a,b)-> MathObject.compare(a,b)>0?Real.Int.ONE:Real.Int.ZERO, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                 //returns 1 if A >= B, 0 otherwise
-                declareBinaryOperator("GE",MODIFY_ARG0_NEVER,
+                declareBinaryOperator("GREATER_EQUAL", "GE", MODIFY_ARG0_NEVER,
                                 (a,b)-> MathObject.compare(a,b)>=0?Real.Int.ONE:Real.Int.ZERO, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                 //adds A and B (element-wise)
-                OperatorInfo add=declareBinaryOperator("ADD",MODIFY_ARG0_ROOT, MathObject::add, 0);
+                OperatorInfo add=declareBinaryOperator("ADD", null, MODIFY_ARG0_ROOT, MathObject::add, 0);
                 //subtracts B from A (element-wise)
-                declareBinaryOperator("SUBT",MODIFY_ARG0_ROOT, MathObject::subtract, 0);
+                declareBinaryOperator("SUBTRACT", "SUBT", MODIFY_ARG0_ROOT, MathObject::subtract, 0);
                 //multiplies A and B (element-wise)
-                OperatorInfo mult=declareBinaryOperator("MULT",MODIFY_ARG0_ROOT, MathObject::multiply, 0);
+                OperatorInfo mult=declareBinaryOperator("MULTIPLY", "MULT", MODIFY_ARG0_ROOT, MathObject::multiply, 0);
                 //divides A by B (element-wise)
-                declareBinaryOperator("DIV",MODIFY_ARG0_ROOT, MathObject::divide, 0);
+                declareBinaryOperator("DIVIVDE", "DIV", MODIFY_ARG0_ROOT, MathObject::divide, 0);
                 //calculates the int-value (floor A/B if both real otherwise round A/B) of A divided by B (element-wise)
-                declareBinaryOperator("INT_DIV",MODIFY_ARG0_ROOT,
+                declareBinaryOperator("INT_DIVIDE", "INT_DIV", MODIFY_ARG0_ROOT,
                         (a,b)->MathObject.deepCombineNumbers(a,b,(x, y)-> NumericValue.divideAndRemainder(x,y)[0]), 0);
                 //calculates the remainder of A divided by B (element-wise)
-                declareBinaryOperator("REMAINDER",MODIFY_ARG0_ROOT,
+                declareBinaryOperator("REMAINDER", null, MODIFY_ARG0_ROOT,
                         (a,b)->MathObject.deepCombineNumbers(a,b,(x, y)-> NumericValue.divideAndRemainder(x,y)[1]), 0);
                 //shortcut of A+Bi (to simplify creation of complex numbers)
-                declareBinaryOperator(COMPLEX,MODIFY_ARG0_NEVER,(a,b)->MathObject.deepCombineNumbers(a,b,
+                declareBinaryOperator(COMPLEX, "CMPLX", MODIFY_ARG0_NEVER,(a, b)->MathObject.deepCombineNumbers(a,b,
                         (l,r)->NumericValue.add(l, NumericValue.multiply(r, Complex.I))), 0);
                 //2-norm of the given MathObject
-                declareUnaryOperator("SQ_ABS",MODIFY_ARG0_ROOT, MathObject::sqAbs, 0);
+                declareUnaryOperator("SQUARE_ABS", "SQ_ABS", MODIFY_ARG0_ROOT, MathObject::sqAbs, 0);
                 //real part of A (element-wise)
-                declareUnaryOperator("RE",MODIFY_ARG0_ROOT, a->MathObject.deepReplaceNumbers(a, NumericValue::realPart), 0);
+                declareUnaryOperator("REAL_PART", "RE", MODIFY_ARG0_ROOT, a->MathObject.deepReplaceNumbers(a, NumericValue::realPart), 0);
                 //imaginary part of A (element-wise)
-                declareUnaryOperator("IM",MODIFY_ARG0_ROOT, a->MathObject.deepReplaceNumbers(a, NumericValue::imaginaryPart), 0);
+                declareUnaryOperator("IMAGINARY_PART", "IM", MODIFY_ARG0_ROOT, a->MathObject.deepReplaceNumbers(a, NumericValue::imaginaryPart), 0);
                 //complex conjugate of A (element-wise)
-                declareUnaryOperator("CONJ",MODIFY_ARG0_ROOT, a->MathObject.deepReplaceNumbers(a, NumericValue::conjugate), 0);
+                declareUnaryOperator("CONJUGATE", "CONJ", MODIFY_ARG0_ROOT, a->MathObject.deepReplaceNumbers(a, NumericValue::conjugate), 0);
 
                 //9bit operators
 
                 //writes A to a variable an returns A
                 declareRuntimeOperator(WRITE_VAR,1);
                 //bitwise logical-and of A and floor B (element-wise)
-                OperatorInfo and=declareBinaryOperator("AND",MODIFY_ARG0_ROOT, MathObject::floorAnd, 0);
+                OperatorInfo and=declareBinaryOperator("AND", null, MODIFY_ARG0_ROOT, MathObject::floorAnd, 0);
                 //bitwise logical-or of A and floor B (element-wise)
-                OperatorInfo or=declareBinaryOperator("OR",MODIFY_ARG0_ROOT, MathObject::floorOr, 0);
+                OperatorInfo or=declareBinaryOperator("OR", null, MODIFY_ARG0_ROOT, MathObject::floorOr, 0);
                 //bitwise logical-xor of A and floor B (element-wise)
-                declareBinaryOperator("XOR",MODIFY_ARG0_ROOT, MathObject::floorXor, 0);
+                declareBinaryOperator("XOR", null, MODIFY_ARG0_ROOT, MathObject::floorXor, 0);
                 //bitwise logical-andNot of A and floor B (element-wise)
-                declareBinaryOperator("AND_NOT",MODIFY_ARG0_ROOT, MathObject::floorAndNot, 0);
+                declareBinaryOperator("AND_NOT", null, MODIFY_ARG0_ROOT, MathObject::floorAndNot, 0);
                 //increments A (element-wise) if A is a variable the value of A is changed
-                declareUnaryOperator("INC",MODIFY_ARG0_ALWAYS, a-> MathObject.add(a,Real.Int.ONE), 0);
+                declareUnaryOperator("INCREMENT", "INC", MODIFY_ARG0_ALWAYS, a-> MathObject.add(a,Real.Int.ONE), 0);
                 //decrements A (element-wise) if A is a variable the value of A is changed
-                declareUnaryOperator("DEC",MODIFY_ARG0_ALWAYS, a-> MathObject.subtract(a,Real.Int.ONE), 0);
+                declareUnaryOperator("DECREMENT", "DEC", MODIFY_ARG0_ALWAYS, a-> MathObject.subtract(a,Real.Int.ONE), 0);
                 //(element-wise) floor A
-                declareUnaryOperator("FLOOR",MODIFY_ARG0_ROOT,
+                declareUnaryOperator("FLOOR", null, MODIFY_ARG0_ROOT,
                                 a-> MathObject.round(a, MathObject.FLOOR), 0);
                 //(element-wise) ciel A
-                declareUnaryOperator("CIEL",MODIFY_ARG0_ROOT,
+                declareUnaryOperator("CIEL", null, MODIFY_ARG0_ROOT,
                                 a-> MathObject.round(a, MathObject.CIEL), 0);
                 //(element-wise) round A
-                declareUnaryOperator("ROUND",MODIFY_ARG0_ROOT,
+                declareUnaryOperator("ROUND", null, MODIFY_ARG0_ROOT,
                                 a-> MathObject.round(a, MathObject.ROUND), 0);
                 //1 if A>0, 0 otherwise
-                declareUnaryOperator("GT0",MODIFY_ARG0_NEVER,
+                declareUnaryOperator("GREATER_THAN0", "GT0", MODIFY_ARG0_NEVER,
                         a-> MathObject.compare(a,Real.Int.ZERO)>0?Real.Int.ONE:Real.Int.ZERO,
                         OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                 //1 if A>=0, 0 otherwise
-                declareUnaryOperator("GE0",MODIFY_ARG0_NEVER,
+                declareUnaryOperator("GREATER_EQUAL0", "GE0", MODIFY_ARG0_NEVER,
                                 a-> MathObject.compare(a,Real.Int.ZERO)>=0?Real.Int.ONE:Real.Int.ZERO,
                         OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                 //min A,B
-                OperatorInfo min=declareBinaryOperator("MIN",MODIFY_ARG0_ROOT, MathObject::min,
+                OperatorInfo min=declareBinaryOperator("MIN", null, MODIFY_ARG0_ROOT, MathObject::min,
                         OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                 //max A,B
-                OperatorInfo max=declareBinaryOperator("MAX",MODIFY_ARG0_ROOT, MathObject::max,
+                OperatorInfo max=declareBinaryOperator("MAX", null, MODIFY_ARG0_ROOT, MathObject::max,
                         OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                 //calls a function
                 declareRuntimeOperator(CALL_FUNCTION,0);
                 //replaces A with a simpler Fraction with distance to A at most real B
-                declareBinaryOperator("APPROX",MODIFY_ARG0_ROOT,
+                declareBinaryOperator("APPROXIMATE", "APPROX", MODIFY_ARG0_ROOT,
                         (a,b)-> MathObject.deepReplaceNumbers(a, e->e.approx(b.numericValue().realPart())), 0);
 
                 //13bit Operators
 
                 //trinary if-Operator isTrue(args[0])? args[1] :args[2]
-                declareOperator("IF", 3, false, MODIFY_ARG0_NEVER, (args)->
+                declareOperator(IF, null, 3, false, MODIFY_ARG0_NEVER, (args)->
                         MathObject.isTrue(args[0])?args[1]:args[2],OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                 //A <sup>floor real B</sup> (element-wise)
-                declareBinaryOperator("POW",MODIFY_ARG0_ROOT, MathObject::pow, 0);
+                declareBinaryOperator("POW", null, MODIFY_ARG0_ROOT, MathObject::pow, 0);
                 //replaces all fractions in A with their numerator
-                declareUnaryOperator("NUM",MODIFY_ARG0_ROOT,
+                declareUnaryOperator("NUMERATOR", "NUM", MODIFY_ARG0_ROOT,
                         (a)-> MathObject.deepReplaceNumbers(a,NumericValue::numerators), 0);
                 //replaces all fractions in A with their denominator
-                declareUnaryOperator("DEN",MODIFY_ARG0_ROOT,
+                declareUnaryOperator("DENOMINATOR", "DEN", MODIFY_ARG0_ROOT,
                         (a)-> MathObject.deepReplaceNumbers(a,NumericValue::denominators), 0);
                 //replaces all reals in A with their sign
-                declareUnaryOperator("SGN",MODIFY_ARG0_ROOT,
+                declareUnaryOperator("SIGNUM", "SGN", MODIFY_ARG0_ROOT,
                         (a)-> MathObject.deepReplaceNumbers(a,NumericValue::signum), 0);
                 //returns a Pair q,r with A=q*B+r and  sqrAbs r < sqrAbs B (element-wise)
-                declareBinaryOperator("DIV_REM",MODIFY_ARG0_ROOT,
+                declareBinaryOperator("DIVIDE_AND_REMAINDER", "DIV_REM", MODIFY_ARG0_ROOT,
                         (a,b)-> MathObject.deepCombine(a,b,(x, y)->{
                             NumericValue[] tmp=NumericValue.divideAndRemainder(x,y);
                             return new Pair(tmp[0],tmp[1]);
                         }), 0);
                 //greatest common divisor of A and B (element-wise)
-                declareBinaryOperator("GCD",MODIFY_ARG0_ROOT,
+                declareBinaryOperator("GCD", null, MODIFY_ARG0_ROOT,
                         (a,b)-> MathObject.deepCombineNumbers(a,b,NumericValue::gcd), 0);
                 //least common multiple of A and B (element-wise)
-                declareBinaryOperator("LCM",MODIFY_ARG0_ROOT,
+                declareBinaryOperator("LCM", null, MODIFY_ARG0_ROOT,
                         (a,b)-> MathObject.deepCombineNumbers(a,b,NumericValue::lcm), 0);
 
                 //addLater MIN_MAX
                 // CONCAT_BINARY
 
                 //A (+) B with a/b(+)c/d=(a+c)/(b+d) (element-wise)
-                declareBinaryOperator("F_ADD",MODIFY_ARG0_ROOT, MathObject::fAdd, 0);
-
+                declareBinaryOperator("F_ADD", null, MODIFY_ARG0_ROOT,
+                        MathObject::fAdd, 0);
                 //F2X_MULT
-                //
-                declareUnaryOperator("BIT_LENGTH",MODIFY_ARG0_ROOT,//TODO better algorithm
-                                (a)-> Real.from(a.numericValue().realPart()
-                                        .num().abs().bitLength()
-                                        - a.numericValue().realPart().den().bitLength()), 0);
+
+                //replaces each Number A with bigLen(floor re A)) (element-wise)
+                declareUnaryOperator("BIT_LENGTH", null, MODIFY_ARG0_ROOT,
+                        MathObject::bitLength, 0);
                 //replaces A with with the Ath variable in the current context
                 declareRuntimeOperator(DYNAMIC_VAR,1);
                 //writes B to Var[A] returns B
-                declareRuntimeOperator(WRITE_DYNAMIC_VAR,1);
+                declareRuntimeOperator(WRITE_DYNAMIC_VAR,2);
                 //LambdaExpressions
                 {
                     //binds all free vars in A
-                    declareUnaryOperator("BIND_ALL",MODIFY_ARG0_NEVER,
+                    declareUnaryOperator("BIND_ALL", null, MODIFY_ARG0_NEVER,
                             (a) -> {
                                 if(a instanceof LambdaExpression){
                                     LambdaVariable[] bind=a.freeVariables().toArray(new LambdaVariable[0]);
@@ -514,7 +514,7 @@ public class Constants {
                             }, OperatorInfo.LAMBDA_FLAG_ALLOW_ALL);
                     {
                         //evaluates the lambda-expression A at B
-                        OperatorInfo unEval=declareBinaryOperator("EVAL",MODIFY_ARG0_NEVER,
+                        OperatorInfo unEval=declareBinaryOperator("EVAL", null, MODIFY_ARG0_NEVER,
                                 (a,b) -> {
                                     if(a instanceof LambdaExpression){
                                         return ((LambdaExpression)a).evaluate(new MathObject[]{b});
@@ -523,7 +523,7 @@ public class Constants {
                                     }
                                 }, OperatorInfo.LAMBDA_FLAG_ALLOW_ALL);
                         //evaluates the lambda-expression args[0] at args[1] and then at args[2]
-                        OperatorInfo biEval=declareOperator("BI_EVAL",3,false,MODIFY_ARG0_NEVER,
+                        OperatorInfo biEval=declareOperator("BI_EVAL", null, 3,false,MODIFY_ARG0_NEVER,
                                 (args) -> {
                                     if(args[0] instanceof LambdaExpression){
                                         return ((LambdaExpression)args[0]).evaluate(Arrays.copyOfRange(args,1,args.length));
@@ -532,7 +532,7 @@ public class Constants {
                                     }
                                 }, OperatorInfo.LAMBDA_FLAG_ALLOW_ALL);
                         //evaluates the lambda-expression args[0] at args[1],args[2],...
-                        OperatorInfo eval=declareOperator("N_EVAL", 4, true, MODIFY_ARG0_NEVER,
+                        OperatorInfo eval=declareOperator("N_EVAL", null, 4, true, MODIFY_ARG0_NEVER,
                                 (args) -> {
                                     if (args[0] instanceof LambdaExpression) {
                                         return ((LambdaExpression) args[0]).evaluate(Arrays.copyOfRange(args, 1, args.length));
@@ -545,7 +545,7 @@ public class Constants {
                         info.addShortCut(biEval);
                     }
                     //evaluates the lambda-expression A with the elements of the Tuple B as arguments
-                    declareBinaryOperator("TUPLE_EVAL",MODIFY_ARG0_NEVER,
+                    declareBinaryOperator("TUPLE_EVAL", null, MODIFY_ARG0_NEVER,
                             (a,b) -> {
                                 if(a instanceof LambdaExpression){
                                     return ((LambdaExpression)a).evaluate(MathObject.asTuple(b).toArray());
@@ -554,7 +554,7 @@ public class Constants {
                                 }
                             }, OperatorInfo.LAMBDA_FLAG_ALLOW_ALL);
                     //replaces all elements to the given MathObject with a their result in the given LambdaFunction
-                    declareBinaryOperator("REPLACE_ALL",MODIFY_ARG0_NEVER,
+                    declareBinaryOperator("REPLACE_ALL", null, MODIFY_ARG0_NEVER,
                             (a,b) -> {
                                 if(b instanceof LambdaExpression){
                                     return MathObject.replaceAll(a,e->((LambdaExpression)b).evaluate(new MathObject[]{e}));
@@ -564,7 +564,7 @@ public class Constants {
                             }, OperatorInfo.LAMBDA_FLAG_ALLOW_ALL);
                     //replaces all elements to the given MathObject with a their result in the given LambdaFunction
                     //if the argument is a set the result is a map that maps each element to its value under the given function
-                    declareBinaryOperator("MAP_ALL",MODIFY_ARG0_NEVER,
+                    declareBinaryOperator("MAP_ALL", null, MODIFY_ARG0_NEVER,
                             (a,b) -> {
                                 if(b instanceof LambdaExpression){
                                     return MathObject.mapAll(a,e->((LambdaExpression)b).evaluate(new MathObject[]{e}));
@@ -573,7 +573,7 @@ public class Constants {
                                 }
                             }, OperatorInfo.LAMBDA_FLAG_ALLOW_ALL);
                     //combines the elements to two MathObjects with a Binary LambdaFunction
-                    declareOperator("COMBINE",3,false,MODIFY_ARG0_NEVER,
+                    declareOperator("COMBINE", null, 3,false,MODIFY_ARG0_NEVER,
                             (args) -> {
                                 if(args[2] instanceof LambdaExpression){
                                     return MathObject.combine(args[0],args[1],
@@ -583,7 +583,7 @@ public class Constants {
                                 }
                             }, OperatorInfo.LAMBDA_FLAG_ALLOW_ALL);
                     //(LtR) reduction of the MathObject A with the lambda-expression B
-                    declareBinaryOperator("REDUCE",MODIFY_ARG0_NEVER,
+                    declareBinaryOperator("REDUCE", null, MODIFY_ARG0_NEVER,
                             (a,b) -> {
                                 if(b instanceof LambdaExpression){
                                     return MathObject.reduce(a,null,(e,f)->((LambdaExpression)b).evaluate(new MathObject[]{e,f}),false);
@@ -592,7 +592,7 @@ public class Constants {
                                 }
                             }, OperatorInfo.LAMBDA_FLAG_ALLOW_ALL);
                     //deep (LtR) reduction of the MathObject A with the lambda-expression B
-                    declareBinaryOperator("DEEP_REDUCE",MODIFY_ARG0_NEVER,
+                    declareBinaryOperator("DEEP_REDUCE", null, MODIFY_ARG0_NEVER,
                             (a,b) -> {
                                 if(b instanceof LambdaExpression){
                                     return MathObject.reduce(a,null,(e,f)->((LambdaExpression)b).evaluate(new MathObject[]{e,f}),true);
@@ -607,72 +607,72 @@ public class Constants {
                 OperatorInfo strConcat;
                 {
                     //length of A as String
-                    declareUnaryOperator("STRING_LENGTH",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("STRING_LENGTH", null, MODIFY_ARG0_ROOT,
                                     (a) -> Real.Int.from(a.asString().length()), 0);
                     //concatenates the Strings A and B
-                    strConcat=declareBinaryOperator("STRING_CONCAT",MODIFY_ARG0_ROOT, MathObject::strConcat, 0);
+                    strConcat=declareBinaryOperator("STRING_CONCAT", null, MODIFY_ARG0_ROOT, MathObject::strConcat, 0);
                     //returns the string representation of A in base B
-                    declareBinaryOperator("TO_STRING",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("TO_STRING", null, MODIFY_ARG0_ROOT,
                                     (a, b) -> Real.from(Real.stringAsBigInt(
                                             a.toString(MathObject.round(b, MathObject.FLOOR).numericValue()
                                                     .realPart().num(), true))), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     //returns the fixed point string representation of A in base B
-                    declareBinaryOperator("TO_STRING_FIXED",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("TO_STRING_FIXED", null, MODIFY_ARG0_ROOT,
                             (a, b) -> Real.from(Real.stringAsBigInt(
                                     a.toStringFixedPoint(MathObject.round(b, MathObject.FLOOR).numericValue().realPart().num(),
                                             Real.Int.ZERO, true))), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     //returns the floating point string representation of A in base B
-                    declareBinaryOperator("TO_STRING_FLOAT",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("TO_STRING_FLOAT", null, MODIFY_ARG0_ROOT,
                             (a, b) -> Real.from(Real.stringAsBigInt(
                                     a.toStringFloat(MathObject.round(b, MathObject.FLOOR).numericValue().realPart().num(),
                                             Real.Int.ZERO,true))), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     //returns the fixed point string representation of args[0] in base args[1] with precision args[2]
-                    declareOperator("TO_STRING_FIXED_APPROX",3,false,MODIFY_ARG0_ROOT,
+                    declareOperator("TO_STRING_FIXED_APPROX", null, 3,false,MODIFY_ARG0_ROOT,
                             (args) -> Real.from(Real.stringAsBigInt(
                                     args[0].toStringFixedPoint(MathObject.round(args[1], MathObject.FLOOR).numericValue().realPart().num(),
                                             args[2].numericValue().realPart(), true))), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     //returns the floating point string representation of args[0] in base args[1] with precision args[2]
-                    declareOperator("TO_STRING_FLOAT_APPROX",3,false,MODIFY_ARG0_ROOT,
+                    declareOperator("TO_STRING_FLOAT_APPROX", null, 3,false,MODIFY_ARG0_ROOT,
                             (args) -> Real.from(Real.stringAsBigInt(
                                     args[0].toStringFloat(MathObject.round(args[1], MathObject.FLOOR).numericValue().realPart().num(),
                                             args[2].numericValue().realPart(),true))), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     //addLater? shortcuts for bases 2,10,12,16
                     //creates a MathObject from the String A in base B
-                    declareBinaryOperator("FROM_STRING",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("FROM_STRING", null, MODIFY_ARG0_ROOT,
                                     (a, b) -> MathObject.FromString.safeFromString(
                                             a.asString(), MathObject.round(b, MathObject.FLOOR)
                                                     .numericValue().realPart().num()), 0);
 
-                    declareBinaryOperator("STRING_COMPARE",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("STRING_COMPARE", null, MODIFY_ARG0_ROOT,
                                     (a,b) -> Real.Int.from(a.asString().compareTo(b.asString())), 0);
-                    declareUnaryOperator("STRING_LOWERCASE",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("STRING_LOWERCASE", null, MODIFY_ARG0_ROOT,
                                     (a) -> Real.from(Real.stringAsBigInt(a.asString().toLowerCase(Locale.ROOT))), 0);
-                    declareUnaryOperator("STRING_UPPERCASE",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("STRING_UPPERCASE", null, MODIFY_ARG0_ROOT,
                                     (a) -> Real.from(Real.stringAsBigInt(a.asString().toUpperCase(Locale.ROOT))), 0);
-                    declareBinaryOperator("STRING_STARTS_WITH",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("STRING_STARTS_WITH", null, MODIFY_ARG0_ROOT,
                                     (a,b) -> Real.Int.from(a.asString().startsWith(b.asString())?1:0), 0);
-                    declareBinaryOperator("STRING_ENDS_WITH",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("STRING_ENDS_WITH", null, MODIFY_ARG0_ROOT,
                                     (a,b) -> Real.Int.from(a.asString().endsWith(b.asString())?1:0), 0);
-                    declareBinaryOperator("STRING_CONTAINS",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("STRING_CONTAINS", null, MODIFY_ARG0_ROOT,
                                     (a,b) -> Real.Int.from(a.asString().contains(b.asString())?1:0), 0);
-                    declareBinaryOperator("STRING_STARTS_WITH_IGNORE_CASE",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("STRING_STARTS_WITH_IGNORE_CASE", null, MODIFY_ARG0_ROOT,
                                     (a,b) -> Real.Int.from(a.asString().toLowerCase(Locale.ROOT)
                                             .startsWith(b.asString().toLowerCase(Locale.ROOT))?1:0), 0);
-                    declareBinaryOperator("STRING_ENDS_WITH_IGNORE_CASE",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("STRING_ENDS_WITH_IGNORE_CASE", null, MODIFY_ARG0_ROOT,
                                     (a,b) -> Real.Int.from(a.asString().toLowerCase(Locale.ROOT)
                                             .endsWith(b.asString().toLowerCase(Locale.ROOT))?1:0), 0);
-                    declareBinaryOperator("STRING_CONTAINS_IGNORE_CASE",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("STRING_CONTAINS_IGNORE_CASE", null, MODIFY_ARG0_ROOT,
                                     (a,b) -> Real.Int.from(a.asString().toLowerCase(Locale.ROOT)
                                             .contains(b.asString().toLowerCase(Locale.ROOT))?1:0), 0);
-                    declareBinaryOperator("STRING_INDEX_OF",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("STRING_INDEX_OF", null, MODIFY_ARG0_ROOT,
                                     (a,b) -> Real.Int.from(a.asString().indexOf(b.asString())), 0);
-                    declareBinaryOperator("SUBSTRING_FROM",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("SUBSTRING_FROM", null, MODIFY_ARG0_ROOT,
                                     (a,i) -> Real.from(Real.stringAsBigInt(a.asString()
                                             .substring(i.numericValue().realPart().num().intValueExact()))), 0);
-                    declareBinaryOperator("SUBSTRING_TO",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("SUBSTRING_TO", null, MODIFY_ARG0_ROOT,
                                     (a,i) -> Real.from(Real.stringAsBigInt(a.asString()
                                             .substring(0,i.numericValue().realPart().num().intValueExact()+1))), 0);
-                    declareOperator("SUBSTRING", 3, false, MODIFY_ARG0_ROOT,
+                    declareOperator("SUBSTRING", null, 3, false, MODIFY_ARG0_ROOT,
                             (args)->{
                                 String str = args[0].asString();
                                 try {
@@ -696,36 +696,36 @@ public class Constants {
                 OperatorInfo cut,unite,times,tupleConcat;
                 {
                     //Type Conversion
-                    declareUnaryOperator("NUMERIC_VALUE",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("NUMERIC_VALUE", null, MODIFY_ARG0_ROOT,
                                     MathObject::numericValue, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
-                    declareUnaryOperator("AS_SET",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("AS_SET", null, MODIFY_ARG0_ROOT,
                                     MathObject::asSet, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
-                    declareUnaryOperator("AS_MAP",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("AS_MAP", null, MODIFY_ARG0_ROOT,
                                     MathObject::asMap, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
-                    declareUnaryOperator("AS_MATRIX",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("AS_MATRIX", null, MODIFY_ARG0_ROOT,
                                     Matrix::asMatrix, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
-                    declareUnaryOperator("AS_TUPLE",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("AS_TUPLE", null, MODIFY_ARG0_ROOT,
                             MathObject::asTuple, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
-                    declareUnaryOperator("NONZERO_ELEMENTS",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("NONZERO_ELEMENTS", null, MODIFY_ARG0_ROOT,
                             MathObject::nonzeroElements, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     //Type Checking
-                    declareUnaryOperator("IS_INTEGER",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("IS_INTEGER", null, MODIFY_ARG0_ROOT,
                                     o-> (o instanceof Real.Int?Real.Int.ONE:Real.Int.ZERO), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
-                    declareUnaryOperator("IS_NUMERIC",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("IS_NUMERIC", null, MODIFY_ARG0_ROOT,
                                     o-> (o instanceof NumericValue?Real.Int.ONE:Real.Int.ZERO), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
-                    declareUnaryOperator("IS_SET",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("IS_SET", null, MODIFY_ARG0_ROOT,
                                             o-> (o instanceof FiniteSet?Real.Int.ONE:Real.Int.ZERO), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
-                    declareUnaryOperator("IS_MAP",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("IS_MAP", null, MODIFY_ARG0_ROOT,
                                     o-> (o instanceof FiniteMap?Real.Int.ONE:Real.Int.ZERO), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
-                    declareUnaryOperator("IS_TUPLE",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("IS_TUPLE", null, MODIFY_ARG0_ROOT,
                                     o-> ((o instanceof FiniteMap&&((FiniteMap) o).isTuple())?Real.Int.ONE:Real.Int.ZERO), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
-                    declareUnaryOperator("IS_MATRIX",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("IS_MATRIX", null, MODIFY_ARG0_ROOT,
                                     o-> ((o instanceof Matrix ||(o instanceof FiniteMap&&((FiniteMap) o).isMatrix()))
                                             ?Real.Int.ONE:Real.Int.ZERO), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
-                    declareUnaryOperator("IS_LAMBDA",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("IS_LAMBDA", null, MODIFY_ARG0_ROOT,
                             o-> (o instanceof LambdaExpression?Real.Int.ONE:Real.Int.ZERO), OperatorInfo.LAMBDA_FLAG_ALLOW_ALL);
 
-                    declareUnaryOperator("SIZE",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("SIZE", null, MODIFY_ARG0_ROOT,
                                     (o)-> {
                                         if(o instanceof Matrix) {
                                             return Real.from(((Matrix) o).size());
@@ -736,7 +736,7 @@ public class Constants {
                                         }
                                         return Real.Int.ONE;
                                     }, 0);
-                    declareUnaryOperator("LEN",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("LENGTH", "LEN", MODIFY_ARG0_ROOT,
                                     (o)-> {
                                         if(o instanceof Matrix) {
                                             return Real.from(((Matrix) o).dimensions()[0]);
@@ -750,13 +750,13 @@ public class Constants {
 
                     {
                         //wraps the given MathObject in a Set
-                        OperatorInfo newSet1=declareUnaryOperator("WRAP_IN_SET",MODIFY_ARG0_ROOT,
+                        OperatorInfo newSet1=declareUnaryOperator("WRAP_IN_SET", null, MODIFY_ARG0_ROOT,
                                 FiniteSet::from, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                         //creates a Set from the given MathObjects
-                        OperatorInfo newSet2=declareBinaryOperator("WRAP2_IN_SET",MODIFY_ARG0_ROOT,
+                        OperatorInfo newSet2=declareBinaryOperator("WRAP2_IN_SET", null, MODIFY_ARG0_ROOT,
                                 FiniteSet::from, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                         //creates a Set from the given MathObjects
-                        OperatorInfo newSet=declareOperator(NEW_SET, 3, true, MODIFY_ARG0_ROOT
+                        OperatorInfo newSet=declareOperator(NEW_SET, null, 3, true, MODIFY_ARG0_ROOT
                                 , FiniteSet::from, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                         NAryInfo info=new NAryInfo(FiniteSet.EMPTY_SET,newSet,true,false);
                         info.addShortCut(newSet1);
@@ -764,19 +764,19 @@ public class Constants {
                     }
                     {
                         //wraps the given MathObject in a Tuple
-                        OperatorInfo newTuple1=declareUnaryOperator("WRAP_IN_TUPLE",MODIFY_ARG0_ROOT,
+                        OperatorInfo newTuple1=declareUnaryOperator("WRAP_IN_TUPLE", null, MODIFY_ARG0_ROOT,
                                 o -> Tuple.create(new MathObject[]{o}), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                         //creates a Pair from the given MathObjects
-                        OperatorInfo newPair=declareBinaryOperator("NEW_PAIR",MODIFY_ARG0_ROOT,
+                        OperatorInfo newPair=declareBinaryOperator("NEW_PAIR", null, MODIFY_ARG0_ROOT,
                                 Pair::new,OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                         //creates a new Tuple from the given MathObjects
-                        OperatorInfo newTuple=declareOperator(NEW_TUPLE, 3, true, MODIFY_ARG0_ROOT,
+                        OperatorInfo newTuple=declareOperator(NEW_TUPLE, null, 3, true, MODIFY_ARG0_ROOT,
                                 Tuple::create, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                         NAryInfo info=new NAryInfo(Tuple.EMPTY_MAP,newTuple,false,false);
                         info.addShortCut(newTuple1);
                         info.addShortCut(newPair);
                         //creates a SparseTuple from the given MapObject, with each 2 consecutive arguments being a key-value pair
-                        OperatorInfo sparseTuple=declareOperator(SPARSE_TUPLE, 2, true, MODIFY_ARG0_ROOT,
+                        OperatorInfo sparseTuple=declareOperator(SPARSE_TUPLE, null, 2, true, MODIFY_ARG0_ROOT,
                                 (args)->{
                                     HashMap<MathObject, MathObject> map = constructMapFromArgs(args);
                                     return FiniteMap.from(map, FiniteMap.TUPLE_WRAP_ALL);
@@ -785,10 +785,10 @@ public class Constants {
                     }
                     {
                         //returns the map {A->B}
-                        OperatorInfo newMap1=declareBinaryOperator("SINGLETON_MAP",MODIFY_ARG0_ROOT,
+                        OperatorInfo newMap1=declareBinaryOperator("SINGLETON_MAP", null, MODIFY_ARG0_ROOT,
                                 (k,v)->FiniteMap.from(Collections.singletonMap(k,v), FiniteMap.TUPLE_WRAP_NONE), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                         //creates a Map from the given MapObject, with each 2 consecutive arguments being a key-value pair
-                        OperatorInfo newMap=declareOperator(NEW_MAP, 4, true, MODIFY_ARG0_ROOT,
+                        OperatorInfo newMap=declareOperator(NEW_MAP, null, 4, true, MODIFY_ARG0_ROOT,
                                 (args)->{
                                     HashMap<MathObject, MathObject> map = constructMapFromArgs(args);
                                     return FiniteMap.from(map, FiniteMap.TUPLE_WRAP_NONE);
@@ -797,125 +797,125 @@ public class Constants {
                         info.addShortCut(newMap1);
                     }
 
-                    declareUnaryOperator("IDENTITY_MATRIX",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("IDENTITY_MATRIX", null, MODIFY_ARG0_ROOT,
                                     (l)-> Matrix.identityMatrix(l.numericValue().realPart().num().intValueExact()), 0);
-                    declareBinaryOperator("DIAGONAL_MATRIX",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("DIAGONAL_MATRIX", null, MODIFY_ARG0_ROOT,
                                     (l,v)-> Matrix.diagonalMatrix(l.numericValue().realPart().num().intValueExact()
                                             ,v.numericValue()), 0);
-                    declareBinaryOperator("INT_RANGE",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("INT_RANGE", null, MODIFY_ARG0_ROOT,
                                     (l,u)->FiniteSet.range(l.numericValue().realPart().round(MathObject.FLOOR),
                                             u.numericValue().realPart().round(MathObject.FLOOR)), 0);
                     //TO_DIAGONAL_MATRIX    MathObject -> "row" -> diagonal
                     //addLater? NEW_MATRIX (Bi-Nary)
 
                     //intersection of A and B (A cap B)
-                    cut=declareBinaryOperator("CUT",MODIFY_ARG0_ROOT, MathObject::intersect, 0);
+                    cut=declareBinaryOperator("CUT", null, MODIFY_ARG0_ROOT, MathObject::intersect, 0);
                     //union of A and B (A cup B)
-                    unite=declareBinaryOperator("UNITE",MODIFY_ARG0_ROOT, MathObject::unite, 0);
+                    unite=declareBinaryOperator("UNITE", null, MODIFY_ARG0_ROOT, MathObject::unite, 0);
                     //symmetric-difference of A and B (A delta B)
-                    declareBinaryOperator("SYM_DIFF",MODIFY_ARG0_ROOT, MathObject::symmetricDifference, 0);
+                    declareBinaryOperator("SYMMETRIC_DIFFERENCE", "SYM_DIFF", MODIFY_ARG0_ROOT, MathObject::symmetricDifference, 0);
                     //difference of A and B (A\B)
-                    declareBinaryOperator("DIFF",MODIFY_ARG0_ROOT, MathObject::difference, 0);
+                    declareBinaryOperator("DIFFERENCE", "DIFF", MODIFY_ARG0_ROOT, MathObject::difference, 0);
                     //cartesian product of A and B
-                    times=declareBinaryOperator("TIMES",MODIFY_ARG0_ROOT, MathObject::times, 0);
+                    times=declareBinaryOperator("TIMES", null, MODIFY_ARG0_ROOT, MathObject::times, 0);
 
                     //returns the first value in A
-                    declareUnaryOperator("GET_FIRST",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("GET_FIRST", null, MODIFY_ARG0_ROOT,
                             o->MathObject.firstOrLast(o,true, false), 0);
                     //returns the last value in A
-                    declareUnaryOperator("GET_LAST",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("GET_LAST", null, MODIFY_ARG0_ROOT,
                             o->MathObject.firstOrLast(o,false, false), 0);
                     //returns the first key in A
-                    declareUnaryOperator("FIRST_KEY",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("FIRST_KEY", null, MODIFY_ARG0_ROOT,
                             o->MathObject.firstOrLast(o,true, true), 0);
                     //returns the last key in A
-                    declareUnaryOperator("LAST_KEY",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("LAST_KEY", null, MODIFY_ARG0_ROOT,
                             o->MathObject.firstOrLast(o,false, true), 0);
                     //returns the domain of A
-                    declareUnaryOperator("DOMAIN",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("DOMAIN", null, MODIFY_ARG0_ROOT,
                             o->MathObject.domainOrRange(o,true), 0);
                     //return all values in A
-                    declareUnaryOperator("VALUES",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("VALUES", null, MODIFY_ARG0_ROOT,
                             o->MathObject.domainOrRange(o,false), 0);
                     //returns the element with the given key B in the map A
                     //if A is a set the Operator returns 1 iff B is an element of A
-                    declareBinaryOperator("GET_ELEMENT",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("GET_ELEMENT", null, MODIFY_ARG0_ROOT,
                             MathObject::getElement, 0);//TODO? allow Lambda in 2nd slot
                     //adds B to A for consistency with Tuples if A is a map the key is assumed to be 1 more
                     // than the largest numeric value of a key in A
-                    declareBinaryOperator("INSERT",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("INSERT", null, MODIFY_ARG0_ROOT,
                             MathObject::insert, 0);//? allow Lambda in 2nd slot
                     //adds args[2] at position args[1] in args[0]
-                    declareOperator("PUT",3,false,MODIFY_ARG0_ROOT,
+                    declareOperator("PUT", null, 3,false,MODIFY_ARG0_ROOT,
                             (args)->MathObject.put(args[0],args[1],args[2]), 0);//? allow Lambda in 2nd/3rd slot
                     //concatenates two tuples (maps are automatically converted to their tuple representation)
-                    tupleConcat=declareBinaryOperator("TUPLE_CONCAT",MODIFY_ARG0_ROOT,MathObject::tupleConcat, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
+                    tupleConcat=declareBinaryOperator("TUPLE_CONCAT", null, MODIFY_ARG0_ROOT,MathObject::tupleConcat, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     //adds A as First element to the Tuple B
-                    declareBinaryOperator("TUPLE_PUSH_FIRST",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("TUPLE_PUSH_FIRST", null, MODIFY_ARG0_ROOT,
                                     (l,r)->MathObject.tupleConcat(Tuple.create(new MathObject[]{l}),MathObject.asTuple(r)), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     //adds B as Last element to the Tuple A
-                    declareBinaryOperator("TUPLE_PUSH_LAST",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("TUPLE_PUSH_LAST", null, MODIFY_ARG0_ROOT,
                                     (l,r)->MathObject.tupleConcat(MathObject.asTuple(l),Tuple.create(new MathObject[]{r})), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     //inserts args[1] in the Tuple args[0] at index args[2]
-                    declareOperator("TUPLE_INSERT",3,false,MODIFY_ARG0_ROOT,
+                    declareOperator("TUPLE_INSERT", null, 3,false,MODIFY_ARG0_ROOT,
                             (args)->MathObject.asTuple(args[0])//? allow lambda in 2nd parameter
                                     .insert(args[1],args[2].numericValue().realPart().num().intValueExact()), 0);
                     //all elements of A with key >= B
-                    declareBinaryOperator("RANGE_FROM",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("RANGE_FROM", null, MODIFY_ARG0_ROOT,
                             (l,r)->MathObject.slice(l,r,true,false), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     //all elements of A with key > B
-                    declareBinaryOperator("RANGE_ABOVE",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("RANGE_ABOVE", null, MODIFY_ARG0_ROOT,
                             (l,r)->MathObject.slice(l,r,false,false), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     //all elements of A with key <= B
-                    declareBinaryOperator("RANGE_TO",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("RANGE_TO", null, MODIFY_ARG0_ROOT,
                             (l,r)->MathObject.slice(l,r,true,true), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     //all elements of A with key < B
-                    declareBinaryOperator("RANGE_BELOW",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("RANGE_BELOW", null, MODIFY_ARG0_ROOT,
                             (l,r)->MathObject.slice(l,r,false,true), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     //all elements of args[0] with key between args[1] and args[2] (both included)
-                    declareOperator("RANGE",3,false,MODIFY_ARG0_ROOT,
+                    declareOperator("RANGE", null, 3,false,MODIFY_ARG0_ROOT,
                             (args)->MathObject.range(args[0],args[1],true,args[2],true), 0);
                     //all elements of args[0] with key between args[1] included and args[2] excluded
-                    declareOperator("RANGE_L",3,false,MODIFY_ARG0_ROOT,
+                    declareOperator("RANGE_L", null, 3,false,MODIFY_ARG0_ROOT,
                             (args)->MathObject.range(args[0],args[1],true,args[2],false), 0);
                     //all elements of args[0] with key between args[1] excluded and args[2] included
-                    declareOperator("RANGE_R",3,false,MODIFY_ARG0_ROOT,
+                    declareOperator("RANGE_R", null, 3,false,MODIFY_ARG0_ROOT,
                             (args)->MathObject.range(args[0],args[1],false,args[2],true), 0);
                     //all elements of args[0] with key between args[1] and args[2] (both excluded)
-                    declareOperator("RANGE_BETWEEN",3,false,MODIFY_ARG0_ROOT,
+                    declareOperator("RANGE_BETWEEN", null, 3,false,MODIFY_ARG0_ROOT,
                             (args)->MathObject.range(args[0],args[1],false,args[2],false), 0);
                     //Pair of all elements of A with key <= B and all elements of A with key > B
-                    declareBinaryOperator("SPLIT_ABOVE",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("SPLIT_ABOVE", null, MODIFY_ARG0_ROOT,
                             (l,r)->new Pair(MathObject.slice(l,r,true,true),MathObject.slice(l,r,false,false)),
                             OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     //Pair of all elements of A with key < B and all elements of A with key >= B
-                    declareBinaryOperator("SPLIT_BELOW",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("SPLIT_BELOW", null, MODIFY_ARG0_ROOT,
                             (l,r)->new Pair(MathObject.slice(l,r,false,true),MathObject.slice(l,r,true,false)),
                             OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     //returns A without its first element
-                    declareUnaryOperator("REMOVE_FIRST",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("REMOVE_FIRST", null, MODIFY_ARG0_ROOT,
                             (s)-> MathObject.removeEnd(s,true), 0);
                     //returns A without its last element
-                    declareUnaryOperator("REMOVE_LAST",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("REMOVE_LAST", null, MODIFY_ARG0_ROOT,
                             (s)-> MathObject.removeEnd(s,false), 0);
                     //returns A without all elements with value B
-                    declareBinaryOperator("REMOVE",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("REMOVE", null, MODIFY_ARG0_ROOT,
                             (c,e)->MathObject.remove(c,e,false),0);
                     //returns A without all elements with key B
-                    declareBinaryOperator("REMOVE_KEY",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("REMOVE_KEY", null, MODIFY_ARG0_ROOT,
                             (c,e)->MathObject.remove(c,e,true),0);
                     //returns the Tuple A with the entry at index B removed
-                    declareBinaryOperator("REMOVE_INDEX",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("REMOVE_INDEX", null, MODIFY_ARG0_ROOT,
                             (t,e)->MathObject.asTuple(t).remove(e.numericValue().realPart().num().intValueExact()),0);
                     //returns the Tuple A with the entries with value B removed
-                    declareBinaryOperator("TUPLE_REMOVE",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("TUPLE_REMOVE", null, MODIFY_ARG0_ROOT,
                             (t,e)->MathObject.asTuple(t).tupleRemove(e),0);
                     //addLater removeAll
                     //REMOVE_ALL
                     //REMOVE_KEYS
 
                     //removes all values a in A for which B(a)!=0
-                    declareBinaryOperator("REMOVE_IF",MODIFY_ARG0_NEVER,
+                    declareBinaryOperator("REMOVE_IF", null, MODIFY_ARG0_NEVER,
                             (a,b) -> {
                                 if(b instanceof LambdaExpression){
                                     return MathObject.removeIf(a,e->((LambdaExpression)b).evaluate(new MathObject[]{e}));
@@ -924,7 +924,7 @@ public class Constants {
                                 }
                             }, OperatorInfo.LAMBDA_FLAG_ALLOW_ALL);
                     //removes all key-value Pairs (a,b) in A for which B(a,b)!=0
-                    declareBinaryOperator("REMOVE_IF2",MODIFY_ARG0_NEVER,
+                    declareBinaryOperator("REMOVE_IF2", null, MODIFY_ARG0_NEVER,
                             (a,b) -> {
                                 if(b instanceof LambdaExpression){
                                     return MathObject.removeIfMap(a,(e,f)->((LambdaExpression)b).evaluate(new MathObject[]{e,f}));
@@ -936,25 +936,25 @@ public class Constants {
                 //Matrix Operations
                 {
                     //transposes the Matrix A
-                    declareUnaryOperator("MAT_TRANSPOSE",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("MAT_TRANSPOSE", null, MODIFY_ARG0_ROOT,
                                     (m)->Matrix.asMatrix(m).transpose(), 0);
                     //multiplies the Matrices A and B
-                    declareBinaryOperator("MAT_MULT",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("MAT_MULTIPLY", "MAT_MULT", MODIFY_ARG0_ROOT,
                                     (l,r)->Matrix.matrixMultiply(Matrix.asMatrix(l),Matrix.asMatrix(r)), 0);
                     //inverts the Matrix A
-                    declareUnaryOperator("MAT_INV",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("MAT_INV", null, MODIFY_ARG0_ROOT,
                                     (m)->Matrix.asMatrix(m).invert(), 0);
                     //multiplies the Matrices A and B^-1
-                    declareBinaryOperator("MAT_RDIV",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("MAT_RDIVIDE", "MAT_RDIV", MODIFY_ARG0_ROOT,
                                     (l,r)->Matrix.matrixMultiply(Matrix.asMatrix(l),Matrix.asMatrix(r).invert()), 0);
                     //multiplies the Matrices A^-1 and B
-                    declareBinaryOperator("MAT_LDIV",MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("MAT_LDIVIDE", "MAT_LDIV", MODIFY_ARG0_ROOT,
                                     (l,r)->Matrix.matrixMultiply(Matrix.asMatrix(l).invert(),Matrix.asMatrix(r)), 0);
                     //determinant of the Matrix A
-                    declareUnaryOperator("MAT_DET",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("MAT_DETERMINATE", "MAT_DET", MODIFY_ARG0_ROOT,
                                     (m)->Matrix.asMatrix(m).determinant(), 0);
                     //Pair(rows,columns) containing the dimensions of the matrix A
-                    declareUnaryOperator("MAT_DIM",MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("MAT_DIMENSIONS", "MAT_DIM", MODIFY_ARG0_ROOT,
                                     (m)->{
                                 int[] dim=Matrix.asMatrix(m).dimensions();
                                 return new Pair(Real.from(dim[0]),Real.from(dim[1]));
@@ -962,7 +962,7 @@ public class Constants {
                     // gets entry args[1], args[2] in Matrix args[0]
                     // if args[1] or args[2] are maps/sets all pairs of numeric values are replaced with the respective entry
                     // i.e. MAT_GET mat [i1,i2] {j,k} => [{mat[i1][j],mat[i1][k]},{mat[i2][j],mat[i2][k]}]
-                    declareOperator("MAT_GET", 3, false, MODIFY_ARG0_NEVER, args->
+                    declareOperator("MAT_GET", null, 3, false, MODIFY_ARG0_NEVER, args->
                                 MathObject.deepReplace(args[1],e->MathObject.deepReplace(args[2],
                                         f->Matrix.asMatrix(args[0]).entryAt(e.realPart().num().intValueExact()
                                         ,f.realPart().num().intValueExact())))
@@ -971,7 +971,7 @@ public class Constants {
                     // if args[1] or args[2] are maps/sets all pairs of numeric values are set to the new value
                     // i.e. MAT_SET mat [i1,i2] {j,k} v =>
                     // MAT_SET mat i1 j v   MAT_SET mat i1 k v   MAT_SET mat i2 j v   MAT_SET mat i2 k v
-                    declareOperator("MAT_SET", 4, false, MODIFY_ARG0_NEVER, args->
+                    declareOperator("MAT_SET", null, 4, false, MODIFY_ARG0_NEVER, args->
                             {
                                 Matrix[] mat=new Matrix[]{Matrix.asMatrix(args[0])};
                                 MathObject.deepForEach(args[1],e->MathObject.deepForEach(args[2],f->
@@ -984,7 +984,7 @@ public class Constants {
                 {
                     {
                         //sum of the given elements
-                        OperatorInfo sum=declareOperator("SUM", 3, true, MODIFY_ARG0_ROOT,
+                        OperatorInfo sum=declareOperator("SUM", null, 3, true, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.nAryReduce(args,Real.Int.ZERO,MathObject::add), 0);
                         NAryInfo info=new NAryInfo(Real.Int.ZERO,sum,true,true);
                         info.addShortCut(ID);
@@ -992,17 +992,17 @@ public class Constants {
                     }
                     {
                         //deep sum of all elements in A
-                        OperatorInfo deepSum1=declareOperator("DEEP_SUM1", 1, false, MODIFY_ARG0_ROOT,
+                        OperatorInfo deepSum1=declareOperator("DEEP_SUM1", null, 1, false, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO, NumericValue::add), 0);
                         //deep sum of the given elements
-                        OperatorInfo deepSum=declareOperator("DEEP_SUM", 2, true, MODIFY_ARG0_ROOT,
+                        OperatorInfo deepSum=declareOperator("DEEP_SUM", null, 2, true, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO, NumericValue::add), 0);
                         NAryInfo info=new NAryInfo(Real.Int.ZERO,deepSum,true,true);
                         info.addShortCut(deepSum1);
                     }
                     {
                         //product of the given elements
-                        OperatorInfo prod=declareOperator("PROD", 3, true, MODIFY_ARG0_ROOT,
+                        OperatorInfo prod=declareOperator("PRODUCT", "PROD", 3, true, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.nAryReduce(args,Real.Int.ONE,MathObject::multiply), 0);
                         NAryInfo info=new NAryInfo(Real.Int.ONE,prod,true,true);
                         info.addShortCut(ID);
@@ -1010,17 +1010,17 @@ public class Constants {
                     }
                     {
                         //deep product of all elements in A
-                        OperatorInfo deepProd1=declareOperator("DEEP_PROD1", 1, false, MODIFY_ARG0_ROOT,
+                        OperatorInfo deepProd1=declareOperator("DEEP_PRODUCT1", "DEEP_PROD1", 1, false, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.deepNAryReduce(args,Real.Int.ONE, NumericValue::multiply), 0);
                         //deep product of the given elements
-                        OperatorInfo deepProd=declareOperator("DEEP_PROD", 2, true, MODIFY_ARG0_ROOT,
+                        OperatorInfo deepProd=declareOperator("DEEP_PRODUCT", "DEEP_PROD", 2, true, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.deepNAryReduce(args,Real.Int.ONE, NumericValue::multiply), 0);
                         NAryInfo info=new NAryInfo(Real.Int.ONE,deepProd,true,true);
                         info.addShortCut(deepProd1);
                     }
                     {
                         //logical and of the given elements
-                        OperatorInfo nAnd=declareOperator("NARY_AND", 3, true, MODIFY_ARG0_ROOT,
+                        OperatorInfo nAnd=declareOperator("NARY_AND", null, 3, true, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.nAryReduce(args,Real.Int.ONE,MathObject::floorAnd), 0);
                         NAryInfo info=new NAryInfo(Real.Int.ONE,nAnd,true,true);
                         info.addShortCut(ID);
@@ -1028,17 +1028,17 @@ public class Constants {
                     }
                     {
                         //deep logical-and of all elements in A
-                        OperatorInfo deepAnd1=declareOperator("DEEP_AND1", 1, false, MODIFY_ARG0_ROOT,
+                        OperatorInfo deepAnd1=declareOperator("DEEP_AND1", null, 1, false, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.deepNAryReduce(args,Real.Int.ONE, NumericValue::floorAnd), 0);
                         //deep logical-and of the given elements
-                        OperatorInfo deepAnd=declareOperator("DEEP_AND", 2, true, MODIFY_ARG0_ROOT,
+                        OperatorInfo deepAnd=declareOperator("DEEP_AND", null, 2, true, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.deepNAryReduce(args,Real.Int.ONE, NumericValue::floorAnd), 0);
                         NAryInfo info=new NAryInfo(Real.Int.ONE,deepAnd,true,true);
                         info.addShortCut(deepAnd1);
                     }
                     {
                         //logical-or of the given elements
-                        OperatorInfo nOr=declareOperator("NARY_OR", 3, true, MODIFY_ARG0_ROOT,
+                        OperatorInfo nOr=declareOperator("NARY_OR", null, 3, true, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.nAryReduce(args,Real.Int.ZERO,MathObject::floorOr), 0);
                         NAryInfo info=new NAryInfo(Real.Int.ZERO,nOr,true,true);
                         info.addShortCut(ID);
@@ -1046,17 +1046,17 @@ public class Constants {
                     }
                     {
                         //deep logical-and of all elements in A
-                        OperatorInfo deepOr1=declareOperator("DEEP_OR1", 1, false, MODIFY_ARG0_ROOT,
+                        OperatorInfo deepOr1=declareOperator("DEEP_OR1", null, 1, false, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO, NumericValue::floorOr), 0);
                         //deep logical-or of the given elements
-                        OperatorInfo deepOr=declareOperator("DEEP_OR", 2, true, MODIFY_ARG0_ROOT,
+                        OperatorInfo deepOr=declareOperator("DEEP_OR", null, 2, true, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO, NumericValue::floorOr), 0);
                         NAryInfo info=new NAryInfo(Real.Int.ZERO,deepOr,true,true);
                         info.addShortCut(deepOr1);
                     }
                     {
                         //concatenates the string representations of the given elements
-                        OperatorInfo nStrConcat=declareOperator("NARY_STR_CONCAT", 3, true, MODIFY_ARG0_ROOT,
+                        OperatorInfo nStrConcat=declareOperator("NARY_STR_CONCAT", null, 3, true, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.nAryReduce(args,Real.Int.ZERO,MathObject::strConcat), 0);
                         NAryInfo info=new NAryInfo(Real.Int.ZERO,nStrConcat,false,true);
                         info.addShortCut(ID);
@@ -1064,17 +1064,17 @@ public class Constants {
                     }
                     {
                         //concatenates the string representations of all elements in A
-                        OperatorInfo deepStrConcat1=declareOperator("DEEP_STR_CONCAT1", 1, false, MODIFY_ARG0_ROOT,
+                        OperatorInfo deepStrConcat1=declareOperator("DEEP_STR_CONCAT1", null, 1, false, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO, NumericValue::deepStrConcat), 0);
                         //deep-concatenation the string representations of the given elements
-                        OperatorInfo deepStrConcat=declareOperator("DEEP_STR_CONCAT", 2, true, MODIFY_ARG0_ROOT,
+                        OperatorInfo deepStrConcat=declareOperator("DEEP_STR_CONCAT", null, 2, true, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO, NumericValue::deepStrConcat), 0);
                         NAryInfo info=new NAryInfo(Real.Int.ZERO,deepStrConcat,false,true);
                         info.addShortCut(deepStrConcat1);
                     }
                     {
                         //minimum of the given elements
-                        OperatorInfo nMin=declareOperator("NARY_MIN", 3, true, MODIFY_ARG0_ROOT,
+                        OperatorInfo nMin=declareOperator("NARY_MIN", null, 3, true, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.nAryReduce(args,Real.Int.ZERO,MathObject::min), 0);
                         NAryInfo info=new NAryInfo(Real.Int.ZERO,nMin,true,true);
                         info.addShortCut(ID);
@@ -1082,17 +1082,17 @@ public class Constants {
                     }
                     {
                         //deep minimum of the elements in A
-                        OperatorInfo deepMin1=declareOperator("DEEP_MIN1", 1, false, MODIFY_ARG0_ROOT,
+                        OperatorInfo deepMin1=declareOperator("DEEP_MIN1", null, 1, false, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO, NumericValue::min), 0);
                         //deep minimum of the given elements
-                        OperatorInfo deepMin=declareOperator("DEEP_MIN", 2, true, MODIFY_ARG0_ROOT,
+                        OperatorInfo deepMin=declareOperator("DEEP_MIN", null, 2, true, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO, NumericValue::min), 0);
                         NAryInfo info=new NAryInfo(Real.Int.ZERO,deepMin,true,true);
                         info.addShortCut(deepMin1);
                     }
                     {
                         //maximum of the given elements
-                        OperatorInfo nMax=declareOperator("NARY_MAX", 3, true, MODIFY_ARG0_ROOT,
+                        OperatorInfo nMax=declareOperator("NARY_MAX", null, 3, true, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.nAryReduce(args,Real.Int.ZERO,MathObject::max), 0);
                         NAryInfo info=new NAryInfo(Real.Int.ZERO,nMax,true,true);
                         info.addShortCut(ID);
@@ -1100,10 +1100,10 @@ public class Constants {
                     }
                     {
                         //deep maximum of the elements in A
-                        OperatorInfo deepMax1=declareOperator("DEEP_MAX1", 1, false, MODIFY_ARG0_ROOT,
+                        OperatorInfo deepMax1=declareOperator("DEEP_MAX1", null, 1, false, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO, NumericValue::max), 0);
                         //deep maximum of the given elements
-                        OperatorInfo deepMax=declareOperator("DEEP_MAX", 2, true, MODIFY_ARG0_ROOT,
+                        OperatorInfo deepMax=declareOperator("DEEP_MAX", null, 2, true, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.deepNAryReduce(args,Real.Int.ZERO, NumericValue::max), 0);
                         NAryInfo info=new NAryInfo(Real.Int.ZERO,deepMax,true,true);
                         info.addShortCut(deepMax1);
@@ -1113,7 +1113,7 @@ public class Constants {
 
                     {
                         //union of the given elements
-                        OperatorInfo union=declareOperator("UNION", 3, true, MODIFY_ARG0_ROOT,
+                        OperatorInfo union=declareOperator("UNION", null, 3, true, MODIFY_ARG0_ROOT,
                                 MathObject::nAryTimes, 0);
                         NAryInfo info=new NAryInfo(FiniteSet.EMPTY_SET,union,true,true);
                         info.addShortCut(ID);
@@ -1121,7 +1121,7 @@ public class Constants {
                     }
                     {
                         //intersection of the given elements
-                        OperatorInfo union=declareOperator("INTERSECTION", 3, true, MODIFY_ARG0_ROOT,
+                        OperatorInfo union=declareOperator("INTERSECTION", "N_CUT", 3, true, MODIFY_ARG0_ROOT,
                                 MathObject::nAryTimes, 0);
                         NAryInfo info=new NAryInfo(FiniteSet.EMPTY_SET,union,true,true);
                         info.addShortCut(ID);
@@ -1129,7 +1129,7 @@ public class Constants {
                     }
                     {
                         //n-ary cartesian product of the given elements
-                        OperatorInfo nTimes=declareOperator("NARY_TIMES", 3, true, MODIFY_ARG0_ROOT,
+                        OperatorInfo nTimes=declareOperator("NARY_TIMES", null, 3, true, MODIFY_ARG0_ROOT,
                                 MathObject::nAryTimes, 0);
                         NAryInfo info=new NAryInfo(FiniteSet.EMPTY_SET,nTimes,false,true);
                         info.addShortCut(ID);
@@ -1137,7 +1137,7 @@ public class Constants {
                     }
                     {
                         //n-ary tuple-concatenation of the given elements
-                        OperatorInfo nTupleConcat=declareOperator("NARY_TUPLE_CONCAT", 1, true, MODIFY_ARG0_ROOT,
+                        OperatorInfo nTupleConcat=declareOperator("NARY_TUPLE_CONCAT", null, 1, true, MODIFY_ARG0_ROOT,
                                 (args)->MathObject.nAryReduce(args,Real.Int.ZERO,MathObject::tupleConcat),
                                 OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                         NAryInfo info=new NAryInfo(Tuple.EMPTY_MAP,nTupleConcat,false,true);
@@ -1505,6 +1505,7 @@ public class Constants {
 
         /**Declares a new operator with the given name and number of Arguments,
          * @param name name of the Operator, should be in uppercase and must not contain any whitespace characters nor @:,
+         * @param shortName short name for the operator is ignored if null
          * @param numArgs Expected Number of Arguments
          * @param storeMode StoreMode for handling variables in the first slot one of
          * {@link #MODIFY_ARG0_NEVER}, {@link #MODIFY_ARG0_ROOT}, {@link #MODIFY_ARG0_ALWAYS}
@@ -1513,13 +1514,17 @@ public class Constants {
          *                   by default the calculation is redirected to {@link LambdaExpression}
          *                        when there are any LambdaExpressions in the Arguments
          * @throws IllegalArgumentException If there is already an Operator with the given name*/
-        private static OperatorInfo declareOperator(String name, int numArgs, boolean isNary, int storeMode,
+        private static OperatorInfo declareOperator(String name, @Nullable String shortName, int numArgs, boolean isNary, int storeMode,
                                                     Function<MathObject[], MathObject> eval, int lambdaFlags){
             checkName(name);
             int id= operators.size();
             OperatorInfo info=new OperatorInfo(id,name,storeMode,isNary,numArgs,eval, lambdaFlags);
             operators.put(id,info);
             operatorNames.put(name,info);
+            if(shortName!=null){
+                checkName(shortName);
+                operatorNames.put(shortName,info);
+            }
             return info;
         }
         /**Declares a new environment-dependent operator with the given name and number of Arguments,
@@ -1539,7 +1544,7 @@ public class Constants {
         /**shortcut for the declaration of an unary Operator
          * @param name name of the Operator, should be in uppercase and must not contain any whitespace characters nor @:,
          * @param minArgs Minimum Expected number of Arguments
-         * @see #declareOperator(String, int, boolean, int, Function, int)  */
+         * @see #declareOperator(String, String, int, boolean, int, Function, int)  */
         private static void declareRuntimeOperator(String name,int minArgs){
             checkName(name);
             int id= operators.size();
@@ -1550,27 +1555,29 @@ public class Constants {
 
         /**shortcut for the declaration of an unary Operator
          * @param name name of the Operator, should be in uppercase and must not contain any whitespace characters nor @:,
+         * @param shortName short name for the operator is ignored if null
          * @param storeMode StoreMode for handling variables in the first slot one of
          * {@link #MODIFY_ARG0_NEVER}, {@link #MODIFY_ARG0_ROOT}, {@link #MODIFY_ARG0_ALWAYS}
          * @param unEval unary Evaluation Function
          * @param lambdaFlags flags for allowing the direct calculation of specific kinds of LambdaExpressions,
          *                   by default the calculation is redirected to {@link LambdaExpression}
          *                        when there are any LambdaExpressions in the Arguments
-         * @see #declareOperator(String, int, boolean, int, Function, int)  */
-        private static OperatorInfo declareUnaryOperator(String name, int storeMode, Function<MathObject, MathObject> unEval, int lambdaFlags){
-            return declareOperator(name, 1, false, storeMode, (args)->unEval.apply(args[0]), lambdaFlags);
+         * @see #declareOperator(String, String, int, boolean, int, Function, int)  */
+        private static OperatorInfo declareUnaryOperator(String name, @Nullable String shortName, int storeMode, Function<MathObject, MathObject> unEval, int lambdaFlags){
+            return declareOperator(name, shortName, 1, false, storeMode, (args)->unEval.apply(args[0]), lambdaFlags);
         }
         /**shortcut for the declaration of a binary Operator
          * @param name name of the Operator, should be in uppercase and must not contain any whitespace characters nor @:,
+         * @param shortName short name for the operator is ignored if null
          * @param storeMode StoreMode for handling variables in the first slot one of
          * {@link #MODIFY_ARG0_NEVER}, {@link #MODIFY_ARG0_ROOT}, {@link #MODIFY_ARG0_ALWAYS}
          * @param biEval binary Evaluation Function
          * @param lambdaFlags flags for allowing the direct calculation of specific kinds of LambdaExpressions,
          *                   by default the calculation is redirected to {@link LambdaExpression}
          *                        when there are any LambdaExpressions in the Arguments
-         * @see #declareOperator(String, int, boolean, int, Function, int)  */
-        private static OperatorInfo declareBinaryOperator(String name, int storeMode, BinaryOperator<MathObject> biEval, int lambdaFlags){
-            return declareOperator(name, 2, false, storeMode, (args)->biEval.apply(args[0],args[1]), lambdaFlags);
+         * @see #declareOperator(String, String, int, boolean, int, Function, int)  */
+        private static OperatorInfo declareBinaryOperator(String name, @Nullable String shortName, int storeMode, BinaryOperator<MathObject> biEval, int lambdaFlags){
+            return declareOperator(name, shortName, 2, false, storeMode, (args)->biEval.apply(args[0],args[1]), lambdaFlags);
         }
         /**shortcut for the declaration of an unary environment-dependent Operator
          * @param name name of the Operator, should be in uppercase and must not contain any whitespace characters nor @:,

@@ -32,8 +32,9 @@ public class OperatorNode implements ExpressionNode{
         }
         if(operator== ID){
             return params[0];
+        }else if(operator.equals(Constants.Operators.byName(IF))&&params[0] instanceof MathObject&&params[0].freeVariables().isEmpty()){
+            return MathObject.isTrue((MathObject) params[0])?params[1] : params[2];
         }
-        //addLater? simplify IF <val> <expr> <expr>
         NAryInfo nAryInfo=nAryInfo(operator);
         if(nAryInfo!=null&&nAryInfo.isAssociative){//simplify associative n-ary operators
             ArrayList<MathObject> objects=new ArrayList<>(params.length);

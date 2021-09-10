@@ -6,12 +6,44 @@ import bsoelch.cnl.math.Real;
 import org.jetbrains.annotations.NotNull;
 
 import java.math.BigInteger;
+import java.util.HashMap;
 
-public interface Context extends Action {
-    @NotNull Context getChild(BigInteger id);
+public abstract class Context implements Action {
+    //VarPointer/CallFunction cannot be cached, since they can be modified during Execution
+    //cache ArgPointers to save Memory
+    private final HashMap<BigInteger,ArgPointer> argPointers =new HashMap<>();
 
-    @NotNull MathObject getVar(NumericValue id);
-    default @NotNull MathObject getVar(MathObject id) {
+    final ArgPointer RES=new ArgPointer(this,true);
+    final ArgPointer COUNT=new ArgPointer(this,false);
+
+    /**returns a ArgPointer to arg id in this context*/
+    final ArgPointer argPointer(@NotNull BigInteger id){
+        ArgPointer prev = argPointers.get(id);
+        if (prev == null) {
+            prev = new ArgPointer(this, id);
+            argPointers.put(id, prev);
+        }
+        return prev;
+    }
+
+    private Context.ArgumentData args;
+
+    Context(ArgumentData args){
+        this.args=args;
+    }
+
+    public void reset(ArgumentData args) {
+        this.args=args;
+    }
+
+    public ArgumentData getArgs() {
+        return args;
+    }
+
+    abstract @NotNull Context getChild(BigInteger id);
+
+    abstract @NotNull MathObject getVar(NumericValue id);
+    final @NotNull MathObject getVar(MathObject id) {
         if(id instanceof NumericValue){
             return getVar((NumericValue)id);
         }else{
@@ -19,10 +51,8 @@ public interface Context extends Action {
         }
     }
 
-    boolean hasVar(NumericValue id);
-
-    void putVar(NumericValue id, MathObject value);
-    default void putVar(MathObject id, MathObject value) {
+    abstract void putVar(NumericValue id, MathObject value);
+    final void putVar(MathObject id, MathObject value) {
         if(id instanceof NumericValue){
             putVar((NumericValue) id,value);
         }else{
@@ -30,33 +60,45 @@ public interface Context extends Action {
         }
     }
 
-    @NotNull Function getFunction(BigInteger id);
+    abstract @NotNull Function getFunction(BigInteger id);
 
-    void putFunction(BigInteger id, Function function);
+    abstract void putFunction(BigInteger id, Function function);
 
     @Override
-    default boolean requiresArg() {
+    public boolean requiresArg() {
         return false;
     }
 
     @Override
-    default boolean acceptsArg(int flags) {
+    public boolean acceptsArg(int flags) {
         return true;//returns true to simplify code in interpreter
     }
 
     @Override
-    default void pushArg(ValuePointer arg) {
+    public void pushArg(ValuePointer arg) {
         throw new IllegalStateException("Cannot push Argument to ProgramEnvironment");
     }
 
 
-    MathObject getRes();
-    void setRes(MathObject o);
-    Real.Int argCount();
-    ValuePointer getArg(BigInteger id);
+    public MathObject getRes() {
+        return args.getRes();
+    }
+
+    public void setRes(MathObject o) {
+        args.setRes(o);
+    }
+
+    public Real.Int argCount() {
+        return args.argCount();
+    }
+
+    public ValuePointer getArg(BigInteger id) {
+        return args.getArg(id);
+    }
 
 
-    class ArgumentData {
+
+    static class ArgumentData {
         private MathObject res;
         private final ValuePointer[] args;
         ArgumentData(ValuePointer[] args){

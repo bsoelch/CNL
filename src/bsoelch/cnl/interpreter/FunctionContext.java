@@ -3,29 +3,26 @@ package bsoelch.cnl.interpreter;
 import bsoelch.cnl.BitRandomAccessStream;
 import bsoelch.cnl.math.MathObject;
 import bsoelch.cnl.math.NumericValue;
-import bsoelch.cnl.math.Real;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.HashMap;
 
-public class FunctionContext implements Context{
+public class FunctionContext extends Context{
     final Context parent;
 
     final HashMap<BigInteger,FunctionContext> children=new HashMap<>();
     final HashMap<NumericValue,MathObject> vars=new HashMap<>();
 
-    private Context.ArgumentData args;
 
     public FunctionContext(Context parent, ArgumentData fData) {
+        super(fData);
         this.parent = parent;
-        this.args = fData;
     }
 
     public void reset(ArgumentData args) {
-        this.args=args;
-        //addLater? allow persistent variables between function calls
+        super.reset(args);
         vars.clear();
         children.clear();
     }
@@ -34,7 +31,7 @@ public class FunctionContext implements Context{
     public @NotNull FunctionContext getChild(BigInteger id) {
         FunctionContext child = children.get(id);
         if (child == null) {
-            children.put(id, child = new FunctionContext(parent.getChild(id),args));
+            children.put(id, child = new FunctionContext(parent.getChild(id),getArgs()));
         }
         return child;
     }
@@ -48,11 +45,6 @@ public class FunctionContext implements Context{
         return value;
     }
 
-    @Override
-    public boolean hasVar(NumericValue id) {
-        id=id.numericValue();
-        return vars.containsKey(id);
-    }
 
     @Override
     public void putVar(NumericValue id, MathObject value) {
@@ -68,26 +60,6 @@ public class FunctionContext implements Context{
     @Override
     public void putFunction(BigInteger id, Function function) {
         throw new IllegalStateException("cannot declare Functions in Functions");
-    }
-
-    @Override
-    public MathObject getRes() {
-        return args.getRes();
-    }
-
-    @Override
-    public void setRes(MathObject o) {
-        args.setRes(o);
-    }
-
-    @Override
-    public Real.Int argCount() {
-        return args.argCount();
-    }
-
-    @Override
-    public ValuePointer getArg(BigInteger id) {
-        return args.getArg(id);
     }
 
 

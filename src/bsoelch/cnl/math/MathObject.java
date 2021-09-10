@@ -86,6 +86,10 @@ public abstract class MathObject implements ExpressionNode {//addLater? ElementV
                 ||arg.equals(Tuple.EMPTY_MAP));
     }
 
+    public static MathObject bitLength(MathObject o){
+        return deepReplaceNumbers(o,a->Real.from(a.realPart().round(FLOOR).num().abs().bitLength()));
+    }
+
     public static FiniteSet asSet(MathObject o){
         if(o instanceof LambdaExpression)
             o=o.asMathObject();

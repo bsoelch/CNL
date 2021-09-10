@@ -7,7 +7,6 @@ import bsoelch.cnl.math.Tuple;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.Scanner;
@@ -59,10 +58,10 @@ public class Main {
         Interpreter ip=new Interpreter(testFile,null, true);
         ip.test();
     }
-    public static void compile(Reader source, File target) throws IOException, SyntaxError, CNL_RuntimeException {
+    public static void compile(File source, File target) throws IOException, SyntaxError, CNL_RuntimeException {
         Translator.compile(source,target);
     }
-    public static void decompile(File source, Writer target) throws IOException, SyntaxError, CNL_RuntimeException {
+    public static void decompile(File source, File target) throws IOException, SyntaxError, CNL_RuntimeException {
         Translator.decompile(source,target);
     }
     public static MathObject execute(File code,MathObject[] args,boolean forceRunLibs) throws IOException, SyntaxError, CNL_RuntimeException {
@@ -139,7 +138,6 @@ public class Main {
         return word.toString();
     }
 
-    //addLater compile/decompile directory (all files ending with .cnl / .cnls)
 
     public static void main(String[] args) {
         if(args.length==0){
@@ -292,9 +290,8 @@ public class Main {
                         main=source+".cnls";
                     }
                 }
-                //addlater move FileManagement to Translator
-                try (Reader read=new InputStreamReader(new FileInputStream(fileFromPath(source)),StandardCharsets.UTF_8)){
-                    compile(read, fileFromPath(main));
+                try{
+                    compile(fileFromPath(source), fileFromPath(main));
                 }catch (IOException io){
                     System.out.println("IOException during Compiling:");
                     System.out.println(io.getMessage());
@@ -319,8 +316,8 @@ public class Main {
                         decompile=main+".cnls";
                     }
                 }
-                try(Writer write=new OutputStreamWriter(new FileOutputStream(fileFromPath(decompile)),StandardCharsets.UTF_8) ){
-                    decompile(fileFromPath(main),write);
+                try{
+                    decompile(fileFromPath(main),fileFromPath(decompile));
                 }catch (IOException io){
                     System.out.println("IOException during Decompiling:");
                     System.out.println(io.getMessage());

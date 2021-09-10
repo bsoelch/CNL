@@ -12,6 +12,7 @@ import static bsoelch.cnl.Constants.*;
 import java.io.*;
 import java.math.BigInteger;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class Translator {
@@ -187,12 +188,12 @@ public class Translator {
                 if(operatorInfo.isRuntimeOperator()){
                     switch (operatorInfo.name) {
                         case Operators.DYNAMIC_VAR:
-                            return new VarPointer(context, null, false);
+                            return new VarPointer(context,null, false);
                         case Operators.WRITE_DYNAMIC_VAR:
-                            return new VarPointer(context, null, true);
+                            return new VarPointer(context,null, true);
                         case Operators.WRITE_VAR:
                             BigInteger varId = code.readBigInt(VAR_INT_HEADER, VAR_INT_BLOCK, VAR_INT_BIG_BLOCK);
-                            return new VarPointer(context, Real.from(varId), true);
+                            return new VarPointer(context,Real.from(varId), true);
                         case Operators.CALL_FUNCTION:
                             BigInteger fId = code.readBigInt(FUNCTION_ID_INT_HEADER, FUNCTION_ID_INT_BLOCK, FUNCTION_ID_INT_BIG_BLOCK);
                             return new CallFunction(context, fId);
@@ -216,7 +217,7 @@ public class Translator {
             }
             case HEADER_VAR:{
                 BigInteger id = code.readBigInt(VAR_INT_HEADER, VAR_INT_BLOCK, VAR_INT_BIG_BLOCK);
-                return new VarPointer(context, Real.from(id),false);//addLater caching
+                return new VarPointer(context,Real.from(id),false);
             }
             case HEADER_INT:{
                 BigInteger value = code.readBigInt(INT_HEADER, INT_BLOCK, INT_BIG_BLOCK);
@@ -250,8 +251,8 @@ public class Translator {
             case HEADER_CONSTANTS:{
                 BigInteger id= code.readBigInt(CONSTANTS_INT_HEADER,CONSTANTS_INT_BLOCK,CONSTANTS_INT_BIG_BLOCK);
                 switch (id.intValueExact()){
-                    case CONSTANT_RES:return new ArgPointer(context,true);
-                    case CONSTANT_ARG_COUNT:return new ArgPointer(context,false);
+                    case CONSTANT_RES:return context.RES;
+                    case CONSTANT_ARG_COUNT:return context.COUNT;
                     case CONSTANT_I:return I;
                     case CONSTANT_EXIT:return EXIT;
                     case CONSTANT_EMPTY_SET:return EMPTY_SET;
@@ -260,7 +261,7 @@ public class Translator {
             }
             case HEADER_FUNCTION_ARG:{
                 BigInteger id= code.readBigInt(FUNCTION_ARG_INT_HEADER, FUNCTION_ARG_INT_BLOCK, FUNCTION_ARG_INT_BIG_BLOCK);
-                return new ArgPointer(context,id);
+                return context.argPointer(id);
             }
             case HEADER_FUNCTION_DECLARATION:{
                 if(!isTopLayer)
@@ -542,7 +543,7 @@ public class Translator {
             BigInteger id = new BigInteger(str.substring(3));
             if(id.signum()==-1)
                 throw new IllegalArgumentException("Negative Id");
-            return new ArgPointer(context,id);
+            return context.argPointer(id);
         }else if(str.toUpperCase(Locale.ROOT).startsWith("X")){//Lambda-Var
             BigInteger id = new BigInteger(str.substring(1));
             if(id.signum()==-1)
@@ -710,9 +711,9 @@ public class Translator {
 
                 //Constants
                 case "RES":
-                    return new ArgPointer(context,true);
+                    return context.RES;
                 case "ARG_COUNT":
-                    return new ArgPointer(context,false);
+                    return context.COUNT;
                 case "I":
                     return I;
                 case "EXIT":
@@ -923,100 +924,105 @@ public class Translator {
         target.writeBigInt(var.getId(),LAMBDA_VAR_INT_HEADER, LAMBDA_VAR_INT_BLOCK, LAMBDA_VAR_INT_BIG_BLOCK);
     }
 
+    //addLater compile/decompile directory (all files ending with .cnl / .cnls)
 
     //addLater? symbolic names in scripts (i.e &name) for varIds/fktIds
     // pre-compiling that replaces symbolic names with varIds (by frequency)
     // +simplification of N-ary expressions similar to OperatorNode.simplify
-    public static void compile(Reader source,File targetFile) throws IOException, SyntaxError, CNL_RuntimeException {
+    public static void compile(File sourceFile,File targetFile) throws IOException, SyntaxError, CNL_RuntimeException {
         if (!(targetFile.exists() || targetFile.createNewFile()))
             throw new IOException("target-file does not exists");
-        FileHeader header = readScriptFileHeader(source);
-        if (header.type == FILE_TYPE_INVALID)
-            throw new IOException("Invalid source-file, all cnl-scripts have to start with CNLS<whitespace> or CNLS:<argCount>");
-        try(BitRandomAccessStream target = new BitRandomAccessFile(targetFile, "rw")) {
-            MathObject[] args;
-            if (header.type == FILE_TYPE_SCRIPT) {
-                writeCodeHeader(target, new FileHeader(FILE_TYPE_CODE,CODE_VERSION,null));
-                args = new MathObject[0];
-            } else if (header.type == FILE_TYPE_EXECUTABLE_SCRIPT) {
-                writeCodeHeader(target, new FileHeader(FILE_TYPE_EXECUTABLE, CODE_VERSION, header.argCount));
-                args = new MathObject[header.argCount.intValueExact()];
-                Arrays.fill(args, Real.Int.ZERO);
-            } else {
+        try (Reader source=new InputStreamReader(new FileInputStream(sourceFile), StandardCharsets.UTF_8)) {
+            FileHeader header = readScriptFileHeader(source);
+            if (header.type == FILE_TYPE_INVALID)
                 throw new IOException("Invalid source-file, all cnl-scripts have to start with CNLS<whitespace> or CNLS:<argCount>");
-            }
-            //position after end of header
-            long startPos=target.bitPos();
-            try(Interpreter test = new Interpreter(args, false, targetFile, false)) {
-                Action a;
-                long actions = 0;
-                do {
-                    while (test.isImporting())
-                        test.flatStep();//flatRun Imports
-                    try {
-                        a = nextAction(source, null, test.programEnvironment(), test.executionEnvironment(), test.isTopLayer());
-                    }catch (IllegalArgumentException|UnsupportedOperationException e){
-                        throw new SyntaxError(test,e);
-                    }catch (ArithmeticException e){
-                        throw new CNL_RuntimeException(test,e);
-                    }
-                    test.stepInternal(a, false);//flat run code to detect syntax errors
-                    if (a == EOF) {
-                        Main.compileFinished(actions, target.bitPos()-startPos);
-                        target.truncateToSize(true);
-                        return;
-                    } else {
-                        a.writeTo(target);
-                        actions++;
-                    }
-                } while (true);
+            try (BitRandomAccessStream target = new BitRandomAccessFile(targetFile, "rw")) {
+                MathObject[] args;
+                if (header.type == FILE_TYPE_SCRIPT) {
+                    writeCodeHeader(target, new FileHeader(FILE_TYPE_CODE, CODE_VERSION, null));
+                    args = new MathObject[0];
+                } else if (header.type == FILE_TYPE_EXECUTABLE_SCRIPT) {
+                    writeCodeHeader(target, new FileHeader(FILE_TYPE_EXECUTABLE, CODE_VERSION, header.argCount));
+                    args = new MathObject[header.argCount.intValueExact()];
+                    Arrays.fill(args, Real.Int.ZERO);
+                } else {
+                    throw new IOException("Invalid source-file, all cnl-scripts have to start with CNLS<whitespace> or CNLS:<argCount>");
+                }
+                //position after end of header
+                long startPos = target.bitPos();
+                try (Interpreter test = new Interpreter(args, false, targetFile, false)) {
+                    Action a;
+                    long actions = 0;
+                    do {
+                        while (test.isImporting())
+                            test.flatStep();//flatRun Imports
+                        try {
+                            a = nextAction(source, null, test.programEnvironment(), test.executionEnvironment(), test.isTopLayer());
+                        } catch (IllegalArgumentException | UnsupportedOperationException e) {
+                            throw new SyntaxError(test, e);
+                        } catch (ArithmeticException e) {
+                            throw new CNL_RuntimeException(test, e);
+                        }
+                        test.stepInternal(a, false);//flat run code to detect syntax errors
+                        if (a == EOF) {
+                            Main.compileFinished(actions, target.bitPos() - startPos);
+                            target.truncateToSize(true);
+                            return;
+                        } else {
+                            a.writeTo(target);
+                            actions++;
+                        }
+                    } while (true);
+                }
             }
         }
     }
 
-    public static void decompile(File sourceFile,Writer target) throws IOException, SyntaxError, CNL_RuntimeException {
+    public static void decompile(File sourceFile,File targetFile) throws IOException, SyntaxError, CNL_RuntimeException {
         try(BitRandomAccessStream source=new BitRandomAccessFile(sourceFile,"rw")) {
-            FileHeader header = readCodeFileHeader(source);
-            if (header.type == FILE_TYPE_INVALID)
-                throw new IOException("Invalid code-file, cnl code-files have to start with CNLL or CNLX");
-            MathObject[] args;
-            if (header.type == FILE_TYPE_CODE) {
-                writeScriptHeader(target, FILE_HEADER_SCRIPT);
-                args = new MathObject[0];
-            } else if (header.type == FILE_TYPE_EXECUTABLE) {
-                writeScriptHeader(target, new FileHeader(FILE_TYPE_EXECUTABLE_SCRIPT, null, header.argCount));
-                args = new MathObject[header.argCount.intValueExact()];
-                Arrays.fill(args, Real.Int.ZERO);
-            } else {
-                throw new IOException("Invalid code-file, cnl code-files have to start with CNLL or CNLX");
-            }
-            try(Interpreter test = new Interpreter(sourceFile, args, false)) {
-                Action a;
-                long actions = 0, lines = 0;
-                do {
-                    while (test.isImporting())
-                        test.flatStep();//flatRun Imports
-                    try {
-                        a = nextAction(source, test.programEnvironment(), test.executionEnvironment(), test.isTopLayer());
-                    }catch (UnsupportedOperationException|IllegalArgumentException e){
-                        throw new SyntaxError(test,e);
-                    }
-                    test.stepInternal(a, false);//flat run code to detect syntax errors
-                    if (a == EOF) {
-                        Main.decompileFinished(lines, actions);
-                        target.close();
-                        return;
-                    } else {
-                        target.write(a.stringRepresentation());
-                        if (test.lineStart()) {
-                            target.write("\n");
-                            lines++;
-                        } else {
-                            target.write(" ");
+            try (Writer target = new OutputStreamWriter(new FileOutputStream(targetFile), StandardCharsets.UTF_8)) {
+                FileHeader header = readCodeFileHeader(source);
+                if (header.type == FILE_TYPE_INVALID)
+                    throw new IOException("Invalid code-file, cnl code-files have to start with CNLL or CNLX");
+                MathObject[] args;
+                if (header.type == FILE_TYPE_CODE) {
+                    writeScriptHeader(target, FILE_HEADER_SCRIPT);
+                    args = new MathObject[0];
+                } else if (header.type == FILE_TYPE_EXECUTABLE) {
+                    writeScriptHeader(target, new FileHeader(FILE_TYPE_EXECUTABLE_SCRIPT, null, header.argCount));
+                    args = new MathObject[header.argCount.intValueExact()];
+                    Arrays.fill(args, Real.Int.ZERO);
+                } else {
+                    throw new IOException("Invalid code-file, cnl code-files have to start with CNLL or CNLX");
+                }
+                try (Interpreter test = new Interpreter(sourceFile, args, false)) {
+                    Action a;
+                    long actions = 0, lines = 0;
+                    do {
+                        while (test.isImporting())
+                            test.flatStep();//flatRun Imports
+                        try {
+                            a = nextAction(source, test.programEnvironment(), test.executionEnvironment(), test.isTopLayer());
+                        } catch (UnsupportedOperationException | IllegalArgumentException e) {
+                            throw new SyntaxError(test, e);
                         }
-                        actions++;
-                    }
-                } while (true);
+                        test.stepInternal(a, false);//flat run code to detect syntax errors
+                        if (a == EOF) {
+                            Main.decompileFinished(lines, actions);
+                            target.close();
+                            return;
+                        } else {
+                            target.write(a.stringRepresentation());
+                            if (test.lineStart()) {
+                                target.write("\n");
+                                lines++;
+                            } else {
+                                target.write(" ");
+                            }
+                            actions++;
+                        }
+                    } while (true);
+                }
             }
         }
     }

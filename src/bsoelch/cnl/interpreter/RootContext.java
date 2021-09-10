@@ -10,15 +10,14 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.HashMap;
 
-class RootContext implements Context {
+class RootContext extends Context {
     private final HashMap<BigInteger, Context> children = new HashMap<>();
     private final HashMap<NumericValue, MathObject> vars = new HashMap<>();
     private final HashMap<BigInteger, Function> functions = new HashMap<>();
 
-    private final ArgumentData fData;
 
     public RootContext(@NotNull Context.ArgumentData fData){
-        this.fData=fData;
+        super(fData);
     }
 
     @Override
@@ -26,7 +25,7 @@ class RootContext implements Context {
     public Context getChild(BigInteger id) {
         Context child = children.get(id);
         if (child == null) {
-            children.put(id, child = new RootContext(fData));
+            children.put(id, child = new RootContext(getArgs()));
         }
         return child;
     }
@@ -41,11 +40,6 @@ class RootContext implements Context {
         return value;
     }
 
-    @Override
-    public boolean hasVar(NumericValue id) {
-        id=id.numericValue();
-        return vars.containsKey(id);
-    }
 
     @Override
     public void putVar(NumericValue id, MathObject value) {
@@ -67,26 +61,6 @@ class RootContext implements Context {
         if(functions.put(id, function)!=null){
             throw new IllegalStateException("Function "+id+" is already defied");
         }
-    }
-
-    @Override
-    public MathObject getRes() {
-        return fData.getRes();
-    }
-
-    @Override
-    public void setRes(MathObject o) {
-        fData.setRes(o);
-    }
-
-    @Override
-    public Real.Int argCount() {
-        return fData.argCount();
-    }
-
-    @Override
-    public ValuePointer getArg(BigInteger id) {
-        return fData.getArg(id);
     }
 
     @Override
