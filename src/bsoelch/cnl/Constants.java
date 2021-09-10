@@ -8,13 +8,12 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Locale;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Constants {
     public static final double LOG2_DOUBLE = Math.log(2) ;
@@ -685,12 +684,82 @@ public class Constants {
                                 }
                             }, 0);
 
-                    //STRING_CHARS <str>
-                    //STRING_SPLIT <str> <regex>
-                    //STRING_FILTER
-                    //STRING_JOIN
 
-                    //REGEX_...
+                    //creates a Tuple containing all the (Unicode) characters in arg
+                    declareUnaryOperator("STRING_CHARS", null, MODIFY_ARG0_ROOT,
+                            (arg)->{
+                                String str = arg.asString();
+                                int[] cps=str.codePoints().toArray();
+                                MathObject[] chars=new MathObject[cps.length];
+                                for(int i=0;i<chars.length;i++){
+                                    chars[i]=Real.from(Real.stringAsBigInt(new String(Character.toChars(cps[i]))));
+                                }
+                                return Tuple.create(chars);
+                            }, 0);
+                    //splits the supplied string at the given regex (like String.split())
+                    declareBinaryOperator("STRING_SPLIT", null, MODIFY_ARG0_ROOT,
+                            (arg,regex)->{
+                                String[] parts = arg.asString().split(regex.asString());
+                                MathObject[] chars=new MathObject[parts.length];
+                                for(int i=0;i<chars.length;i++){
+                                    chars[i]=Real.from(Real.stringAsBigInt(parts[i]));
+                                }
+                                return Tuple.create(chars);
+                            }, 0);
+                    //removes all occurrences of the given regex from the String arg
+                    //has the same effect as STRING JOIN STRING_SPLIT arg regex ''
+                    declareBinaryOperator("STRING_REMOVE_ALL", null, MODIFY_ARG0_ROOT,
+                            (arg,regex)->{
+                                String str = arg.asString();
+                                String[] parts = str.split(regex.asString());
+                                StringBuilder newString=new StringBuilder(str.length());
+                                for (String part : parts) {
+                                    newString.append(part);
+                                }
+                                return Real.from(Real.stringAsBigInt(newString.toString()));
+                            }, 0);
+                    //Tuple of all occurrences of the given regex in the string arg
+                    declareBinaryOperator("STRING_FIND_ALL", null, MODIFY_ARG0_ROOT,
+                            (arg,regex)->{
+                                ArrayList<String> matches=new ArrayList<>();
+                                Matcher m = Pattern.compile(regex.asString())
+                                        .matcher(arg.asString());
+                                while (m.find()) {
+                                    matches.add(m.group());
+                                }
+                                String[] parts = matches.toArray(new String[0]);
+                                MathObject[] chars=new MathObject[parts.length];
+                                for(int i=0;i<chars.length;i++){
+                                    chars[i]=Real.from(Real.stringAsBigInt(parts[i]));
+                                }
+                                return Tuple.create(chars);
+                            }, 0);
+                    //collects all occurrences of the given regex from the String arg
+                    //has the same effect as STRING JOIN STRING_FIND_ALL arg regex ''
+                    declareBinaryOperator("STRING_FILTER", null, MODIFY_ARG0_ROOT,
+                            (arg,regex)->{
+                                String str = arg.asString();
+                                StringBuilder newString=new StringBuilder(str.length());
+                                Matcher m = Pattern.compile(regex.asString())
+                                        .matcher(str);
+                                while (m.find()) {
+                                    newString.append(m.group());
+                                }
+                                return Real.from(Real.stringAsBigInt(newString.toString()));
+                            }, 0);
+                    //joins all the elements of strings (as Strings) with the separator connect
+                    declareBinaryOperator("STRING_JOIN", null, MODIFY_ARG0_ROOT,
+                            (strings,connect)->{
+                                String connector= connect.asString();
+                                StringBuilder res=new StringBuilder();
+                                MathObject.forEachElement(strings,e->{
+                                    res.append(e.asString());
+                                    res.append(connector);
+                                });
+                                res.setLength(res.length()-connector.length());//remove last connector
+                                return Real.from(Real.stringAsBigInt(res.toString()));
+                            }, 0);
+
                 }
                 //sets/tuples/maps
                 OperatorInfo cut,unite,times,tupleConcat;

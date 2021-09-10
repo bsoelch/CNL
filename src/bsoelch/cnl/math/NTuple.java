@@ -284,6 +284,10 @@ final class NTuple extends Tuple{
     public String toStringFloat(BigInteger base, Real precision, boolean useSmallBase) {
         return toString(o->o.toStringFloat(base,precision,useSmallBase));
     }
+    @Override
+    public String intsAsString() {
+        return toString(MathObject::intsAsString);
+    }
     private String toString(Function<MathObject,String> objectToString){
         StringBuilder sb=new StringBuilder("[");
         boolean first=true;

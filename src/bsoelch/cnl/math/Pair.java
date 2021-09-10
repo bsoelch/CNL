@@ -266,4 +266,8 @@ public final class Pair extends Tuple{
         return "["+a.toStringFloat(base,precision, useSmallBase)+", "+
                 b.toStringFloat(base,precision, useSmallBase)+"]";
     }
+    @Override
+    public String intsAsString() {
+        return "["+a.intsAsString()+", "+b.intsAsString()+"]";
+    }
 }

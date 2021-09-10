@@ -255,24 +255,17 @@ public abstract class FiniteMap extends MathObject {
         }
         return sb.toString();
     }
-
     @Override
-    public boolean equals(Object o) {
-        if(o==this)
-            return true;
-        if(o instanceof Matrix)
-            o=((Matrix) o).asMap();
-        if(o instanceof FiniteMap){
-            Iterator<Pair> itr1= mapIterator();
-            Iterator<Pair> itr2= ((FiniteMap) o).mapIterator();
-            while(itr1.hasNext()&&itr2.hasNext()){
-                if(!itr1.next().equals(itr2.next()))
-                    return false;
-            }
-            return !(itr1.hasNext()||itr2.hasNext());
-        }else{
-            return false;
+    public String intsAsString(){
+        StringBuilder sb=new StringBuilder("{");
+        for (Iterator<Pair> it = mapIterator(); it.hasNext(); ) {
+            Pair e = it.next();
+            if(sb.length()>1)
+                sb.append(", ");
+            sb.append(e.a.intsAsString()).append("->")
+                    .append(e.b.intsAsString());
         }
+        return sb.append('}').toString();
     }
 
     /**Number of (non-zero) values in this map*/
@@ -373,18 +366,25 @@ public abstract class FiniteMap extends MathObject {
         };
     }
 
-    @Override
-    public String intsAsString(){
-        StringBuilder sb=new StringBuilder("{");
-        for (Iterator<Pair> it = mapIterator(); it.hasNext(); ) {
-            Pair e = it.next();
-            if(sb.length()>1)
-                sb.append(", ");
-            sb.append(e.a.intsAsString()).append("->")
-                    .append(e.b.intsAsString());
-        }
-        return sb.append('}').toString();
-    }
 
+
+    @Override
+    public boolean equals(Object o) {
+        if(o==this)
+            return true;
+        if(o instanceof Matrix)
+            o=((Matrix) o).asMap();
+        if(o instanceof FiniteMap){
+            Iterator<Pair> itr1= mapIterator();
+            Iterator<Pair> itr2= ((FiniteMap) o).mapIterator();
+            while(itr1.hasNext()&&itr2.hasNext()){
+                if(!itr1.next().equals(itr2.next()))
+                    return false;
+            }
+            return !(itr1.hasNext()||itr2.hasNext());
+        }else{
+            return false;
+        }
+    }
 
 }

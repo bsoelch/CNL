@@ -139,6 +139,10 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
         public String toStringFloat(BigInteger base, Real precision, boolean useSmallBase) {
             return toString();
         }
+        @Override
+        public String intsAsString() {
+            return toString();
+        }
     };
 
     public static Tuple create(MathObject[] objects){
@@ -555,6 +559,20 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
         @Override
         public String toStringFloat(BigInteger base, Real precision, boolean useSmallBase) {
             return toString(o->o.toStringFloat(base,precision,useSmallBase));
+        }
+
+        @Override
+        public String intsAsString() {
+            StringBuilder sb=new StringBuilder("{");
+            for (Iterator<Pair> it = mapIterator(); it.hasNext(); ) {
+                Pair e = it.next();
+                if(sb.length()>1)
+                    sb.append(", ");
+                sb.append(e.a.toString());
+                sb.append(" -> ");
+                sb.append(e.b.intsAsString());
+            }
+            return sb.append('}').toString();
         }
 
         private String toString(Function<MathObject,String> objectToString){
