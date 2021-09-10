@@ -930,8 +930,24 @@ public class Translator {
     // pre-compiling that replaces symbolic names with varIds (by frequency)
     // +simplification of N-ary expressions similar to OperatorNode.simplify
     public static void compile(File sourceFile,File targetFile) throws IOException, SyntaxError, CNL_RuntimeException {
-        if (!(targetFile.exists() || targetFile.createNewFile()))
+        if(targetFile.exists()) {//check if target is CNL code-File
+            try (FileInputStream in = new FileInputStream(targetFile)) {
+                int c=in.read();//addLater merge with readHeader code
+                if(c!=-1){
+                    if (c != 'C' || in.read() != 'N' || in.read() != 'L') {
+                        throw new IOException("target-file is no CNL file");
+                    }
+                    c=in.read();
+                    if(c=='S'){
+                        throw new IOException("cannot overwrite CNL-script with compile data");
+                    }else if(!(c=='L'||c=='X')){
+                        throw new IOException("target-file is no CNL file");
+                    }
+                }
+            }
+        }else if(!targetFile.createNewFile()){
             throw new IOException("target-file does not exists");
+        }
         try (Reader source=new InputStreamReader(new FileInputStream(sourceFile), StandardCharsets.UTF_8)) {
             FileHeader header = readScriptFileHeader(source);
             if (header.type == FILE_TYPE_INVALID)
@@ -979,6 +995,24 @@ public class Translator {
     }
 
     public static void decompile(File sourceFile,File targetFile) throws IOException, SyntaxError, CNL_RuntimeException {
+        if(targetFile.exists()) {//check if target is CNL code-script
+            try (FileInputStream in = new FileInputStream(targetFile)) {
+                int c=in.read();//addLater merge with readHeader code
+                if(c!=-1){
+                    if (c != 'C' || in.read() != 'N' || in.read() != 'L') {
+                        throw new IOException("target-file is no CNL file");
+                    }
+                    c=in.read();
+                    if(c=='L'||c=='X'){
+                        throw new IOException("cannot overwrite CNL-code with decompiled data");
+                    }else if(c!='S'){
+                        throw new IOException("target-file is no CNL file");
+                    }
+                }
+            }
+        }else if(!targetFile.createNewFile()){
+            throw new IOException("target-file does not exists");
+        }
         try(BitRandomAccessStream source=new BitRandomAccessFile(sourceFile,"rw")) {
             try (Writer target = new OutputStreamWriter(new FileOutputStream(targetFile), StandardCharsets.UTF_8)) {
                 FileHeader header = readCodeFileHeader(source);

@@ -636,7 +636,7 @@ public class Constants {
                             (args) -> Real.from(Real.stringAsBigInt(
                                     args[0].toStringFloat(MathObject.round(args[1], MathObject.FLOOR).numericValue().realPart().num(),
                                             args[2].numericValue().realPart(),true))), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
-                    //addLater? shortcuts for bases 2,10,12,16
+                    //addLater? shortcuts for bases 2,10,12,16 / out static-base
                     //creates a MathObject from the String A in base B
                     declareBinaryOperator("FROM_STRING", null, MODIFY_ARG0_ROOT,
                                     (a, b) -> MathObject.FromString.safeFromString(

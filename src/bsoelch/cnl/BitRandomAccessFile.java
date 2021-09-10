@@ -7,6 +7,7 @@ import java.math.BigInteger;
 
 import java.nio.charset.StandardCharsets;
 
+/**A BitRandomAccessStream that is backed up by a File*/
 public class BitRandomAccessFile implements BitRandomAccessStream {
     final Object ioLock=new Object();
     final RandomAccessFile byteFile;
@@ -188,7 +189,8 @@ public class BitRandomAccessFile implements BitRandomAccessStream {
         synchronized (ioLock){
             bytes=new byte[Math.toIntExact((len+7)/8+(bitIndex==0?0:1))];
             int i0=0;
-            if(cachedBits!=0){//addLater? write cache before read
+            if(cachedBits!=0){
+                writeChanges();//write cache before read
                 ensureCached(0xff<<bitIndex);
                 bytes[i0++]=(byte)currentByte;
                 byteFile.seek(bytePos+1);
@@ -207,7 +209,7 @@ public class BitRandomAccessFile implements BitRandomAccessStream {
             long pos= bitPos();
             pos+=Math.min(len,8L*l-bitIndex);
             seek(pos);//update file position
-            //TODO update cache
+            //addLater save remaining bits in cache
         }
         //copy bits to array (does not need IO-Lock)
         long totalBits=0,bitsRead;

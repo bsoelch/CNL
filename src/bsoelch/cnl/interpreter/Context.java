@@ -119,7 +119,7 @@ public abstract class Context implements Action {
         }
 
         public MathObject getRes(){
-            return res;
+            return res!=null?res:Real.Int.ZERO;
         }
         public void setRes(MathObject newValue){
             res=newValue;
