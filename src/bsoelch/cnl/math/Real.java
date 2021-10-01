@@ -15,7 +15,7 @@ public abstract class Real extends NumericValue {
 
     static final String DIGITS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" +
             "αβγδεζηθικλμνξοπρςστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ" +
-            "абвгдежзиклмнопрстуфхцчшщыэюяАБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЫЭЮЯ" +//addLater remove similar characters
+            "абвгдежзиклмнопрстуфхцчшщыэюяАБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЫЭЮЯ" +//addLater remove characters that are to similar
             "աբգդեզէըթժիլխծկհձղճմյնշոչպջռսվտրցւփքօֆևԱԲԳԴԵԶԷԸԹԺԻԼԽԾԿՀՁՂՃՄՅՆՇՈՉՊՋՌՍՎՏՐՑՒՓՔՕՖ";
     static final BigInteger MAX_BASE_I = BigInteger.valueOf(DIGITS.toLowerCase(Locale.ROOT).indexOf('i') + 1);
     static char digitSeparator = ':';

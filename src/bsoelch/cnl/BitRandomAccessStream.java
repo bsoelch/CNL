@@ -4,7 +4,6 @@ import java.io.*;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 
-//addLater separate interfaces for read and write?
 public interface BitRandomAccessStream extends Closeable {
     /**goes to the given bit-position*/
     void seek(long newBitPos) throws IOException;

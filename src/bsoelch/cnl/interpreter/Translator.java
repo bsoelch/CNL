@@ -930,9 +930,7 @@ public class Translator {
 
     //addLater compile/decompile directory (all files ending with .cnl / .cnls)
 
-    //addLater? symbolic names in scripts (i.e &name) for varIds/fktIds
-    // pre-compiling that replaces symbolic names with varIds (by frequency)
-    // +simplification of N-ary expressions similar to OperatorNode.simplify
+    //addLater? compile-time name definitions
     public static void compile(File sourceFile,File targetFile) throws IOException, SyntaxError, CNL_RuntimeException {
         if(targetFile.exists()) {//check if target is CNL code-File
             try (FileInputStream in = new FileInputStream(targetFile)) {
