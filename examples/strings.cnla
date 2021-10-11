@@ -1,4 +1,4 @@
-CNLS:0
+CNLA:0
 
 OUT_LN_STR_INTS STRING_FILTER 'Hello World' '[^ ]'
 OUT_LN_STR_INTS STRING_REMOVE_ALL 'Hello World' '[aeiou]'

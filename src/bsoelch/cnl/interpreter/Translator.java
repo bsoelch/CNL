@@ -928,7 +928,7 @@ public class Translator {
         target.writeBigInt(var.getId(),LAMBDA_VAR_INT_HEADER, LAMBDA_VAR_INT_BLOCK, LAMBDA_VAR_INT_BIG_BLOCK);
     }
 
-    //addLater compile/decompile directory (all files ending with .cnl / .cnls)
+    //addLater compile/decompile directory (all files ending with .cnl / .cnla)
 
     //addLater? compile-time name definitions
     public static void compile(File sourceFile,File targetFile) throws IOException, SyntaxError, CNL_RuntimeException {
@@ -940,10 +940,10 @@ public class Translator {
                         throw new IOException("target-file is no CNL file");
                     }
                     c=in.read();
-                    if(c=='S'){
-                        throw new IOException("cannot overwrite CNL-script with compile data");
+                    if(c=='A'){
+                        throw new IOException("cannot overwrite CNL-assembly with compile data");
                     }else if(!(c=='L'||c=='X')){
-                        throw new IOException("target-file is no CNL file");
+                        throw new IOException("compile target-file is no CNL file");
                     }
                 }
             }
@@ -953,7 +953,7 @@ public class Translator {
         try (Reader source=new InputStreamReader(new FileInputStream(sourceFile), StandardCharsets.UTF_8)) {
             FileHeader header = readScriptFileHeader(source);
             if (header.type == FILE_TYPE_INVALID)
-                throw new IOException("Invalid source-file, all cnl-scripts have to start with CNLS<whitespace> or CNLS:<argCount>");
+                throw new IOException("Invalid source-file, all cnl-assembly files have to start with CNLA<whitespace> or CNLA:<argCount>");
             try (BitRandomAccessStream target = new BitRandomAccessFile(targetFile, "rw")) {
                 MathObject[] args;
                 if (header.type == FILE_TYPE_SCRIPT) {
@@ -964,7 +964,7 @@ public class Translator {
                     args = new MathObject[header.argCount.intValueExact()];
                     Arrays.fill(args, Real.Int.ZERO);
                 } else {
-                    throw new IOException("Invalid source-file, all cnl-scripts have to start with CNLS<whitespace> or CNLS:<argCount>");
+                    throw new IOException("Invalid source-file, all cnl-assembly files have to start with CNLA<whitespace> or CNLA:<argCount>");
                 }
                 //position after end of header
                 long startPos = target.bitPos();
@@ -997,17 +997,17 @@ public class Translator {
     }
 
     public static void decompile(File sourceFile,File targetFile) throws IOException, SyntaxError, CNL_RuntimeException {
-        if(targetFile.exists()) {//check if target is CNL code-script
+        if(targetFile.exists()) {//check if target is CNL code-assembly files
             try (FileInputStream in = new FileInputStream(targetFile)) {
                 int c=in.read();//addLater merge with readHeader code
                 if(c!=-1){
                     if (c != 'C' || in.read() != 'N' || in.read() != 'L') {
-                        throw new IOException("target-file is no CNL file");
+                        throw new IOException("decompile target-file is no CNL file");
                     }
                     c=in.read();
                     if(c=='L'||c=='X'){
                         throw new IOException("cannot overwrite CNL-code with decompiled data");
-                    }else if(c!='S'){
+                    }else if(c!='A'){
                         throw new IOException("target-file is no CNL file");
                     }
                 }
@@ -1095,7 +1095,7 @@ public class Translator {
     }
     private static void writeScriptHeader(Writer target, FileHeader header) throws IOException {
         if(header.type==FILE_TYPE_SCRIPT||header.type==FILE_TYPE_EXECUTABLE_SCRIPT){
-            target.write("CNLS");
+            target.write("CNLA");
             if(header.type==FILE_TYPE_EXECUTABLE_SCRIPT){
                 target.write(":");
                 target.write(header.argCount.toString(16));
@@ -1128,7 +1128,7 @@ public class Translator {
                 return new FileHeader(FILE_TYPE_EXECUTABLE, codeVersion,
                         file.readBigInt(FILE_HEADER_INT_HEADER, FILE_HEADER_INT_BLOCK, FILE_HEADER_INT_BIG_BLOCK));
         }
-        if((h&0xff)=='S'){//scripts
+        if((h&0xff)=='A'){//CNL-Assembly
             return finishScriptHeader(file.reader());
         }
         return FILE_HEADER_INVALID;
@@ -1140,7 +1140,7 @@ public class Translator {
             return FILE_HEADER_INVALID;
         if(reader.read()!='L')
             return FILE_HEADER_INVALID;
-        if(reader.read()!='S')
+        if(reader.read()!='A')
             return FILE_HEADER_INVALID;
         return finishScriptHeader(reader);
     }

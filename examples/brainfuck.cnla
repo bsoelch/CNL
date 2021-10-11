@@ -1,5 +1,7 @@
-CNLS:1
+CNLA:1
+%Brainfuck Interpreter (to prove the language is Turing complete)
 %ARG0 -> filename in Local dir of file to run
+
 
 VAR0 0 %Pointer
 VAR2 EMPTY_MAP %Stack

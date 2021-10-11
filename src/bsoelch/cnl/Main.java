@@ -202,7 +202,7 @@ public class Main {
                     switch (args[i].toLowerCase(Locale.ROOT)){
                         case "-x":last="-x";actions|=ACTION_EXECUTE;break;
                         case "-c":last="-c";actions|=ACTION_COMPILE;break;
-                        case "-s":last="-s";actions|=ACTION_DECOMPILE;break;
+                        case "-d":last="-d";actions|=ACTION_DECOMPILE;break;
                         case "-t":last="-t";actions|=ACTION_TEST;break;
                         case "-args":
                             if(programArgs!=null){
@@ -226,7 +226,7 @@ public class Main {
                                             return;
                                         }
                                     break;
-                                    case "-s":
+                                    case "-d":
                                         if(decompile==null){
                                             decompile=args[i];
                                         }else{
@@ -278,17 +278,17 @@ public class Main {
                     int lastDot=main.lastIndexOf(".");
                     if(lastDot>0&&lastDot>main.lastIndexOf(File.separatorChar)){
                         source=main;
-                        main=main.substring(0,lastDot)+".cnls";
+                        main=main.substring(0,lastDot)+".cnla";
                     }else{
                         source=main;
-                        main=main+".cnls";
+                        main=main+".cnla";
                     }
                 }else if(main==null){
                     int lastDot=source.lastIndexOf(".");
                     if(lastDot>0&&lastDot>source.lastIndexOf(File.separatorChar)){
-                        main=source.substring(0,lastDot)+".cnls";
+                        main=source.substring(0,lastDot)+".cnla";
                     }else{
-                        main=source+".cnls";
+                        main=source+".cnla";
                     }
                 }
                 try{
@@ -312,9 +312,9 @@ public class Main {
                     }
                     int lastDot=main.lastIndexOf(".");
                     if(lastDot>0&&lastDot>main.lastIndexOf(File.separatorChar)){
-                        decompile=main.substring(0,lastDot)+".cnls";
+                        decompile=main.substring(0,lastDot)+".cnla";
                     }else{
-                        decompile=main+".cnls";
+                        decompile=main+".cnla";
                     }
                 }
                 try{
@@ -386,18 +386,18 @@ public class Main {
         System.out.println("Flags:");
         System.out.println("-x\t execute the main file");
         System.out.println("-c\t compile the main file to a cnl-code file, the target file can be supplied as an optional Argument");
-        System.out.println("-s\t decompile the main file to a cnl-script file, the target file can be supplied as an optional Argument");
-        System.out.println("-t\t test the mainFile for syntax errors (is automatically included for -c and -s)");
+        System.out.println("-d\t decompile the main file to a cnl-assembly file, the target file can be supplied as an optional Argument");
+        System.out.println("-t\t test the mainFile for syntax errors (is automatically included for -c and -d)");
         System.out.println("-libX\t allows the execution of library cnl files");
         System.out.println("-args\t supplies Program Arguments as a comma separated list surrounded with brackets");
         System.out.println("\nExamples:");
         System.out.println("cnl \"./name.cnl\"  \t\t runs the File \"name.cnl\" in the local directory");
         System.out.println("cnl -args (1 ,2) \"./name.cnl\"  \t\t runs the File \"name.cnl\" in the local directory with the arguments 1 and 2");
-        System.out.println("cnl -c -s \"./decompile.txt\" \"./name.txt\"  \t\t compiles the file \"name.txt\" to the file \"name.cnl\" " +
+        System.out.println("cnl -c -d \"./decompile.txt\" \"./name.txt\"  \t\t compiles the file \"name.txt\" to the file \"name.cnl\" " +
                 "and decompiles it afterwards to \"decompile.txt\"");
-        System.out.println("cnl -c \"./source.txt\"  -s \"./name.cnl\"  \t\t compiles the file \"source.txt\" to the file \"name.cnl\" " +
-                "and decompiles it afterwards to \"name.cnls\"");
-        System.out.println("cnl -t \"./source.txt\"  \t\t checks if \"source.txt\" is a valid cnl-script");
+        System.out.println("cnl -c \"./source.txt\"  -d \"./name.cnl\"  \t\t compiles the file \"source.txt\" to the file \"name.cnl\" " +
+                "and decompiles it afterwards to \"name.cnla\"");
+        System.out.println("cnl -t \"./source.txt\"  \t\t checks if \"source.txt\" is a valid cnl-assembly file");
         System.out.println("cnl -t \"./source.cnl\"  \t\t checks if \"source.txt\" is a valid cnl-code file");
     }
 
