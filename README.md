@@ -73,11 +73,10 @@ All numbers are internally treated as
 
 The only Objects the language directly accepts
 as input are positive Integers (of arbitrary size)
-and Fractions of positive Integers  which can be 
-directly inserted into the code.
+and Fractions of positive Integers.
 To simplify working with other Objects
 the compiler can translate simple Arithmetic 
-expressions in a sequence of Integers and Operations:
+expressions in a sequence of Integers, Fractions and Operations:
 
 For instance
 ```
@@ -92,6 +91,8 @@ CMPLX (1/2) NEG (3/4)
 Variables are represented by "VAR"
 followed by the index of the variable (positive Integer)
 i.e. VAR0, VAR1, ...
+Variables are initialized with 0 by default
+
 Program (and Function-) Arguments
 follow the same syntax but with "ARG" instead of "VAR"
 
