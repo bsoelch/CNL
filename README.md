@@ -69,8 +69,7 @@ The code is organized in lines, a line ends when
 the current root operation gets evaluated
 ### Objects:
 All numbers are internally treated as 
-[https://en.wikipedia.org/wiki/Gaussian_rational](Gaussian
-Rational numbers)
+[Gaussian Rational numbers](https://en.wikipedia.org/wiki/Gaussian_rational)
 
 The only Objects the language directly accepts
 as input are positive Integers (of arbitrary size)
