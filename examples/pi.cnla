@@ -1,5 +1,7 @@
 CNLA:1
-
+%ARG0: maximal allowed error
+%Calculates an approximation for pi
+%The used algorithm is short but relatively slow
 VAR1 1
 VAR2 1
 [.? GT DIV 2 ARG0 VAR2

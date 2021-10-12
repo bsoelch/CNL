@@ -48,6 +48,9 @@ prints the result
 
 
 ## Syntax:
+For a more detailed explanation on how to use the language
+look at the numbered examples in the [examples folder](/examples)
+
 The code consists of objects and operations, 
 each operation takes a fixed amount of objects 
 and returns a new object.
@@ -68,6 +71,7 @@ bold part is evaluation stack:
 
 The code is organized in lines, a line ends when
 the current root operation gets evaluated
+
 ### Objects:
 All numbers are internally treated as 
 [Gaussian Rational numbers](https://en.wikipedia.org/wiki/Gaussian_rational)
@@ -117,7 +121,7 @@ Comparison Operators:
 - GE < a > < b >: return < a > >= < b >
 - NE < a > < b >: return < a > != < b >
 - There are no LT or LE operations since you 
-  can simply swap the arguments
+  can simply swap the arguments and use GE/GT
 
 Basis Console IO:
 - OUT_NUMBER < x >: prints < x >
