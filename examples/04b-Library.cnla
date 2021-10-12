@@ -1,0 +1,13 @@
+CNLA %Library files start with CNLA , they can not directly be executed
+OUT_LN_STR "Imported Library"
+
+NEW_FUNC:0,0[
+ OUT_LN_STR "Called Function 0 in Library"
+]
+
+NEW_FUNC:2,1[
+ OUT_STR "Called Function 1 in Library with Arguments "
+ OUT_NUMBER ARG0
+ OUT_STR ", "
+ OUT_LN_NUMBER ARG1
+]

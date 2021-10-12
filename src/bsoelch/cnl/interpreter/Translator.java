@@ -591,7 +591,6 @@ public class Translator {
             BigInteger id=new BigInteger(str.substring(7));
             if(id.signum()==-1)
                 throw new IllegalArgumentException("Negative Id");
-            id=id.add(BigInteger.ONE);//offset
             return new RunIn(id);
         }else if(str.toUpperCase(Locale.ROOT).startsWith("IMPORT_TO:")){//Import
             if(!isTopLayer)
@@ -971,7 +970,7 @@ public class Translator {
                 }
                 //position after end of header
                 long startPos = target.bitPos();
-                try (Interpreter test = new Interpreter(args, false, targetFile, false)) {
+                try (Interpreter test = new Interpreter(args, false, targetFile, true)) {
                     Action a;
                     long actions = 0;
                     do {
@@ -1034,7 +1033,7 @@ public class Translator {
                 } else {
                     throw new IOException("Invalid code-file, cnl code-files have to start with CNLL or CNLX");
                 }
-                try (Interpreter test = new Interpreter(sourceFile, args, false)) {
+                try (Interpreter test = new Interpreter(sourceFile, args, true)) {
                     Action a;
                     long actions = 0, lines = 0;
                     do {

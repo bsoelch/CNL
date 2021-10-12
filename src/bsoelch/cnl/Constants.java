@@ -776,7 +776,7 @@ public class Constants {
                     declareUnaryOperator("NONZERO_ELEMENTS", null, MODIFY_ARG0_ROOT,
                             MathObject::nonzeroElements, OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     //Type Checking
-                    declareUnaryOperator("IS_INTEGER", null, MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("IS_INTEGER", "IS_INT", MODIFY_ARG0_ROOT,
                                     o-> (o instanceof Real.Int?Real.Int.ONE:Real.Int.ZERO), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);
                     declareUnaryOperator("IS_NUMERIC", null, MODIFY_ARG0_ROOT,
                                     o-> (o instanceof NumericValue?Real.Int.ONE:Real.Int.ZERO), OperatorInfo.LAMBDA_FLAG_ALLOW_BOUND);

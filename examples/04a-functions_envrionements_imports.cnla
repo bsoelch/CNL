@@ -1,0 +1,37 @@
+CNLA:0
+
+%New function with 2 arguments and id 0
+NEW_FUNC:2,0[
+ADD ARG0 ARG1
+]
+NEW_FUNC:1,1[
+[! IS_INT ARG0
+0 EXIT %EXIT returns from function
+]
+MAX ARG0 NEG ARG0 %the return value of a function is the last modified value
+]
+
+%Call function 0 with the arguments 1 and 2
+OUT_LN_NUMBER CALL:0 1 2
+OUT_LN_NUMBER CALL:1 -1
+OUT_LN_NUMBER CALL:1 1/2
+OUT_LN_NUMBER CALL:1 2
+
+%Environments
+OUT_LN_STR "Environments:"
+VAR0 1
+RUN_IN:0 VAR0 42 %RUN_IN runs code in an independent Sub-Environment
+OUT_LN_NUMBER VAR0
+RUN_IN:0 OUT_LN_NUMBER VAR0
+VAR0 RUN_IN:0 VAR0 %RUN_IN can be used in the middle of expressions
+OUT_LN_NUMBER VAR0
+VAR0 1
+RUN_IN:0 VAR0 RUN_ROOT VAR0 % Use RUN_ROOT to run code in the local root context
+RUN_IN:0 OUT_LN_NUMBER VAR0
+
+%Imports
+IMPORT_TO:1 "04b-Library.cnl" % IMPORT_TO imports library's to Sub-Environment
+                              %by running the code of the library-file in the Sub-Environment
+% Function in Library can then be accessed through RUN_IN
+RUN_IN:1 CALL:0
+RUN_IN:1 CALL:1 3 4

@@ -436,7 +436,9 @@ public class Interpreter implements Closeable {
     private void goTo(CodePosition newPos) throws IOException {
         code = newPos.file;
         isScript=newPos.isScript;
-        code.seek(newPos.position);
+        if(code!=null){//code==null only when in ignoreCode mode
+            code.seek(newPos.position);
+        }
     }
 
 

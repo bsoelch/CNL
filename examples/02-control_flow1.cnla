@@ -43,4 +43,6 @@ INC VAR2
 OUT_STR "|Input| is >= 2^"
 OUT_LN_NUMBER VAR2
 
+EXIT % EXIT exits the program
 
+OUT_STR "Unreachable"
