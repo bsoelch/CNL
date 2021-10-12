@@ -20,7 +20,11 @@ To compile a CNL-Assembly file to CNL-Binary and
 execute it afterwards, run CNL (Main.main())
 with the arguments
 ```
--c "[ASSEMBLY_FILE_NAME]" -x "[BINARY_FILE_NAME]"
+-c "[ASSEMBLY_FILE_NAME]" -x
+```
+alternatively run the CNL jar-file with
+```
+java -jar [CNL-jar] -c "[ASSEMBLY_FILE_NAME]" -x
 ```
 
 ## Examples:

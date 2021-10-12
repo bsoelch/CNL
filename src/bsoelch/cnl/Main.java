@@ -285,9 +285,9 @@ public class Main {
                 }else if(main==null){
                     int lastDot=source.lastIndexOf(".");
                     if(lastDot>0&&lastDot>source.lastIndexOf(File.separatorChar)){
-                        main=source.substring(0,lastDot)+".cnla";
+                        main=source.substring(0,lastDot)+".cnl";
                     }else{
-                        main=source+".cnla";
+                        main=source+".cnl";
                     }
                 }
                 try{
@@ -306,7 +306,7 @@ public class Main {
             if((actions&ACTION_DECOMPILE)!=0){
                 if(decompile==null){
                     if(main==null){
-                        System.out.println("Missing argument for compile: No source file");
+                        System.out.println("Missing argument for decompile: No source file");
                         return;
                     }
                     int lastDot=main.lastIndexOf(".");
