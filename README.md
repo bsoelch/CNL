@@ -4,7 +4,10 @@ designed to produce relatively short binary code,
 especially for algorithms computing computable numbers.<br>
 
 
+
 ## Usage:
+The Code of a CNL-Program exists in two forms,
+CNL-Binary and CNL-Assembly.
 
 CNL-Assembly code is stored in .cnla Files.
 Files with executable code files start
@@ -15,8 +18,8 @@ After the File header, the files
 contains commands separated by whitespaces.
 Comments start with "%" and go to the end of the current line
 
-
-To compile and run a CNL-Assembly file run CNL (Main)
+To compile a CNL-Assembly file to CNL-Binary and 
+execute it afterwards, run CNL (Main.main())
 with the arguments
 ```
 -c "[ASSEMBLY_FILE_NAME]" -x "[BINARY_FILE_NAME]"
