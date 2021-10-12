@@ -217,8 +217,6 @@ public class Constants {
 
     public static class Operators {
 
-
-
         private Operators(){}
         public static final int MODIFY_ARG0_ALWAYS=1, MODIFY_ARG0_ROOT=0,MODIFY_ARG0_NEVER=-1;
 
