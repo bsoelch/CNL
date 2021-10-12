@@ -1,0 +1,46 @@
+CNLA:1
+%arg0 => test for conditions
+
+%IF-ElSE:
+[? IS_INTEGER ARG0
+OUT_LN_STR "Input is an Integer"
+[? GT0 ARG0
+OUT_LN_STR "Input is positive"
+VAR0 ARG0
+|? ARG0
+OUT_LN_STR "Input is negative"
+VAR0 NEG ARG0
+|
+OUT_LN_STR "Input is zero"
+EXIT
+]
+|? IS_NUMERIC ARG0
+[? IM ARG0
+OUT_LN_STR "Input is a Complex-Number"
+EXIT
+]
+OUT_LN_STR "Input is a Rational-Number"
+EXIT
+|
+OUT_LN_STR "Input is not a Number"
+EXIT
+]
+
+VAR1 1
+VAR2 0
+[.? GE VAR0 VAR1
+MULT VAR1 2
+INC VAR2
+]
+OUT_STR "|Input| is <= 2^"
+OUT_LN_NUMBER VAR2
+VAR2 -1
+[
+INC VAR2
+]? WRITE_VAR:0 INT_DIV VAR0 2
+% WRITE_VAR:<index> writes the current result in VAR<index> and returns it afterwards
+
+OUT_STR "|Input| is >= 2^"
+OUT_LN_NUMBER VAR2
+
+

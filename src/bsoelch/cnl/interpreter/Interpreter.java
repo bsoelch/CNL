@@ -341,8 +341,8 @@ public class Interpreter implements Closeable {
                                         throw new SyntaxError(this,"Unexpected ELSE-statement");
                                 }//inherit environment from parent
                                 addToStack(a, true);
-                                return;
                             }
+                            return;
                         }else if(stepType!=SKIP_END_IF){
                             throw new SyntaxError(this,"Unexpected ELSE-statement");
                         }
