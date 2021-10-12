@@ -951,15 +951,15 @@ public class Translator {
             throw new IOException("target-file does not exists");
         }
         try (Reader source=new InputStreamReader(new FileInputStream(sourceFile), StandardCharsets.UTF_8)) {
-            FileHeader header = readScriptFileHeader(source);
+            FileHeader header = readAssemblyFileHeader(source);
             if (header.type == FILE_TYPE_INVALID)
                 throw new IOException("Invalid source-file, all cnl-assembly files have to start with CNLA<whitespace> or CNLA:<argCount>");
             try (BitRandomAccessStream target = new BitRandomAccessFile(targetFile, "rw")) {
                 MathObject[] args;
-                if (header.type == FILE_TYPE_SCRIPT) {
+                if (header.type == FILE_TYPE_ASSEMBLY) {
                     writeCodeHeader(target, new FileHeader(FILE_TYPE_CODE, CODE_VERSION, null));
                     args = new MathObject[0];
-                } else if (header.type == FILE_TYPE_EXECUTABLE_SCRIPT) {
+                } else if (header.type == FILE_TYPE_EXECUTABLE_ASSEMBLY) {
                     writeCodeHeader(target, new FileHeader(FILE_TYPE_EXECUTABLE, CODE_VERSION, header.argCount));
                     args = new MathObject[header.argCount.intValueExact()];
                     Arrays.fill(args, Real.Int.ZERO);
@@ -1022,10 +1022,10 @@ public class Translator {
                     throw new IOException("Invalid code-file, cnl code-files have to start with CNLL or CNLX");
                 MathObject[] args;
                 if (header.type == FILE_TYPE_CODE) {
-                    writeScriptHeader(target, FILE_HEADER_SCRIPT);
+                    writeAssemblyHeader(target, FILE_HEADER_ASSEMBLY);
                     args = new MathObject[0];
                 } else if (header.type == FILE_TYPE_EXECUTABLE) {
-                    writeScriptHeader(target, new FileHeader(FILE_TYPE_EXECUTABLE_SCRIPT, null, header.argCount));
+                    writeAssemblyHeader(target, new FileHeader(FILE_TYPE_EXECUTABLE_ASSEMBLY, null, header.argCount));
                     args = new MathObject[header.argCount.intValueExact()];
                     Arrays.fill(args, Real.Int.ZERO);
                 } else {
@@ -1063,9 +1063,10 @@ public class Translator {
         }
     }
 
-    public static final int FILE_TYPE_INVALID =-1, FILE_TYPE_CODE =0, FILE_TYPE_EXECUTABLE =1, FILE_TYPE_SCRIPT =2, FILE_TYPE_EXECUTABLE_SCRIPT =3;
+    public static final int FILE_TYPE_INVALID =-1, FILE_TYPE_CODE =0,
+            FILE_TYPE_EXECUTABLE =1, FILE_TYPE_ASSEMBLY =2, FILE_TYPE_EXECUTABLE_ASSEMBLY =3;
     public static final FileHeader FILE_HEADER_INVALID =new FileHeader(FILE_TYPE_INVALID, null, null);
-    public static final FileHeader FILE_HEADER_SCRIPT =new FileHeader(FILE_TYPE_SCRIPT, null, null);
+    public static final FileHeader FILE_HEADER_ASSEMBLY =new FileHeader(FILE_TYPE_ASSEMBLY, null, null);
 
 
     public static class FileHeader{
@@ -1093,10 +1094,10 @@ public class Translator {
             throw new IllegalArgumentException("Illegal type for codeFile header only FILE_TYPE_CODE and FILE_TYPE_EXECUTABLE are allowed");
         }
     }
-    private static void writeScriptHeader(Writer target, FileHeader header) throws IOException {
-        if(header.type==FILE_TYPE_SCRIPT||header.type==FILE_TYPE_EXECUTABLE_SCRIPT){
+    private static void writeAssemblyHeader(Writer target, FileHeader header) throws IOException {
+        if(header.type== FILE_TYPE_ASSEMBLY ||header.type== FILE_TYPE_EXECUTABLE_ASSEMBLY){
             target.write("CNLA");
-            if(header.type==FILE_TYPE_EXECUTABLE_SCRIPT){
+            if(header.type== FILE_TYPE_EXECUTABLE_ASSEMBLY){
                 target.write(":");
                 target.write(header.argCount.toString(16));
                 target.write('\n');
@@ -1129,11 +1130,11 @@ public class Translator {
                         file.readBigInt(FILE_HEADER_INT_HEADER, FILE_HEADER_INT_BLOCK, FILE_HEADER_INT_BIG_BLOCK));
         }
         if((h&0xff)=='A'){//CNL-Assembly
-            return finishScriptHeader(file.reader());
+            return finishAssemblyHeader(file.reader());
         }
         return FILE_HEADER_INVALID;
     }
-    public static FileHeader readScriptFileHeader(Reader reader) throws IOException {
+    public static FileHeader readAssemblyFileHeader(Reader reader) throws IOException {
         if(reader.read()!='C')
             return FILE_HEADER_INVALID;
         if(reader.read()!='N')
@@ -1142,11 +1143,11 @@ public class Translator {
             return FILE_HEADER_INVALID;
         if(reader.read()!='A')
             return FILE_HEADER_INVALID;
-        return finishScriptHeader(reader);
+        return finishAssemblyHeader(reader);
     }
 
     @NotNull
-    private static FileHeader finishScriptHeader(Reader reader) throws IOException {
+    private static FileHeader finishAssemblyHeader(Reader reader) throws IOException {
         int next= reader.read();
         if(next==':'){
             StringBuilder arg=new StringBuilder();
@@ -1159,12 +1160,12 @@ public class Translator {
                 }
             }while (true);
             try{
-                return new FileHeader(FILE_TYPE_EXECUTABLE_SCRIPT, null, new BigInteger(arg.toString(),16));
+                return new FileHeader(FILE_TYPE_EXECUTABLE_ASSEMBLY, null, new BigInteger(arg.toString(),16));
             }catch (IllegalArgumentException iae){
                 return FILE_HEADER_INVALID;
             }
         }else if(Character.isWhitespace(next)){
-            return FILE_HEADER_SCRIPT;
+            return FILE_HEADER_ASSEMBLY;
         }else{
             return FILE_HEADER_INVALID;
         }

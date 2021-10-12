@@ -98,7 +98,7 @@ public class Interpreter implements Closeable {
             Translator.FileHeader header=Translator.readCodeFileHeader(code);
             if(header.type==Translator.FILE_TYPE_INVALID)
                 throw new IOException(codeFile+" is no valid code-file");
-            if((header.type&Translator.FILE_TYPE_SCRIPT)!=0)
+            if((header.type&Translator.FILE_TYPE_ASSEMBLY)!=0)
                 isScript=true;
             if((header.type&Translator.FILE_TYPE_EXECUTABLE)!=0){
                 int c = header.codeVersion.compareTo(CODE_VERSION);
@@ -612,7 +612,7 @@ public class Interpreter implements Closeable {
                                     + " uses a newer Version of the binary Encoding");
                         }
                     }
-                    isScript=((header.type&Translator.FILE_TYPE_SCRIPT)!=0);
+                    isScript=((header.type&Translator.FILE_TYPE_ASSEMBLY)!=0);
                 }
                 if(!importDejaVu.add(code.getSourceId())) {//check if codeFile is already imported in this direct hierarchy
                     throw new SyntaxError(this,"Cyclic Import in: "+importDejaVu);
