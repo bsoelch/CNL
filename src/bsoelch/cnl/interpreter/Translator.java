@@ -534,6 +534,22 @@ public class Translator {
             }else{
                 throw new IllegalArgumentException("Unknown OutputType:"+str);
             }
+        }else if(str.toUpperCase(Locale.ROOT).startsWith("IN_")){//Input
+            if(str.startsWith("IN_BASE")){
+                BigInteger base=new BigInteger(str.substring(7));
+                return new Input(IN_TYPE_BASE_N,base);
+            }else{
+                switch (str){
+                    case "IN_CHAR":return new Input(IN_TYPE_CHAR,null);
+                    case "IN_WORD":return new Input(IN_TYPE_WORD,null);
+                    case "IN_LINE":return new Input(IN_TYPE_LINE,null);
+                    case "IN_BIN":return new Input(IN_TYPE_BIN,null);
+                    case "IN_DEC":return new Input(IN_TYPE_DEC,null);
+                    case "IN_DOZ":return new Input(IN_TYPE_DOZ,null);
+                    case "IN_HEX":return new Input(IN_TYPE_HEX,null);
+                    default:throw new IllegalStateException("Unexpected InputType:"+str);
+                }
+            }
         }else if(str.toUpperCase(Locale.ROOT).startsWith("VAR")){//Var
             BigInteger id = new BigInteger(str.substring(3));
             if(id.signum()==-1)
@@ -582,22 +598,6 @@ public class Translator {
             if(id.signum()==-1)
                 throw new IllegalArgumentException("Negative Id");
             return new Import(context,id);
-        }else if(str.toUpperCase(Locale.ROOT).startsWith("IN_")){//Input
-            if(str.startsWith("IN_BASE")){
-                BigInteger base=new BigInteger(str.substring(7));
-                return new Input(IN_TYPE_BASE_N,base);
-            }else{
-                switch (str){
-                    case "IN_CHAR":return new Input(IN_TYPE_CHAR,null);
-                    case "IN_WORD":return new Input(IN_TYPE_WORD,null);
-                    case "IN_LINE":return new Input(IN_TYPE_LINE,null);
-                    case "IN_BIN":return new Input(IN_TYPE_BIN,null);
-                    case "IN_DEC":return new Input(IN_TYPE_DEC,null);
-                    case "IN_DOZ":return new Input(IN_TYPE_DOZ,null);
-                    case "IN_HEX":return new Input(IN_TYPE_HEX,null);
-                    default:throw new IllegalStateException("Unexpected InputType:"+str);
-                }
-            }
         }else{
             boolean isRef=false;
             if(str.startsWith("&")){

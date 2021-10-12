@@ -1,0 +1,71 @@
+CNLA:0
+
+%OUT_NUMBER writes a number
+OUT_NUMBER 0
+%OUT_LN_... preforms a write operation and inserts a newline after the written text
+OUT_LN_NUMBER 0
+%After NUMBER you can insert a base modifier to output numbers in different bases
+OUT_LN_NUMBER_BIN 10
+OUT_LN_NUMBER_BIN $11001001 % use $ for binary number constants
+OUT_LN_NUMBER_HEX 10
+OUT_LN_NUMBER_HEX #f00d % use # for hexadecimal number constants
+OUT_LN_NUMBER_DOZ 10
+OUT_LN_NUMBER_DOZ §123456789ab % use § for dozenal number constants (base 12)
+OUT_LN_NUMBER_BASE64 10 %Use BASE<base> for output in arbitrary bases
+OUT_LN_NUMBER_BASE64 @64:HelloWorld % use @<base>: for number constants in arbitrary bases
+%After the (optional) base modifier you can specify the output mode for fractions
+    %Exact output: !!this modes should only be used for relatively small denominators
+OUT_LN_NUMBER_FLOAT 1/3 % Outputs Fractions as a floating-point Numbers
+OUT_LN_NUMBER_BIN_FIXED 1/3 % Outputs Fractions as a fixed-point Numbers
+    %Rounded output
+OUT_LN_NUMBER_DOZ_FLOAT_APPROX 1/3 1/100 % Outputs Fractions as a rounded floating point numbers
+OUT_LN_NUMBER_FIXED_APPROX 1/3 1/100 % Outputs Fractions as a rounded fixed point numbers
+
+%Big bases:
+OUT_LN_NUMBER_BASE32 i %In bases that use i as a digit, complex numbers a+b*i are printed in the form "a|b"
+%Big bases use an other output format
+OUT_LN_NUMBER_BASE1000 123456789
+OUT_LN_NUMBER_BASE1000_FIXED 1/3
+OUT_LN_NUMBER_BASE1000_FIXED 1/2381
+%By inserting _BIG_BASE directly after NUMBER this format can also be used for small bases
+OUT_LN_NUMBER_BIG_BASE 42
+OUT_LN_NUMBER_BIG_BASE_BIN 42
+OUT_LN_NUMBER_BIG_BASE_HEX_FLOAT_APPROX 1/5 1/#100
+
+%Strings:
+%String literals can use " or ', use \ to escape characters
+OUT_LN_STR "Hello World!" %Use OUT_STR/OUT_LN_STR to output a value converted to String
+OUT_LN_STR_INTS "Hello"+"World"i %Use OUT_STR_INTS/OUT_LN_STR_INTS to only convert integers to Strings
+
+%Input:
+OUT_STR "Input one Character:"
+VAR0 IN_CHAR %IN_CHAR reads exactly one character from the console
+OUT_STR "'"
+OUT_STR VAR0
+OUT_LN_STR "'"
+OUT_STR "Input one Word:"
+VAR0 IN_WORD %IN_WORD reads exactly one word (sequence of chars without whitespace) from the console
+OUT_STR "'"
+OUT_STR VAR0
+OUT_LN_STR "'"
+OUT_STR "Input Text:"
+VAR0 IN_LINE %IN_LINE reads the rest of the line from the console
+OUT_STR "'"
+OUT_STR VAR0
+OUT_LN_STR "'"
+OUT_STR "Input Number:"
+VAR0 IN_DEC %IN_DEC reads a Decimal-"Number" (Any CNL-Object value detected by the Compiler) from the console
+OUT_STR "'"
+OUT_NUMBER VAR0
+OUT_LN_STR "'"
+OUT_STR "Input Binary Number:"
+VAR0 IN_BIN %IN_BIN reads a Binary-"Number" from the console
+OUT_STR "'"
+OUT_NUMBER VAR0
+OUT_LN_STR "'"
+%IN_HEX,IN_DOZ read numbers in base 16/12
+OUT_STR "Input Base 64 Number:"
+VAR0 IN_BASE64 %IN_BASE<base> reads a "Number" in base <base> from the console
+OUT_STR "'"
+OUT_NUMBER VAR0
+OUT_LN_STR "'"

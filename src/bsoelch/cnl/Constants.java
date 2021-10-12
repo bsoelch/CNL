@@ -606,10 +606,10 @@ public class Constants {
                 OperatorInfo strConcat;
                 {
                     //length of A as String
-                    declareUnaryOperator("STRING_LENGTH", null, MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("STRING_LENGTH", "STR_LEN", MODIFY_ARG0_ROOT,
                                     (a) -> Real.Int.from(a.asString().length()), 0);
                     //concatenates the Strings A and B
-                    strConcat=declareBinaryOperator("STRING_CONCAT", null, MODIFY_ARG0_ROOT, MathObject::strConcat, 0);
+                    strConcat=declareBinaryOperator("STRING_CONCAT", "STR_CONCAT", MODIFY_ARG0_ROOT, MathObject::strConcat, 0);
                     //returns the string representation of A in base B
                     declareBinaryOperator("TO_STRING", null, MODIFY_ARG0_ROOT,
                                     (a, b) -> Real.from(Real.stringAsBigInt(
@@ -642,28 +642,28 @@ public class Constants {
                                             a.asString(), MathObject.round(b, MathObject.FLOOR)
                                                     .numericValue().realPart().num()), 0);
 
-                    declareBinaryOperator("STRING_COMPARE", null, MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("STRING_COMPARE", "STR_COMPARE", MODIFY_ARG0_ROOT,
                                     (a,b) -> Real.Int.from(a.asString().compareTo(b.asString())), 0);
-                    declareUnaryOperator("STRING_LOWERCASE", null, MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("STRING_LOWERCASE", "STR_LOWER", MODIFY_ARG0_ROOT,
                                     (a) -> Real.from(Real.stringAsBigInt(a.asString().toLowerCase(Locale.ROOT))), 0);
-                    declareUnaryOperator("STRING_UPPERCASE", null, MODIFY_ARG0_ROOT,
+                    declareUnaryOperator("STRING_UPPERCASE", "STR_UPPER", MODIFY_ARG0_ROOT,
                                     (a) -> Real.from(Real.stringAsBigInt(a.asString().toUpperCase(Locale.ROOT))), 0);
-                    declareBinaryOperator("STRING_STARTS_WITH", null, MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("STRING_STARTS_WITH", "STR_STARTS", MODIFY_ARG0_ROOT,
                                     (a,b) -> Real.Int.from(a.asString().startsWith(b.asString())?1:0), 0);
-                    declareBinaryOperator("STRING_ENDS_WITH", null, MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("STRING_ENDS_WITH", "STR_ENDS", MODIFY_ARG0_ROOT,
                                     (a,b) -> Real.Int.from(a.asString().endsWith(b.asString())?1:0), 0);
-                    declareBinaryOperator("STRING_CONTAINS", null, MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("STRING_CONTAINS", "STR_CONTAINS", MODIFY_ARG0_ROOT,
                                     (a,b) -> Real.Int.from(a.asString().contains(b.asString())?1:0), 0);
-                    declareBinaryOperator("STRING_STARTS_WITH_IGNORE_CASE", null, MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("STRING_STARTS_WITH_IGNORE_CASE", "STR_STARTS_IC", MODIFY_ARG0_ROOT,
                                     (a,b) -> Real.Int.from(a.asString().toLowerCase(Locale.ROOT)
                                             .startsWith(b.asString().toLowerCase(Locale.ROOT))?1:0), 0);
-                    declareBinaryOperator("STRING_ENDS_WITH_IGNORE_CASE", null, MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("STRING_ENDS_WITH_IGNORE_CASE", "STR_ENDS_IC", MODIFY_ARG0_ROOT,
                                     (a,b) -> Real.Int.from(a.asString().toLowerCase(Locale.ROOT)
                                             .endsWith(b.asString().toLowerCase(Locale.ROOT))?1:0), 0);
-                    declareBinaryOperator("STRING_CONTAINS_IGNORE_CASE", null, MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("STRING_CONTAINS_IGNORE_CASE", "STR_CONTAINS_IC", MODIFY_ARG0_ROOT,
                                     (a,b) -> Real.Int.from(a.asString().toLowerCase(Locale.ROOT)
                                             .contains(b.asString().toLowerCase(Locale.ROOT))?1:0), 0);
-                    declareBinaryOperator("STRING_INDEX_OF", null, MODIFY_ARG0_ROOT,
+                    declareBinaryOperator("STRING_INDEX_OF", "STR_INDEX", MODIFY_ARG0_ROOT,
                                     (a,b) -> Real.Int.from(a.asString().indexOf(b.asString())), 0);
                     declareBinaryOperator("SUBSTRING_FROM", null, MODIFY_ARG0_ROOT,
                                     (a,i) -> Real.from(Real.stringAsBigInt(a.asString()

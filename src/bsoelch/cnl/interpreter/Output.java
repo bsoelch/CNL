@@ -114,6 +114,9 @@ class Output implements Action {
         int type2=isNumber?(useSmallBase?0:OUT_BIG_BASE_START)+baseId*OUT_NUMBER_BLOCK_LENGTH+type:type;
 
         Translator.writeOutId(target,type2);
+        if(isNumber&&baseId==OUT_BASE_FLAG_BASE_N){
+            target.writeBigInt(base.subtract(OUT_BASE_OFFSET),IO_INT_HEADER,IO_INT_BLOCK,IO_INT_BIG_BLOCK);
+        }
     }
 
     @Override
