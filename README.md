@@ -1,6 +1,6 @@
 # CNL
 CNL ("Computable Number Language") is a programing Language 
-designed to produce relatively short bytecode, 
+designed to produce relatively short binary code, 
 especially for algorithms computing computable numbers.<br>
 
 
