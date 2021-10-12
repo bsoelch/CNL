@@ -3,6 +3,7 @@ CNL ("Computable Number Language") is a programing Language
 designed to produce relatively short binary code, 
 especially for algorithms computing computable numbers.<br>
 
+
 ## Usage:
 The Code of a CNL-Program exists in two forms,
 CNL-Binary and CNL-Assembly.
@@ -187,14 +188,22 @@ The three primary Blocks are:
 ]? <condition>
 ```
 
-## Intentional behaviour that may seem weird:
+## Desing choices
+- short binary code is more important that efficiency
+- no arbitrary limitations: every value has to be theoretically unlimited
+- no arbitrary rounding: operations that round values have to be explicitly declared as approximation
+and supply a parameter to specify the precission
+- every value should be convertable into every value-type
+- no operations for real number functions (sqrt, log, exp, ...)
+
+### Intentional behaviour that may seem weird:
 - 0/0 = 0, 0<sup>0</sup>=0 (necessary for consistent behaviour of element-wise operations)
 - realPart, imaginaryPart ,... do not affect the Keys of maps 
 - min {} = max {} =0 
 - strings are internally represented as integers 
 (containing the bytes of their UTF-8 representation)
 - matrices and tuples are handled as special cases of maps 
-- tuples of value zero may not be displayed
-- entries of value 0 in non-tuple maps are interpreted as empty and therefore ignored
-- matrix multiplication automatically extends to smaller matrix with zeros to allow calculation 
+- tuple entries of value zero may not be displayed
+- entries with value 0 in non-tuple maps are interpreted as empty and therefore ignored
+- matrix multiplication automatically extends the smaller matrix with zeros to allow calculation 
 - REMOVE/REMOVE_KEY do not modify the length of a tuple
