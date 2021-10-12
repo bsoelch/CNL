@@ -168,7 +168,7 @@ public class Translator {
     }
 
     public static Action nextAction(BitRandomAccessStream code, Context context,
-                                    ExecutionEnvironment executionEnvironment, boolean isTopLayer) throws IOException {
+                                    ExecutionEnvironment executionEnvironment, boolean isTopLayer, boolean skip) throws IOException {
         Interpreter.CodePosition prevPos=new Interpreter.CodePosition(code, false);
         int header= readHeader(code);
         if(header==-1){//End of file
@@ -259,7 +259,7 @@ public class Translator {
             }
             case HEADER_FUNCTION_ARG:{
                 BigInteger id= code.readBigInt(FUNCTION_ARG_INT_HEADER, FUNCTION_ARG_INT_BLOCK, FUNCTION_ARG_INT_BIG_BLOCK);
-                return context.argPointer(id);
+                return skip?wrap(Real.Int.ZERO):context.argPointer(id);
             }
             case HEADER_FUNCTION_DECLARATION:{
                 if(!isTopLayer)
@@ -453,9 +453,10 @@ public class Translator {
 
     /**reads the next action from the given Reader
      * @param bitCode BitRandomAccessStream used for remembering dode positions,
-     *                may be null if code positions are not relevant*/
+     *                may be null if code positions are not relevant
+     * @param skip if true context specific syntax checks will be omitted*/
     static Action nextAction(Reader code, BitRandomAccessStream bitCode, Context context,
-                             ExecutionEnvironment executionEnvironment, boolean isTopLayer) throws IOException {
+                             ExecutionEnvironment executionEnvironment, boolean isTopLayer, boolean skip) throws IOException {
         String str;
         Interpreter.CodePosition prevPos=bitCode==null?NO_POS:new Interpreter.CodePosition(bitCode, true);
         do {
@@ -560,7 +561,7 @@ public class Translator {
             BigInteger id = new BigInteger(str.substring(3));
             if(id.signum()==-1)
                 throw new IllegalArgumentException("Negative Id");
-            return context.argPointer(id);
+            return skip?wrap(Real.Int.ZERO):context.argPointer(id);
         }else if(str.toUpperCase(Locale.ROOT).startsWith("X")&&
                 (str.length()>1&&Character.isDigit(str.charAt(1)))){//Lambda-Var
             BigInteger id = new BigInteger(str.substring(1));
@@ -977,7 +978,7 @@ public class Translator {
                         while (test.isImporting())
                             test.flatStep();//flatRun Imports
                         try {
-                            a = nextAction(source, null, test.programEnvironment(), test.executionEnvironment(), test.isTopLayer());
+                            a = nextAction(source, null, test.programEnvironment(), test.executionEnvironment(), test.isTopLayer(), false);
                         } catch (IllegalArgumentException | UnsupportedOperationException| IndexOutOfBoundsException e) {
                             throw new SyntaxError(test, e);
                         } catch (ArithmeticException e) {
@@ -1040,7 +1041,7 @@ public class Translator {
                         while (test.isImporting())
                             test.flatStep();//flatRun Imports
                         try {
-                            a = nextAction(source, test.programEnvironment(), test.executionEnvironment(), test.isTopLayer());
+                            a = nextAction(source, test.programEnvironment(), test.executionEnvironment(), test.isTopLayer(), false);
                         } catch (UnsupportedOperationException | IllegalArgumentException| IndexOutOfBoundsException e) {
                             throw new SyntaxError(test, e);
                         }

@@ -194,9 +194,9 @@ public class Interpreter implements Closeable {
     private boolean doStep(boolean doBranching) throws IOException, SyntaxError, CNL_RuntimeException {
         Action a;
         if(isScript){
-            a= Translator.nextAction(code.reader(),code, programEnvironment(), executionEnvironment(), isTopLayer());
+            a= Translator.nextAction(code.reader(),code, programEnvironment(), executionEnvironment(), isTopLayer(), false);
         }else{
-            a= Translator.nextAction(code, programEnvironment(), executionEnvironment(), isTopLayer());
+            a= Translator.nextAction(code, programEnvironment(), executionEnvironment(), isTopLayer(), false);
         }
         try {
             return stepInternal(a, doBranching);
@@ -315,9 +315,9 @@ public class Interpreter implements Closeable {
         Action a;
         while (bracketCount>0){
             if(isScript){
-                a= Translator.nextAction(code.reader(),code,envStack.getLast(), exEnv,brackets.isEmpty());
+                a= Translator.nextAction(code.reader(),code,envStack.getLast(), exEnv,brackets.isEmpty(), true);
             }else{
-                a= Translator.nextAction(code,envStack.getLast(), exEnv,brackets.isEmpty());
+                a= Translator.nextAction(code,envStack.getLast(), exEnv,brackets.isEmpty(), true);
             }
             if(a== Translator.EOF){//ignore EXIT statements
                 throw new SyntaxError(this,"Unfinished Loop");
