@@ -593,7 +593,8 @@ public abstract class Real extends NumericValue {
             return (num.signum() == -1 ? "-" : "") + Real.toString(base, num.abs(), useSmallBase);
         } else {
             if(precision.equals(Int.ZERO)){
-                return fractionToPeriodicString(num.abs(), den, base, useSmallBase);
+                return (num.signum() == -1 ? "-" : "")
+                        + fractionToPeriodicString(num.abs(), den, base, useSmallBase);
             }else{
                 int numDigits= calculateNumDigits(base, precision);
                 return (num.signum() == -1 ? "-" : "")

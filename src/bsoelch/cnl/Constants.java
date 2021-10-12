@@ -396,7 +396,7 @@ public class Constants {
                 declareBinaryOperator("INT_DIVIDE", "INT_DIV", MODIFY_ARG0_ROOT,
                         (a,b)->MathObject.deepCombineNumbers(a,b,(x, y)-> NumericValue.divideAndRemainder(x,y)[0]), 0);
                 //calculates the remainder of A divided by B (element-wise)
-                declareBinaryOperator("REMAINDER", null, MODIFY_ARG0_ROOT,
+                declareBinaryOperator("REMAINDER", "REM", MODIFY_ARG0_ROOT,
                         (a,b)->MathObject.deepCombineNumbers(a,b,(x, y)-> NumericValue.divideAndRemainder(x,y)[1]), 0);
                 //shortcut of A+Bi (to simplify creation of complex numbers)
                 declareBinaryOperator(COMPLEX, "CMPLX", MODIFY_ARG0_NEVER,(a, b)->MathObject.deepCombineNumbers(a,b,
@@ -429,8 +429,8 @@ public class Constants {
                 //(element-wise) floor A
                 declareUnaryOperator("FLOOR", null, MODIFY_ARG0_ROOT,
                                 a-> MathObject.round(a, MathObject.FLOOR), 0);
-                //(element-wise) ciel A
-                declareUnaryOperator("CIEL", null, MODIFY_ARG0_ROOT,
+                //(element-wise) ceil A
+                declareUnaryOperator("CEIL", null, MODIFY_ARG0_ROOT,
                                 a-> MathObject.round(a, MathObject.CIEL), 0);
                 //(element-wise) round A
                 declareUnaryOperator("ROUND", null, MODIFY_ARG0_ROOT,

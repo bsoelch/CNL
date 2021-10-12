@@ -105,7 +105,10 @@ Basis Arithmetic operations:
 - SUBT < a > < b >: return < a >-< b >
 - MULT < a > < b >: return < a >*< b >
 - DIV < a > < b >: return < a >/< b >
-- MOD < a > < b >: return < a >%< b >
+- INT_DIV < a > < b >: 
+  return q s.t. a=q*b+r, |r|<|b|
+- REM < a > < b >:
+  return r s.t. a=q*b+r, |r|<|b|
 - CMPLX < a > < b >: return < a >+< b >*i
 
 Comparison Operators:
@@ -113,6 +116,8 @@ Comparison Operators:
 - GT < a > < b >: return < a > > < b >
 - GE < a > < b >: return < a > >= < b >
 - NE < a > < b >: return < a > != < b >
+- There are no LT or LE operations since you 
+  can simply swap the arguments
 
 Basis Console IO:
 - OUT_NUMBER < x >: prints < x >
@@ -129,6 +134,7 @@ Basis Console IO:
   converting fractions to fixed-point numbers
   rounded to the given precision
 - OUT_STR < x >: prints < x > as String
+- OUT_LN_... adds a new-line after the output
 
 
 

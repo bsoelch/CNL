@@ -544,7 +544,8 @@ public class Translator {
             if(id.signum()==-1)
                 throw new IllegalArgumentException("Negative Id");
             return context.argPointer(id);
-        }else if(str.toUpperCase(Locale.ROOT).startsWith("X")){//Lambda-Var
+        }else if(str.toUpperCase(Locale.ROOT).startsWith("X")&&
+                (str.length()>1&&Character.isDigit(str.charAt(1)))){//Lambda-Var
             BigInteger id = new BigInteger(str.substring(1));
             if(id.signum()==-1)
                 throw new IllegalArgumentException("Negative Id");
