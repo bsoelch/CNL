@@ -2,7 +2,6 @@ package bsoelch.cnl.math.expressions;
 
 import bsoelch.cnl.math.NumericValue;
 import bsoelch.cnl.math.Real;
-import org.jetbrains.annotations.NotNull;
 
 import java.math.BigInteger;
 import java.util.Collections;
@@ -78,7 +77,7 @@ public class LambdaVariable implements ExpressionNode, Comparable<LambdaVariable
     }
 
     @Override
-    public int compareTo(@NotNull LambdaVariable o) {
+    public int compareTo(LambdaVariable o) {
         return id.compareTo(o.id);
     }
 

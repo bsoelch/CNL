@@ -1,8 +1,5 @@
 package bsoelch.cnl.math;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.math.BigInteger;
 import java.util.*;
 import java.util.function.BiFunction;
@@ -27,7 +24,7 @@ public final class Matrix extends MathObject implements Iterable<NumericValue> {
     public static Matrix diagonalMatrix(int n, NumericValue value) {
         return fromMutableTuple(diagonal(n, value));
     }
-    @NotNull
+
     private static MutableTuple<MutableTuple<NumericValue>> diagonal(int n, NumericValue value) {
         if(n <=0)
             throw new IllegalArgumentException("n has to be >0");
@@ -85,7 +82,7 @@ public final class Matrix extends MathObject implements Iterable<NumericValue> {
             return Tuple.create(new NumericValue[]{(NumericValue) row});
         }else if(row instanceof Matrix){
             ArrayList<NumericValue> values = new ArrayList<>(((Matrix) row).size());
-            for (@NotNull Iterator<NumericValue> it = ((Matrix) row).sparseIterator(); it.hasNext(); ) {
+            for (Iterator<NumericValue> it = ((Matrix) row).sparseIterator(); it.hasNext(); ) {
                 NumericValue nv = it.next();
                 values.add(nv);
             }
@@ -235,8 +232,10 @@ public final class Matrix extends MathObject implements Iterable<NumericValue> {
         return fromMutableTuple(res);
     }
 
+    /**Preforms the gaussian Algorithm on target
+     * @param applicant optional (may be null) second matrix that is transformed in the same way as target*/
     static void gaussianAlgorithm(MutableTuple<MutableTuple<NumericValue>> target,
-                                  @Nullable MutableTuple<MutableTuple<NumericValue>> applicant, boolean total) {
+                                  MutableTuple<MutableTuple<NumericValue>> applicant, boolean total) {
         int y=0,k0;
         for (MutableTuple.TupleEntry<MutableTuple<NumericValue>> row : target) {
             k0 = -1;
@@ -268,9 +267,12 @@ public final class Matrix extends MathObject implements Iterable<NumericValue> {
             }
         }
     }
-    /**adds f times line a to line b*/
+    /**Single step in the Gaussian Algorithm
+     * adds f times line a to line b
+     * @param target target of the algorithm
+     * @param applicant optional (may be null) second matrix that is transformed in the same way as target*/
     private static void addLine(MutableTuple<MutableTuple<NumericValue>> target,
-                                @Nullable MutableTuple<MutableTuple<NumericValue>> applicant, int a, NumericValue f, int b) {
+                                MutableTuple<MutableTuple<NumericValue>> applicant, int a, NumericValue f, int b) {
         for(MutableTuple.TupleEntry<MutableTuple<NumericValue>> e:target){
             NumericValue eA = e.value.get(a),eB = e.value.get(b);
             e.value.set(b,NumericValue.add(eA ==null? Real.Int.ZERO: NumericValue.multiply(eA,f),
@@ -437,10 +439,6 @@ public final class Matrix extends MathObject implements Iterable<NumericValue> {
     }
 
 
-
-
-
-    @NotNull
     @Override
     public Iterator<NumericValue> iterator() {
         return new Iterator<NumericValue>() {
@@ -462,7 +460,7 @@ public final class Matrix extends MathObject implements Iterable<NumericValue> {
         };
     }
     /**Iterator over the Entries of this Matrix that skips elements with the value zero*/
-    public @NotNull Iterator<MatrixEntry> matrixIterator() {
+    public Iterator<MatrixEntry> matrixIterator() {
         return new Iterator<MatrixEntry>() {
             final Iterator<Pair> rowItr=data.mapIterator();
             Iterator<Pair> columnItr=nextColumn();
@@ -496,7 +494,6 @@ public final class Matrix extends MathObject implements Iterable<NumericValue> {
         };
     }
     /**Iterator over the Values in this Matrix values  that skips elements with the value zero*/
-    @NotNull
     public Iterator<NumericValue> sparseIterator() {
         return new Iterator<NumericValue>() {
             final Iterator<MatrixEntry> entries=matrixIterator();
@@ -512,7 +509,7 @@ public final class Matrix extends MathObject implements Iterable<NumericValue> {
     }
     /**Iterates over the non-empty rows of this Matrix,
      *  returns pairs with the rowid in the first component and the row in the second*/
-    public @NotNull Iterator<Pair> rowIterator() {
+    public Iterator<Pair> rowIterator() {
         return new Iterator<Pair>() {
             final Iterator<Pair> rowItr=data.mapIterator();
             Pair nextRow=nextRow();

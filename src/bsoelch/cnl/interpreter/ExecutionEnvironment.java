@@ -2,7 +2,6 @@ package bsoelch.cnl.interpreter;
 
 import bsoelch.cnl.BitRandomAccessFile;
 import bsoelch.cnl.BitRandomAccessStream;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,7 +36,7 @@ public class ExecutionEnvironment {
         }
     }
 
-    @NotNull
+    /**@return absolute path representation of path*/
     private String toAbsolutePath(String path) {
         path = rootDir.getAbsolutePath() + File.separator + path;
         return path;

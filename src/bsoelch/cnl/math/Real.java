@@ -1,7 +1,6 @@
 package bsoelch.cnl.math;
 
 import bsoelch.cnl.Constants;
-import org.jetbrains.annotations.NotNull;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -138,7 +137,6 @@ public abstract class Real extends NumericValue {
         return from(a.num().add(b.num()), a.den().add(b.den()));
     }
 
-    @NotNull
     public static String toString(BigInteger base, BigInteger a, boolean useSmallBase) {
         if (base.compareTo(BIG_INT_TWO)<0)
             throw new IllegalArgumentException("base has to be at least 2");
@@ -360,7 +358,7 @@ public abstract class Real extends NumericValue {
         }
 
         @Override
-        public int compareTo(@NotNull NumericValue o) {
+        public int compareTo(NumericValue o) {
             if (o instanceof Int) {
                 Int anInt = (Int) o;
                 return value.compareTo(anInt.value);
@@ -516,7 +514,7 @@ public abstract class Real extends NumericValue {
         }
 
         @Override
-        public int compareTo(@NotNull NumericValue o) {
+        public int compareTo(NumericValue o) {
             if (o instanceof Int) {
                 return a.compareTo(b.multiply(((Int) o).value));
             } else if (o instanceof Fraction) {
@@ -586,7 +584,6 @@ public abstract class Real extends NumericValue {
         return (int) (0.1 - precision.approxLog2() / approxLog2(base));
     }
 
-    @NotNull
     static String toStringFixedPoint(BigInteger num, BigInteger den, BigInteger base, Real precision, boolean useSmallBase) {
         //calculate number of
         if (den.equals(BigInteger.ONE)) {
@@ -602,7 +599,7 @@ public abstract class Real extends NumericValue {
             }
         }
     }
-    @NotNull
+
     static String toStringFloat(BigInteger num, BigInteger den, BigInteger base, Real precision, boolean useSmallBase) {
         StringBuilder ret=new StringBuilder(num.signum() == -1 ? "-" : "");
         num = num.abs();
@@ -717,7 +714,6 @@ public abstract class Real extends NumericValue {
         return ret.toString();
     }
 
-    @NotNull
     private static String bigIntAsString(BigInteger bigInt) {
         byte[] bytes=bigInt.toByteArray();
         int i0=0;
@@ -730,7 +726,7 @@ public abstract class Real extends NumericValue {
         }
         return new String(reversedBytes,StandardCharsets.UTF_8);
     }
-    @NotNull
+
     public static BigInteger stringAsBigInt(String str) {
         byte[] bytes=str.getBytes(StandardCharsets.UTF_8);
         byte[] reversedBytes=new byte[bytes.length+1];

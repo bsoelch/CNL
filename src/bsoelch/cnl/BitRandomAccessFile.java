@@ -1,6 +1,5 @@
 package bsoelch.cnl;
 
-import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.math.BigInteger;
@@ -26,7 +25,10 @@ public class BitRandomAccessFile implements BitRandomAccessStream {
     private Reader readerCache=null;
     private Writer writerCache=null;
 
-    public BitRandomAccessFile(@NotNull File file,String mode) throws IOException {
+    /**@param file source File, has to be non-null
+     * @param mode RandomAccessMode link in {@link RandomAccessFile(File,String) RandomAccessFile}
+     * */
+    public BitRandomAccessFile(File file,String mode) throws IOException {
         this.byteFile = new RandomAccessFile(file,mode);
         bytePos=byteFile.getFilePointer();
         this.path=file.getAbsolutePath();
@@ -440,7 +442,6 @@ public class BitRandomAccessFile implements BitRandomAccessStream {
     /**@param numberBits bits in the number (in small endian format)
      * @return an unsigned BigInteger with the binary representation given by {@code numberBits}
      * */
-    @NotNull
     private BigInteger fromBits(long[] numberBits) {
         byte[] bytes=new byte[8* numberBits.length+1];
         for(int i = 0; i< numberBits.length; i++){

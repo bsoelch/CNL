@@ -6,9 +6,6 @@ import bsoelch.cnl.Main;
 import bsoelch.cnl.math.MathObject;
 import bsoelch.cnl.math.Real;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 
 import java.io.Closeable;
 import java.io.File;
@@ -87,11 +84,21 @@ public class Interpreter implements Closeable {
     private StringBuilder currentLine=new StringBuilder();
     private String prevLine;
 
-    public Interpreter(File codeFile, @Nullable MathObject[] args, boolean forceRunLibs) throws IOException {
+    /**@param codeFile sourceFile for the code
+     * @param args program arguments, may be null
+     * @param forceRunLibs if true the program will run libraries as executables without arguments*/
+    public Interpreter(File codeFile, MathObject[] args, boolean forceRunLibs) throws IOException {
         this(args, true, codeFile, forceRunLibs);
     }
-    /**Internal constructor that allows the creation of Interpreter instances which are not attached to a BitRandomAccessFile*/
-    Interpreter(@Nullable MathObject[] args, boolean useCode, File codeFile, boolean forceRunLib) throws IOException {
+    /**Internal constructor that allows the creation of Interpreter instances which are
+     * not attached to a BitRandomAccessFile
+     * @param args program arguments, may be null
+     * @param useCode if false the code in codeFile is not ignored,
+     *                the codeFile is still used to find the local directory
+     * @param codeFile sourceFile for the code, is assumed to be non-null
+     * @param forceRunLibs if true the program will run libraries as executables without arguments
+     * */
+    Interpreter(MathObject[] args, boolean useCode, File codeFile, boolean forceRunLibs) throws IOException {
         this.codeDir = codeFile.getParentFile();
         if(useCode){
             this.code =new BitRandomAccessFile(codeFile,"r");
@@ -111,7 +118,7 @@ public class Interpreter implements Closeable {
                     args= Main.getArgs(header.argCount.intValueExact());
                 }else if(args.length!=header.argCount.intValueExact())
                     throw new IOException("wrong number of Arguments: "+args.length+" expected: "+header.argCount);
-            }else if(!forceRunLib){
+            }else if(!forceRunLibs){
                 throw new IOException("Unable to run library Files");
             }else{
                 args=new MathObject[0];
@@ -639,8 +646,8 @@ public class Interpreter implements Closeable {
         }
     }
 
-
-    @NotNull
+    /**@return removed Bracket (non-null)
+     * @throws RuntimeException if there is no bracket to remove (this should never happen)*/
     private BracketInfo removeBracket() {
         Context env=envStack.removeLast();//remove Bracket Root
         BracketInfo bracket = brackets.removeLast();

@@ -1,6 +1,5 @@
 package bsoelch.cnl.math;
 
-import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Array;
 import java.math.BigInteger;
@@ -235,7 +234,7 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
     }
 
     @Override
-    public @NotNull Iterator<MathObject> iterator() {
+    public Iterator<MathObject> iterator() {
         return new Iterator<MathObject>() {
             int i=0;
             @Override
@@ -248,7 +247,7 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
             }
         };
     }
-    public @NotNull Iterator<MathObject> sparseIterator() {
+    public Iterator<MathObject> sparseIterator() {
         return new Iterator<MathObject>() {
             final Iterator<MathObject> itr=iterator();
             MathObject next=nextNonZero();
@@ -275,7 +274,7 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
 
     @Override
     public boolean isMatrix() {
-        for (@NotNull Iterator<MathObject> it = sparseIterator(); it.hasNext(); ) {
+        for (Iterator<MathObject> it = sparseIterator(); it.hasNext(); ) {
             MathObject o = it.next();
             if(!(o instanceof FiniteMap&&((FiniteMap) o).isNumericTuple())){
                 return false;
@@ -416,7 +415,7 @@ public abstract class Tuple extends FiniteMap implements Iterable<MathObject>{
         }
 
         @Override
-        public @NotNull Iterator<MathObject> sparseIterator() {
+        public Iterator<MathObject> sparseIterator() {
             return map.valueIterator();
         }
 

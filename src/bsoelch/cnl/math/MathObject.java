@@ -3,8 +3,6 @@ package bsoelch.cnl.math;
 import bsoelch.cnl.Constants;
 import bsoelch.cnl.math.expressions.ExpressionNode;
 import bsoelch.cnl.math.expressions.LambdaVariable;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.math.BigInteger;
 import java.util.*;
@@ -388,10 +386,11 @@ public abstract class MathObject implements ExpressionNode {//addLater? ElementV
 
     /**reduces a set/map with a binary operation
      * @param target the targeted MathObject
-     * @param prev result of the previous operation (for deep reduce) or null is the is the first operation in the reduction
+     * @param prev result of the previous operation (for deep reduce)
+     *             or null is the is the first operation in the reduction
      * @param reduce the reduction function
      * @param isDeep if true the reduction goes recursive through all contained sets/maps*/
-    public static MathObject reduce(MathObject target,@Nullable MathObject prev,BinaryOperator<MathObject> reduce,boolean isDeep){
+    public static MathObject reduce(MathObject target,MathObject prev,BinaryOperator<MathObject> reduce,boolean isDeep){
         if(target instanceof Matrix)
             target=((Matrix) target).asMap();
         if(target instanceof NumericValue){
@@ -1646,7 +1645,6 @@ public abstract class MathObject implements ExpressionNode {//addLater? ElementV
             }
         }
 
-        @NotNull
         private static String removeIllegalCharacters(BigInteger base, String str, boolean allowPoint) {
             String allowedCharacters;
             if(str.contains(":")|| base.compareTo(Constants.MAX_INT)>=0||base.intValueExact() >Real.DIGITS.length()){

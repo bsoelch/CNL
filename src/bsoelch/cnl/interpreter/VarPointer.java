@@ -5,8 +5,6 @@ import bsoelch.cnl.Constants;
 import bsoelch.cnl.math.MathObject;
 import bsoelch.cnl.math.NumericValue;
 import bsoelch.cnl.math.Real;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -19,13 +17,17 @@ class VarPointer implements ValuePointer {
     private final boolean forceWrite;
     private boolean active = true;
 
-    VarPointer(Context env, @Nullable NumericValue id,boolean forceWrite) {
+    /**Creates a Pointer to a Variable with a specific id
+     * @param env program context
+     * @param id id of this Var or null if this is a dynamic-var
+     * @param forceWrite true if this operation has to modify a variable operations*/
+    VarPointer(Context env, NumericValue id,boolean forceWrite) {
         myEnv = env;
         this.varId = id;
         this.forceWrite=forceWrite;
     }
 
-    public @NotNull MathObject getValue() {
+    public MathObject getValue() {
         return myEnv.getVar(varId);
     }
 

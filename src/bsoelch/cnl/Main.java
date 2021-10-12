@@ -4,7 +4,6 @@ import bsoelch.cnl.interpreter.*;
 import bsoelch.cnl.math.MathObject;
 import bsoelch.cnl.math.Real;
 import bsoelch.cnl.math.Tuple;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.nio.file.Paths;
@@ -32,7 +31,7 @@ public class Main {
         System.out.println();
         System.out.println((doBranching?"Executed: ":"Tested: ") + count + " actions");
     }
-    public static @NotNull MathObject[] getArgs(int argCount) {
+    public static MathObject[] getArgs(int argCount) {
         MathObject[] args=new MathObject[argCount];
         System.out.println();
         if(argCount>0) {
@@ -367,7 +366,6 @@ public class Main {
         }
     }
 
-    @NotNull
     private static File fileFromPath(String path) {
         if(path.startsWith(".")){
             path= Paths.get(System.getProperty("user.dir")+path.substring(1)).toString();
@@ -378,6 +376,7 @@ public class Main {
     }
 
     private static void printExpectedArgs() {
+        System.out.println("CNL: Version"+Constants.CODE_VERSION);
         System.out.println("Expected Argument: [flags] <mainFile>");
         System.out.println("file names starting with . are viewed as relative to <localDir> ");
         System.out.println("file names starting with ~ are viewed as relative to  <userDir> ");

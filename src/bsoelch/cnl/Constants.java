@@ -3,8 +3,6 @@ package bsoelch.cnl;
 import bsoelch.cnl.interpreter.ExecutionEnvironment;
 import bsoelch.cnl.math.*;
 import bsoelch.cnl.math.expressions.LambdaVariable;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -26,7 +24,8 @@ public class Constants {
     public static final BigInteger MAX_INT = BigInteger.valueOf(Integer.MAX_VALUE);
     public static final BigInteger DEFAULT_BASE = BigInteger.TEN;
 
-    /**Current version of the Binary Output, should be increased every time there are significant changes to the encoding*/
+    /**Current version of the Binary Output,
+     * should be increased every time the encoding is no longer downwards compatible*/
     public static final BigInteger CODE_VERSION = BigInteger.ZERO;
 
     /**length of BigInt header for argCount in file-header*/
@@ -336,7 +335,8 @@ public class Constants {
                 this.isAssociative = isAssociative;
             }
 
-            public @Nullable OperatorInfo getShortCut(int argCount) {
+            /**@return the shortcut for the given argCount or null if there is none*/
+            public OperatorInfo getShortCut(int argCount) {
                 return shortCuts.get(argCount);
             }
 
@@ -1513,7 +1513,6 @@ public class Constants {
             }
         }
 
-        @NotNull
         private static HashMap<MathObject, MathObject> constructMapFromArgs(MathObject[] args) {
             if (args.length % 2 == 1)
                 throw new IllegalArgumentException("NEW_MAP needs an even Number of Arguments");
@@ -1531,7 +1530,7 @@ public class Constants {
         private static final HashMap<String, OperatorInfo> operatorNames=new HashMap<>();
 
         /**@return the OperatorInfo for the Operator with the given Name or null if there is no operator with the given Name*/
-        public static @Nullable OperatorInfo byNameOrNull(String name){
+        public static OperatorInfo byNameOrNull(String name){
             ensureOperatorsInitialized();
             return operatorNames.get(name);
         }
@@ -1554,7 +1553,7 @@ public class Constants {
         }
 
         /**@return The nAry info for the given Operator or null if there is none*/
-        public static @Nullable NAryInfo nAryInfo(OperatorInfo operator){
+        public static NAryInfo nAryInfo(OperatorInfo operator){
             return nAryInfos.get(operator);
         }
 
@@ -1572,7 +1571,7 @@ public class Constants {
 
         /**Declares a new operator with the given name and number of Arguments,
          * @param name name of the Operator, should be in uppercase and must not contain any whitespace characters nor @:,
-         * @param shortName short name for the operator is ignored if null
+         * @param shortName short name for the operator or null if there is no short name
          * @param numArgs Expected Number of Arguments
          * @param storeMode StoreMode for handling variables in the first slot one of
          * {@link #MODIFY_ARG0_NEVER}, {@link #MODIFY_ARG0_ROOT}, {@link #MODIFY_ARG0_ALWAYS}
@@ -1581,7 +1580,7 @@ public class Constants {
          *                   by default the calculation is redirected to {@link LambdaExpression}
          *                        when there are any LambdaExpressions in the Arguments
          * @throws IllegalArgumentException If there is already an Operator with the given name*/
-        private static OperatorInfo declareOperator(String name, @Nullable String shortName, int numArgs, boolean isNary, int storeMode,
+        private static OperatorInfo declareOperator(String name, String shortName, int numArgs, boolean isNary, int storeMode,
                                                     Function<MathObject[], MathObject> eval, int lambdaFlags){
             checkName(name);
             int id= operators.size();
@@ -1622,7 +1621,7 @@ public class Constants {
 
         /**shortcut for the declaration of an unary Operator
          * @param name name of the Operator, should be in uppercase and must not contain any whitespace characters nor @:,
-         * @param shortName short name for the operator is ignored if null
+         * @param shortName short name for the operator or null if there is no short name
          * @param storeMode StoreMode for handling variables in the first slot one of
          * {@link #MODIFY_ARG0_NEVER}, {@link #MODIFY_ARG0_ROOT}, {@link #MODIFY_ARG0_ALWAYS}
          * @param unEval unary Evaluation Function
@@ -1630,12 +1629,12 @@ public class Constants {
          *                   by default the calculation is redirected to {@link LambdaExpression}
          *                        when there are any LambdaExpressions in the Arguments
          * @see #declareOperator(String, String, int, boolean, int, Function, int)  */
-        private static OperatorInfo declareUnaryOperator(String name, @Nullable String shortName, int storeMode, Function<MathObject, MathObject> unEval, int lambdaFlags){
+        private static OperatorInfo declareUnaryOperator(String name, String shortName, int storeMode, Function<MathObject, MathObject> unEval, int lambdaFlags){
             return declareOperator(name, shortName, 1, false, storeMode, (args)->unEval.apply(args[0]), lambdaFlags);
         }
         /**shortcut for the declaration of a binary Operator
          * @param name name of the Operator, should be in uppercase and must not contain any whitespace characters nor @:,
-         * @param shortName short name for the operator is ignored if null
+         * @param shortName short name for the operator or null if there is no short name
          * @param storeMode StoreMode for handling variables in the first slot one of
          * {@link #MODIFY_ARG0_NEVER}, {@link #MODIFY_ARG0_ROOT}, {@link #MODIFY_ARG0_ALWAYS}
          * @param biEval binary Evaluation Function
@@ -1643,7 +1642,7 @@ public class Constants {
          *                   by default the calculation is redirected to {@link LambdaExpression}
          *                        when there are any LambdaExpressions in the Arguments
          * @see #declareOperator(String, String, int, boolean, int, Function, int)  */
-        private static OperatorInfo declareBinaryOperator(String name, @Nullable String shortName, int storeMode, BinaryOperator<MathObject> biEval, int lambdaFlags){
+        private static OperatorInfo declareBinaryOperator(String name, String shortName, int storeMode, BinaryOperator<MathObject> biEval, int lambdaFlags){
             return declareOperator(name, shortName, 2, false, storeMode, (args)->biEval.apply(args[0],args[1]), lambdaFlags);
         }
         /**shortcut for the declaration of an unary environment-dependent Operator

@@ -1,7 +1,5 @@
 package bsoelch.cnl.math;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.math.BigInteger;
 import java.util.*;
 import java.util.function.BiFunction;
@@ -125,16 +123,16 @@ public final class FiniteSet extends MathObject implements Iterable<MathObject>{
         this.contents = new TreeSet<>(MathObject::compare);
         this.contents.addAll(contents);
     }
-    @NotNull
+
     @Override
     public Iterator<MathObject> iterator() {
         return contents.iterator();
     }
-    @NotNull
+
     public Iterator<MathObject> tailIterator(MathObject slice,boolean inclusive) {
         return contents.tailSet(slice,inclusive).iterator();
     }
-    @NotNull
+
     public Iterator<MathObject> headIterator(MathObject slice,boolean inclusive) {
         return contents.headSet(slice,inclusive).iterator();
     }

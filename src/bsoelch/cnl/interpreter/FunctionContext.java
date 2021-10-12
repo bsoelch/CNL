@@ -3,7 +3,6 @@ package bsoelch.cnl.interpreter;
 import bsoelch.cnl.BitRandomAccessStream;
 import bsoelch.cnl.math.MathObject;
 import bsoelch.cnl.math.NumericValue;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -28,7 +27,7 @@ public class FunctionContext extends Context{
     }
 
     @Override
-    public @NotNull FunctionContext getChild(BigInteger id) {
+    public FunctionContext getChild(BigInteger id) {
         FunctionContext child = children.get(id);
         if (child == null) {
             children.put(id, child = new FunctionContext(parent.getChild(id),getArgs()));
@@ -37,14 +36,13 @@ public class FunctionContext extends Context{
     }
 
     @Override
-    public @NotNull MathObject getVar(NumericValue id) {
+    public MathObject getVar(NumericValue id) {
         id=id.numericValue();
         MathObject value = vars.get(id);
         if (value == null)
             return parent.getVar(id);//read values from parent layer if not assigned
         return value;
     }
-
 
     @Override
     public void putVar(NumericValue id, MathObject value) {
@@ -53,7 +51,7 @@ public class FunctionContext extends Context{
     }
 
     @Override
-    public @NotNull Function getFunction(BigInteger id) {
+    public Function getFunction(BigInteger id) {
         return parent.getFunction(id);
     }
 

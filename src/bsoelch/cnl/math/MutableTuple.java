@@ -1,8 +1,5 @@
 package bsoelch.cnl.math;
 
-import org.jetbrains.annotations.NotNull;
-
-import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
@@ -59,7 +56,6 @@ class MutableTuple<T> implements Iterable<MutableTuple.TupleEntry<T>>{
         this.tupleData=tupleData;
     }
 
-    @NotNull
     @Override
     public Iterator<TupleEntry<T>> iterator() {
         return tupleData.iterator();
@@ -117,7 +113,7 @@ class MutableTuple<T> implements Iterable<MutableTuple.TupleEntry<T>>{
                 }
             };
         }
-        @NotNull
+
         @Override
         public Iterator<TupleEntry<T>> iterator() {
             return rangeIterator(0,length);
@@ -167,7 +163,7 @@ class MutableTuple<T> implements Iterable<MutableTuple.TupleEntry<T>>{
             }
         }
         @SuppressWarnings("unchecked")
-        @NotNull
+
         private Sparse<T> asMap() {
             TreeMap<Integer,T> map=new TreeMap<>();
             for(int i=0;i<data.length;i++){
@@ -221,7 +217,7 @@ class MutableTuple<T> implements Iterable<MutableTuple.TupleEntry<T>>{
             };
         }
         @Override
-        public @NotNull Iterator<TupleEntry<T>> iterator() {
+        public Iterator<TupleEntry<T>> iterator() {
             return convert(data.entrySet().iterator());
         }
         @Override

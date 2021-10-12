@@ -1,7 +1,5 @@
 package bsoelch.cnl.math;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.math.BigInteger;
 import java.util.Objects;
 import java.util.function.Function;
@@ -66,7 +64,7 @@ public final class Complex extends NumericValue {
     }
 
     @Override
-    public int compareTo(@NotNull NumericValue s) {
+    public int compareTo( NumericValue s) {
         if(s instanceof Real){
             int c=re.compareTo(s);
             if(c!=0)

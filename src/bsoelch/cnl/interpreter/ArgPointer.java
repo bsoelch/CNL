@@ -3,7 +3,6 @@ package bsoelch.cnl.interpreter;
 import bsoelch.cnl.BitRandomAccessStream;
 import bsoelch.cnl.Constants;
 import bsoelch.cnl.math.MathObject;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -27,7 +26,7 @@ public class ArgPointer implements ValuePointer {
     }
 
     @Override
-    public @NotNull MathObject getValue() {
+    public MathObject getValue() {
         if(id.compareTo(BigInteger.ZERO)<0){
             switch (id.intValueExact()){
                 case -1:return env.argCount();

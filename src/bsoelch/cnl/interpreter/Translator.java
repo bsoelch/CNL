@@ -4,8 +4,6 @@ import bsoelch.cnl.*;
 import bsoelch.cnl.math.*;
 import bsoelch.cnl.math.expressions.LambdaVariable;
 import bsoelch.cnl.math.expressions.OperatorNode;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import static bsoelch.cnl.Constants.*;
 
@@ -453,7 +451,10 @@ public class Translator {
         }
     }
 
-    static Action nextAction(Reader code, @Nullable BitRandomAccessStream bitCode, Context context,
+    /**reads the next action from the given Reader
+     * @param bitCode BitRandomAccessStream used for remembering dode positions,
+     *                may be null if code positions are not relevant*/
+    static Action nextAction(Reader code, BitRandomAccessStream bitCode, Context context,
                              ExecutionEnvironment executionEnvironment, boolean isTopLayer) throws IOException {
         String str;
         Interpreter.CodePosition prevPos=bitCode==null?NO_POS:new Interpreter.CodePosition(bitCode, true);
@@ -1147,7 +1148,7 @@ public class Translator {
         return finishAssemblyHeader(reader);
     }
 
-    @NotNull
+    /**@return the completed FileHeader (non-null)*/
     private static FileHeader finishAssemblyHeader(Reader reader) throws IOException {
         int next= reader.read();
         if(next==':'){

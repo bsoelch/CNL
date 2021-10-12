@@ -3,7 +3,6 @@ package bsoelch.cnl.interpreter;
 import bsoelch.cnl.math.MathObject;
 import bsoelch.cnl.math.NumericValue;
 import bsoelch.cnl.math.Real;
-import org.jetbrains.annotations.NotNull;
 
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -16,8 +15,9 @@ public abstract class Context implements Action {
     final ArgPointer RES=new ArgPointer(this,true);
     final ArgPointer COUNT=new ArgPointer(this,false);
 
-    /**returns a ArgPointer to arg id in this context*/
-    final ArgPointer argPointer(@NotNull BigInteger id){
+    /**@param id Argument id, has to be non-null
+     * @return a ArgPointer to arg id in this context*/
+    final ArgPointer argPointer( BigInteger id){
         ArgPointer prev = argPointers.get(id);
         if (prev == null) {
             prev = new ArgPointer(this, id);
@@ -40,10 +40,13 @@ public abstract class Context implements Action {
         return args;
     }
 
-    abstract @NotNull Context getChild(BigInteger id);
+    /**@return Child context, has to be non-null*/
+    abstract Context getChild(BigInteger id);
 
-    abstract @NotNull MathObject getVar(NumericValue id);
-    final @NotNull MathObject getVar(MathObject id) {
+    /**@return Variable with given id, has to be non-null*/
+    abstract MathObject getVar(NumericValue id);
+    /**@return Variable with given id (non-null)*/
+    final MathObject getVar(MathObject id) {
         if(id instanceof NumericValue){
             return getVar((NumericValue)id);
         }else{
@@ -60,7 +63,8 @@ public abstract class Context implements Action {
         }
     }
 
-    abstract @NotNull Function getFunction(BigInteger id);
+    /**@return Function with given id, has to be non-null*/
+    abstract  Function getFunction(BigInteger id);
 
     abstract void putFunction(BigInteger id, Function function);
 

@@ -1,10 +1,9 @@
 package bsoelch.cnl.interpreter;
 
 import bsoelch.cnl.math.MathObject;
-import org.jetbrains.annotations.NotNull;
 
 interface ValuePointer extends Action {
-    @NotNull
+    /**Value of this ValuePointer (non-null)*/
     MathObject getValue();
 
     @Override
